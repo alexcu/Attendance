@@ -6,9 +6,18 @@ app = Flask(__name__)
 
 def connect_db():
     """Connects to the specific database."""
-    rv = sql.connect("database.db")
+    rv = sql.connect("/Users/justin/PycharmProjects/Attendance/static/database.db")
     rv.row_factory = sql.Row
     return rv
+
+
+def get_tutors():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("SELECT * FROM tutors")
+    rows = cur.fetchall()
+    con.close()
+    return rows
 
 
 @app.route('/')
@@ -21,11 +30,7 @@ def view_rolls():
 
 @app.route('/viewtutors')
 def view_tutors():
-    con =  sql.connect("database.db")
-    con.row_factory = sql.Row
-    cur = con.cursor()
-    cur.execute("SELECT * FROM tutors")
-    rows = cur.fetchall();
+    rows = get_tutors()
     return render_template('viewtutors.html', rows=rows)
 
 @app.route('/addtutor',methods=['GET','POST'])
@@ -38,18 +43,20 @@ def add_tutor():
             email = request.form['email']
             phone = request.form['phone']
 
-            with sql.connect("database.db") as con:
-                cur = con.cursor()
-                cur.execute("INSERT INTO tutors (name,email,phone) VALUES(?, ?, ?)",(nm,email,phone) )
-                con.commit()
-                msg = "Record successfully added"
+            con = connect_db()
+            cur = con.cursor()
+            cur.execute("INSERT INTO tutors (name,email,phone) VALUES(?, ?, ?)",(nm,email,phone))
+            con.commit()
+            msg = "Record successfully added"
         except:
             con.rollback()
             msg = "error in insert operation"
 
         finally:
-            return render_template("viewtutors.html", msg=msg)
             con.close()
+            rows = get_tutors()
+            return render_template("viewtutors.html", msg=msg, rows = rows)
+
 
 if __name__ == '__main__':
     app.run()

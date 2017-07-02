@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataSource name="database.db">
+  <database-model serializer="dbm" rdbms="SQLITE" format-version="4.0">
+    <root id="1"/>
+    <schema id="2" parent="1">
+      <Current>1</Current>
+      <Visible>1</Visible>
+    </schema>
+    <table id="3" parent="2" name="students"/>
+    <table id="4" parent="2" name="tutors"/>
+    <column id="5" parent="3" name="name">
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+    <column id="6" parent="3" name="addr">
+      <Position>1</Position>
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+    <column id="7" parent="3" name="city">
+      <Position>2</Position>
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+    <column id="8" parent="3" name="pin">
+      <Position>3</Position>
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+    <column id="9" parent="4" name="name">
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+    <column id="10" parent="4" name="email">
+      <Position>1</Position>
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+    <column id="11" parent="4" name="phone">
+      <Position>2</Position>
+      <DataType>TEXT(0,-1)|12</DataType>
+    </column>
+  </database-model>
+</dataSource>
