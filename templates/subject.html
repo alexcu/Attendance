@@ -1,0 +1,38 @@
+{%  extends "layout.html" %}
+{% block content %}
+<h1>Subject Information</h1>
+{{ msg }}
+<table border = 1>
+         <thead>
+            <td>Subject Code</td>
+            <td>Subject Name</td>
+            <td>Study Period</td>
+         </thead>
+            <tr>
+               <td>{{rows["subcode"]}}</td>
+               <td>{{rows["subname"]}}</td>
+               <td> {{ rows["studyperiod"]}}</td>
+            </tr>
+      </table>
+    <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
+
+    <h1>Students Enrolled in this subject</h1>
+    <table border = 1>
+         <thead>
+            <td>Student Number</td>
+            <td>Student First Name</td>
+            <td>Student Last Name</td>
+         </thead>
+
+         {% for student in students %}
+            <tr>
+
+                <td><a href="{{ url_for('view_student', studentid = student.studentid) }}">{{student["studentid"]}}</a></td>
+               <td>{{student["firstname"]}}</td>
+                <td> {{ student["lastname"]}}</td>
+            </tr>
+         {% endfor %}
+      </table>
+
+
+{% endblock %}

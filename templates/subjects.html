@@ -1,0 +1,23 @@
+{%  extends "layout.html" %}
+{% block content %}
+<h1>Subjects</h1>
+{{ msg }}
+<table border = 1>
+         <thead>
+            <td>Subject Code</td>
+            <td>Subject Name</td>
+            <td>Study Period</td>
+         </thead>
+
+         {% for row in rows %}
+            <tr>
+               <td>{{row["subcode"]}}</td>
+                <td><a href="{{ url_for('view_subject', subcode = row.subcode) }}">{{row["subname"]}}</a></td>
+               <td> {{ row["studyperiod"]}}</td>
+            </tr>
+         {% endfor %}
+      </table>
+
+    <a href="addsubject">Add Subject</a>
+
+{% endblock %}

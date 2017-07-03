@@ -1,6 +1,6 @@
 {%  extends "layout.html" %}
 {% block content %}
-
+<h1>Tutors</h1>
 {{ msg }}
 <table border = 1>
          <thead>
@@ -11,7 +11,7 @@
 
          {% for row in rows %}
             <tr>
-               <td>{{row["name"]}}</td>
+                <td><a href="{{ url_for('view_tutor', name = row["name"]) }}">{{row["name"]}}</a></td>
                <td>{{row["email"]}}</td>
                <td> {{ row["phone"]}}</td>
             </tr>

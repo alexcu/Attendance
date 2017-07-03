@@ -1,6 +1,24 @@
 {%  extends "layout.html" %}
 {% block content %}
+<h1>Students</h1>
+{{ msg }}
+<table border = 1>
+         <thead>
+            <td>Student ID</td>
+            <td>First Name</td>
+            <td>Last Name</td>
+         </thead>
 
-    Hello
+         {% for row in rows %}
+            <tr>
+                <td><a href="{{ url_for('view_student', name = row["studentid"]) }}">{{row["studentid"]}}</a></td>
+               <td>{{row["firstname"]}}</td>
+               <td> {{ row["lastname"]}}</td>
+            </tr>
+         {% endfor %}
+      </table>
+
+
+<a href="addtutor">Add Student</a>
 
 {% endblock %}

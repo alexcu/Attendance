@@ -1,0 +1,42 @@
+{%  extends "layout.html" %}
+{% block content %}
+<h1>Tutor Information</h1>
+{{ msg }}
+<table border = 1>
+         <thead>
+            <td>Name</td>
+            <td>Email</td>
+            <td>Phone</td>
+         </thead>
+            <tr>
+               <td>{{rows["name"]}}</td>
+               <td>{{rows["email"]}}</td>
+               <td> {{ rows["phone"]}}</td>
+            </tr>
+      </table>
+
+
+
+
+    <h1>Subjects this tutor teaches:</h1>
+    <table border = 1>
+         <thead>
+            <td>Subject Code</td>
+            <td>Subject Name</td>
+            <td>Study Period</td>
+            <td></td>
+         </thead>
+
+         {% for subject in subjects%}
+            <tr>
+
+                <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subcode"]}}</a></td>
+               <td>{{subject["subname"]}}</td>
+                <td> {{ subject["studyperiod"]}}</td>
+                <td>Remove</td>
+            </tr>
+         {% endfor %}
+      </table>
+    <a href="">Add Subject to Tutor</a>
+
+{% endblock %}
