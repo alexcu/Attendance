@@ -5,8 +5,7 @@ app = Flask(__name__)
 
 
 def connect_db():
-    """Connects to the specific database."""
-    rv = sql.connect("/Users/justin/PycharmProjects/Attendance/static/database.db")
+    rv = sql.connect("C:/Users/justi/PycharmProjects/Attendance/static/database.db")
     rv.row_factory = sql.Row
     return rv
 
@@ -83,7 +82,7 @@ def remove_subject(subcode):
         con = connect_db()
         cur = con.cursor()
         cur.execute("delete from subjects where subcode = ?", (subcode,))
-        print("delete from subjects where subcode = ?", (subcode,))
+        con.commit()
         msg = "Completed Successfully"
         con.close()
         return render_template("subjects.html", rows = get_subjects(), msg=msg)
@@ -91,6 +90,24 @@ def remove_subject(subcode):
         con.rollback()
         msg = "Error"
         return render_template("subjects.html", rows = get_subjects(), msg=msg)
+    finally:
+        con.close()
+
+
+@app.route('/removetutor?name=<name>')
+def remove_tutor(name):
+    try:
+        con = connect_db()
+        cur = con.cursor()
+        cur.execute("delete from tutors where name = ?", (name,))
+        con.commit()
+        msg = "Completed Successfully"
+        con.close()
+        return render_template("viewtutors.html", rows = get_tutors(), msg=msg)
+    except:
+        con.rollback()
+        msg = "Error"
+        return render_template("viewtutors.html", rows = get_tutors(), msg=msg)
     finally:
         con.close()
 
@@ -150,6 +167,10 @@ def add_tutor():
             con.close()
             return render_template("viewtutors.html", msg=msg, rows = get_tutors())
 
+@app.route('/uploadstudentdata')
+def upload_student_data():
+    return render_template('uploadstudentdata.html')
+
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
