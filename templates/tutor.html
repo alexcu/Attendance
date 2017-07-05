@@ -9,16 +9,17 @@
             <td>Phone</td>
          </thead>
             <tr>
-               <td>{{rows["name"]}}</td>
+               <td>{{rows["firstname"]}} {{ rows["lastname"] }}</td>
                <td>{{rows["email"]}}</td>
                <td> {{ rows["phone"]}}</td>
             </tr>
       </table>
 
-<a href="{{ url_for('remove_tutor', name = rows["name"]) }}">Delete Tutor</a>
+<a href="{{ url_for('remove_tutor', tutorid = rows["tutorid"]) }}">Delete Tutor</a>
 
 
     <h1>Subjects this tutor teaches:</h1>
+    {{ msg2 }}
     <table border = 1>
          <thead>
             <td>Subject Code</td>
@@ -27,16 +28,72 @@
             <td></td>
          </thead>
 
-         {% for subject in subjects%}
+         {% for subject in subjects %}
             <tr>
 
                 <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subcode"]}}</a></td>
                <td>{{subject["subname"]}}</td>
                 <td> {{ subject["studyperiod"]}}</td>
-                <td>Remove</td>
+                <td><a href="{{ url_for('remove_subject_from_tutor', subcode = subject.subcode, tutorid = rows['tutorid']) }}">Remove</a></td>
             </tr>
          {% endfor %}
       </table>
-    <a href="">Add Subject to Tutor</a>
+    <h3>Add Subject to Tutor</h3>
+    <form action = "{{ url_for('add_subject_to_tutor', tutorid = rows["tutorid"]) }}" method = "POST">
+    <select name = "subject">
+        {%  for subject in eligiblesubjects %}
+
+            <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
+
+        {% endfor %}
+
+    </select>
+
+    <input type="submit" value = "Add Subject to Tutor" />
+    </form>
+    {{ msg2 }}
+
+
+    <h1>Tutor Availability</h1>
+    {{ msg3 }}
+    <table border = 1>
+         <thead>
+            <td>Monday 7:30pm</td>
+            <td>Monday 8:30pm</td>
+            <td>Monday 9:30pm</td>
+            <td>Tuesday 7:30pm</td>
+            <td>Tuesday 8:30pm</td>
+            <td>Tuesday 9:30pm</td>
+            <td>Wednesday 7:30pm</td>
+            <td>Wednesday 8:30pm</td>
+            <td>Wednesday 9:30pm</td>
+         </thead>
+    <tr><td>{{ availability["time1"] }}</td>
+        <td>{{ availability["time2"] }}</td>
+        <td>{{ availability["time3"] }}</td>
+        <td>{{ availability["time4"] }}</td>
+        <td>{{ availability["time5"] }}</td>
+        <td>{{ availability["time6"] }}</td>
+        <td>{{ availability["time7"] }}</td>
+        <td>{{ availability["time8"] }}</td>
+        <td>{{ availability["time9"] }}</td>
+    </tr>
+
+
+    </table>
+    <h3>Update Tutor Availability</h3>
+    <form action = "{{ url_for('update_tutor_availability', tutorid = rows['tutorid']) }}", method="POST">
+
+    <input type = "checkbox" name="time1" >Monday 7:30 <br>
+    <input type = "checkbox" name="time2" >Monday 8:30 <br>
+    <input type = "checkbox" name="time3" >Monday 9:30 <br>
+    <input type = "checkbox" name="time4" >Tuesday 7:30 <br>
+    <input type = "checkbox" name="time5" >Tuesday 8:30 <br>
+    <input type = "checkbox" name="time6" >Tuesday 9:30 <br>
+    <input type = "checkbox" name="time7" >Wednesday 7:30 <br>
+    <input type = "checkbox" name="time8" >Wednesday 8:30 <br>
+    <input type = "checkbox" name="time9" >Wednesday 9:30 <br>
+    <input type = "submit" value = "Submit Availability">
+    </form>
 
 {% endblock %}

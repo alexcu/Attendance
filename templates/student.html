@@ -9,7 +9,7 @@
             <td>Last Name</td>
          </thead>
             <tr>
-               <td>{{rows["studentid"]}}</td>
+               <td>{{rows["studentcode"]}}</td>
                <td>{{rows["firstname"]}}</td>
                <td> {{ rows["lastname"]}}</td>
             </tr>
@@ -30,8 +30,8 @@
          {% for subject in subjects%}
             <tr>
 
-                <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subcode"]}}</a></td>
-               <td>{{subject["subname"]}}</td>
+                <td>{{subject["subcode"]}}</td>
+               <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subname"]}}</a></td>
                 <td> {{ subject["studyperiod"]}}</td>
                 <td>Remove</td>
             </tr>

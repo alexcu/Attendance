@@ -16,23 +16,81 @@
       </table>
     <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
 
+    <h1>Tutor</h1>
+    <table border = 1>
+         <thead>
+            <td>Tutor Name</td>
+            <td>Email</td>
+            <td>Phone</td>
+         <td />
+         </thead>
+            <tr>
+                <td><a href="{{ url_for('view_tutor', tutorid = tutor["tutorid"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a></td>
+               <td>{{ tutor["email"] }}</td>
+               <td>{{ tutor["phone"] }}</td>
+                <td>{% if tutor != None %}<a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["tutorid"]) }}">Remove</a>{% endif %}</td>
+            </tr>
+      </table>
+
+       <h3>Add Tutor to Subject</h3>
+    <form action = "{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method = "POST">
+    <select name = "tutor">
+        {%  for temptutor in tutors %}
+
+            <option value={{ temptutor["tutorid"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
+
+        {% endfor %}
+
+    </select>
+
+    <input type="submit" value = "Add Tutor to Subject" />
+    </form>
+    {{ msg2 }}
+
     <h1>Students Enrolled in this subject</h1>
     <table border = 1>
          <thead>
             <td>Student Number</td>
-            <td>Student First Name</td>
-            <td>Student Last Name</td>
+            <td>First Name</td>
+            <td>Last Name</td>
          </thead>
 
          {% for student in students %}
             <tr>
 
-                <td><a href="{{ url_for('view_student', studentid = student.studentid) }}">{{student["studentid"]}}</a></td>
+                <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["studentcode"]}}</a></td>
                <td>{{student["firstname"]}}</td>
                 <td> {{ student["lastname"]}}</td>
             </tr>
          {% endfor %}
       </table>
+
+    {% if tutor != None %}
+
+    <h1>Mark Rolls for This Subject</h1>
+        <table border = 1>
+         <thead>
+            <td>Class Number</td>
+            <td>Date</td>
+            <td>Time</td>
+            <td>Repeat</td>
+         <td></td>
+         </thead>
+
+         {% for class in classes %}
+            <tr>
+
+                <td>{{ class["classid"] }}</td>
+               <td>{{ class["datetime"] }}</td>
+                <td> </td>
+                <td>Edit</td>
+            </tr>
+         {% endfor %}
+      </table>
+
+    {% endif %}
+    <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">Add a Class</a>
+
 
 
 {% endblock %}

@@ -5,15 +5,13 @@
 <table border = 1>
          <thead>
             <td>Student ID</td>
-            <td>First Name</td>
-            <td>Last Name</td>
+            <td>Name</td>
          </thead>
 
          {% for row in rows %}
             <tr>
-                <td><a href="{{ url_for('view_student', name = row["studentid"]) }}">{{row["studentid"]}}</a></td>
-               <td>{{row["firstname"]}}</td>
-               <td> {{ row["lastname"]}}</td>
+                <td><a href="{{ url_for('view_student', studentcode = row["studentcode"]) }}">{{row["studentcode"]}}</a></td>
+                <td><a href="{{ url_for('view_student', studentcode = row["studentcode"]) }}">{{row["firstname"]}} {{ row["lastname"] }}</a></td>
             </tr>
          {% endfor %}
       </table>
