@@ -121,6 +121,7 @@ def init_db():
     cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null)")
     con.close()
 
+
 @app.route('/timetable')
 def view_timetable():
     return render_template('viewtimetable.html')
@@ -460,30 +461,7 @@ def remove_tutor(tutorid):
     finally:
         con.close()
 
-def get_subjects():
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from subjects")
-    rows = cur.fetchall()
-    con.close()
-    return rows
 
-
-def get_students():
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from students")
-    rows = cur.fetchall()
-    con.close()
-    return rows
-
-def get_subject(subcode):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from subjects where subcode = ?", (subcode,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
 
 @app.route('/viewtutors')
 def view_tutors():
@@ -502,25 +480,11 @@ def view_student(studentcode):
     return render_template('student.html', rows = get_student(studentcode), subjects=get_student_and_subjects(studentcode))
 
 
-def get_student(studentcode):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from students where studentcode = ?", (studentcode,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
 
 @app.route('/viewtutor?tutorid=<tutorid>')
 def view_tutor(tutorid):
     return view_tutor_template(tutorid)
 
-def get_tutor(tutorid):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from tutors where tutorid = ?", (tutorid,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
 
 
 @app.route('/addtutor',methods=['GET','POST'])
@@ -555,6 +519,52 @@ def upload_student_data():
 @app.route('/uploadtutordata')
 def upload_tutor_data():
     return render_template('uploadtutordata.html')
+
+
+#HELPER METHODS
+def get_tutor(tutorid):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from tutors where tutorid = ?", (tutorid,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
+
+
+def get_student(studentcode):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from students where studentcode = ?", (studentcode,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
+
+
+def get_subjects():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from subjects")
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+
+def get_students():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from students")
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+
+def get_subject(subcode):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from subjects where subcode = ?", (subcode,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
 
 
 if __name__ == '__main__':
