@@ -1,10 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{%  extends "layout.html" %}
+{% block content %}
+   <form action = "{{ url_for('add_class', subcode = subject["subcode"]) }}" method = "POST">
+         <h3>Class Information</h3>
+         Date<br>
+         <input type = "text" name = "date" /></br>
+        Time<br>
+         <input type = "text" name = "time" /></br>
+         Repeat?<br>
+       <input type = "text" name="repeat" /><br>
+        {% for student in students %}
+         {{ student["firstname"] }} {{ student["lastname"] }}<br>
+         <input type = "checkbox" name = {{ student["studentcode"] }} /><br>
+        {% endfor %}
+        <input type = "submit" value = "submit" /><br>
 
-</body>
-</html>
+      </form>
+
+{% endblock %}

@@ -7,8 +7,10 @@ app = Flask(__name__)
 
 
 
-
-app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
+#WINDOWS
+#app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
+#LINUX
+app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 def allowed_file(filename):
     return '.' in filename and \
@@ -19,7 +21,7 @@ def allowed_file(filename):
 @app.route('/upload', methods=['POST'])
 def upload():
     # Get the name of the uploaded file
-    init_db()
+
     file = request.files['file']
     # Check if the file is one of the allowed types/extensions
     if file and allowed_file(file.filename):
@@ -41,13 +43,23 @@ def upload():
 
 
 def connect_db():
-    rv = sql.connect("C:/Users/justi/PycharmProjects/Attendance/static/database.db")
+
+    init_db()
+    con = create_connection()
+    return con
+
+
+def create_connection():
+    # WINDOWS
+    # rv = sql.connect("C:/Users/justi/PycharmProjects/Attendance/static/database.db")
+    # LINUX
+    rv = sql.connect("/home/justin/PycharmProjects/Attendance/static/database.db")
     rv.row_factory = sql.Row
     return rv
 
 
 def init_db():
-    con = connect_db()
+    con = create_connection()
     cur = con.cursor()
     cur.execute("CREATE TABLE if not EXISTS subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) UNIQUE NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL)")
     cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL)")
@@ -55,11 +67,13 @@ def init_db():
     cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL)")
     cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL)")
     cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1)")
-    cur.execute("create table if not exists classes (classid integer primary key autoincrement, tutorid integer not null, datetime text, subcode char(50) not null, repeat integer) ")
+    cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null) ")
     cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null)")
     con.close()
 
-
+@app.route('/removeclass?classid=<classid>')
+def remove_class(classid):
+    return "kittens"
 
 def get_tutor_availability(tutorid):
     con = connect_db()
@@ -80,7 +94,7 @@ def set_tutor_availability(tutorid, availability):
 
 @app.route('/updatetutoravailability?tutorid=<tutorid>',methods=['GET','POST'])
 def update_tutor_availability(tutorid):
-    init_db()
+
     time1 = checkboxvalue(request.form.get('time1'))
     time2 = checkboxvalue(request.form.get('time2'))
     time3 = checkboxvalue(request.form.get('time3'))
@@ -187,6 +201,71 @@ def add_subject_to_tutor(tutorid):
         msg = linksubjecttutor(tutorid, subcode)
         return view_tutor_template(tutorid,msg)
 
+@app.route('/addclass?subcode=<subcode>',methods=['GET','POST'])
+def add_class(subcode):
+
+    if request.method == 'GET':
+        return render_template('addclass.html', subject = get_subject(subcode),students = get_subject_and_students(subcode))
+    elif request.method == 'POST':
+        classtime = request.form["time"]
+        repeat = request.form["repeat"]
+
+        students = get_subject_and_students(subcode)
+        attendees = []
+        for student in students:
+            if checkboxvalue(request.form.get(student["studentcode"])) == 1:
+                attendees.append(student["studentcode"])
+        add_class_to_db(classtime, subcode,attendees, repeat)
+        return view_subject_template(subcode)
+
+@app.route('/viewclass?classid=<classid>')
+def view_class(classid):
+    classdata = get_class(classid)
+    return render_template('class.html', classdata = classdata, tutor = get_tutor(classdata["tutorid"]),students = get_subject_and_students(classdata["subcode"]), attendees = get_attendees(classid))
+
+
+def get_attendees(classid):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select studentcode from stuattendance where classid = ?", (classid,))
+    rows = cur.fetchall()
+
+    returns = []
+    for row in rows:
+        returns.append(row["studentcode"])
+    con.close()
+    return returns
+
+def get_class(classid):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from classes where classid = ?", (classid,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
+
+def add_class_to_db(classtime,subcode,attendees,repeat=1):
+    con = connect_db()
+    cur = con.cursor()
+    tutor = get_subject_and_tutor(subcode)
+    cur.execute("insert into classes (classtime,subcode,repeat,tutorid) values (?,?,?,?)",(classtime,subcode,repeat,tutor["tutorid"]))
+    con.commit()
+    cur.execute("select * from classes where classtime = ? and subcode = ? and repeat = ? and tutorid = ?", (classtime,subcode,repeat,tutor["tutorid"]))
+    specificclass=cur.fetchone()
+    con.close()
+    add_students_to_class(specificclass, attendees)
+    return "Completed Successfully"
+
+def add_students_to_class(specificclass, attendees):
+    con = connect_db()
+    cur = con.cursor()
+    for i in range(len(attendees)):
+        print(specificclass["classid"])
+        cur.execute("insert into stuattendance (classid,studentcode) values (?,?)", (specificclass["classid"],attendees[i]))
+    con.commit()
+    con.close()
+    return "Completed Successfully"
+
 
 @app.route('/addtutortosubject?subcode=<subcode>',methods=['GET','POST'])
 def add_tutor_to_subject(subcode):
@@ -238,13 +317,10 @@ def view_rolls():
 
 @app.route('/subjects')
 def view_subjects():
-    try:
-        rows = get_subjects()
-        return render_template('subjects.html', rows = rows)
-    except:
-        init_db()
-        rows = get_subjects()
-        return render_template('subjects.html', rows=rows)
+
+    rows = get_subjects()
+    return render_template('subjects.html', rows = rows)
+
 
 @app.route('/addsubject',methods=['GET','POST'])
 def add_subject():
@@ -274,7 +350,13 @@ def view_subject(subcode):
     return view_subject_template(subcode)
 
 def view_subject_template(subcode,msg=""):
-    return render_template("subject.html",rows = get_subject(subcode),students = get_subject_and_students(subcode), tutor = get_subject_and_tutor(subcode), tutors = get_tutors(),msg=msg)
+    return render_template("subject.html",rows = get_subject(subcode),students = get_subject_and_students(subcode), tutor = get_subject_and_tutor(subcode), tutors = get_tutors(),classes = get_classes_for_subject(subcode),msg=msg)
+
+def get_classes_for_subject(subcode):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from classes where subcode = ?",(subcode,))
+    return cur.fetchall()
 
 
 @app.route('/removesubject?subcode=<subcode>')
@@ -339,19 +421,15 @@ def get_subject(subcode):
 
 @app.route('/viewtutors')
 def view_tutors():
-    try:
-        return render_template('viewtutors.html', rows=get_tutors())
-    except:
-        init_db()
-        return render_template('viewtutors.html', rows=get_tutors())
+
+    return render_template('viewtutors.html', rows=get_tutors())
+
 
 @app.route('/viewstudents')
 def view_students():
-    try:
-        return render_template('viewstudents.html', rows=get_students())
-    except:
-        init_db()
-        return render_template('viewstudents.html', rows=get_students())
+
+    return render_template('viewstudents.html', rows=get_students())
+
 
 @app.route('/viewstudent?studentcode=<studentcode>')
 def view_student(studentcode):

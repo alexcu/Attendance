@@ -83,7 +83,8 @@
                 <td>{{ class["classid"] }}</td>
                <td>{{ class["datetime"] }}</td>
                 <td> </td>
-                <td>Edit</td>
+                <td>{{ class["repeat"] }}</td>
+                <td><a href="{{ url_for('view_class', classid = class["classid"]) }}">View Class</a></td>
             </tr>
          {% endfor %}
       </table>
