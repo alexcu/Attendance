@@ -2,7 +2,9 @@
 {% block content %}
 <h1>Tutors</h1>
 {{ msg }}
-<table border = 1>
+    <div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Name</td>
             <td>Email</td>
@@ -16,9 +18,9 @@
                <td> {{ row["phone"]}}</td>
             </tr>
          {% endfor %}
-      </table>
+          </table></div></div>
 
 
-<a href="addtutor">Add Tutor</a>
+<a href="addtutor"><button type="button" class="btn btn-lg btn-default">Add Tutor</button></a>
 
 {% endblock %}

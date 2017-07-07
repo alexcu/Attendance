@@ -2,7 +2,9 @@
 {% block content %}
 <h1>Tutor Information</h1>
 {{ msg }}
-<table border = 1>
+<div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Name</td>
             <td>Email</td>
@@ -13,14 +15,16 @@
                <td>{{rows["email"]}}</td>
                <td> {{ rows["phone"]}}</td>
             </tr>
-      </table>
+          </table></div></div>
 
-<a href="{{ url_for('remove_tutor', tutorid = rows["tutorid"]) }}">Delete Tutor</a>
+    <a href="{{ url_for('remove_tutor', tutorid = rows["tutorid"]) }}"><button type="button" class="btn btn-lg btn-default">Delete Tutor</button></a>
 
 
     <h1>Subjects this tutor teaches:</h1>
     {{ msg2 }}
-    <table border = 1>
+    <div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Subject Code</td>
             <td>Subject Name</td>
@@ -34,10 +38,10 @@
                 <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subcode"]}}</a></td>
                <td>{{subject["subname"]}}</td>
                 <td> {{ subject["studyperiod"]}}</td>
-                <td><a href="{{ url_for('remove_subject_from_tutor', subcode = subject.subcode, tutorid = rows['tutorid']) }}">Remove</a></td>
+                <td><a href="{{ url_for('remove_subject_from_tutor', subcode = subject.subcode, tutorid = rows['tutorid']) }}"><button type="button" class="btn btn-default">Remove</button></a></td>
             </tr>
          {% endfor %}
-      </table>
+          </table></div></div>
     <h3>Add Subject to Tutor</h3>
     <form action = "{{ url_for('add_subject_to_tutor', tutorid = rows["tutorid"]) }}" method = "POST">
     <select name = "subject">
@@ -56,7 +60,9 @@
 
     <h1>Tutor Availability</h1>
     {{ msg3 }}
-    <table border = 1>
+    <div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Monday 7:30pm</td>
             <td>Monday 8:30pm</td>
@@ -80,7 +86,7 @@
     </tr>
 
 
-    </table>
+          </table></div></div>
     <h3>Update Tutor Availability</h3>
     <form action = "{{ url_for('update_tutor_availability', tutorid = rows['tutorid']) }}", method="POST">
 

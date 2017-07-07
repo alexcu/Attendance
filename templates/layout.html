@@ -1,61 +1,92 @@
 <!DOCTYPE html>
-<html>
-<title>IH Timetabling</title>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<style>
-html,body,h1,h2,h3,h4,h5,h6 {font-family: "Roboto", sans-serif}
-</style>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
 
+    <title>IH Timetabling</title>
 
-<body>
+    <!-- Bootstrap core CSS -->
+    <link href="../../static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="../../static/css/bootstrap-theme.min.css" rel="stylesheet">
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <link href="../../static/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
 
-<!-- Navbar -->
-<div class="w3-top">
-  <div class="w3-bar w3-theme w3-top w3-left-align w3-large">
-    <a class="w3-bar-item w3-button w3-right w3-hide-large w3-hover-white w3-large w3-theme-l1" href="javascript:void(0)" onclick="w3_open()"><i class="fa fa-bars"></i></a>
-    <a href="/" class="w3-bar-item w3-button w3-theme-l1">IH Timetabling</a>
-    <a href="subjects" class="w3-bar-item w3-button w3-hide-small w3-hover-white">View Subjects</a>
-      <a href="timetable" class="w3-bar-item w3-button w3-hide-small w3-hover-white">View Timetable</a>
-    <a href="rolls" class="w3-bar-item w3-button w3-hide-small w3-hover-white">View Rolls</a>
-    <a href="viewtutors" class="w3-bar-item w3-button w3-hide-small w3-hover-white">View Tutors</a>
-      <a href="viewstudents" class="w3-bar-item w3-button w3-hide-small w3-hover-white">View Students</a>
-    <a href="uploadstudentdata" class="w3-bar-item w3-button w3-hide-small w3-hide-medium w3-hover-white">Upload Student Data</a>
-      <a href="uploadtutordata" class="w3-bar-item w3-button w3-hide-small w3-hide-medium w3-hover-white">Upload Tutor Data</a>
-  </div>
-</div>
+    <!-- Custom styles for this template -->
+    <link href="theme.css" rel="stylesheet">
 
-<!-- Overlay effect when opening sidebar on small screens -->
-<div class="w3-overlay w3-hide-large" onclick="w3_close()" style="cursor:pointer" title="close side menu" id="myOverlay"></div>
-<div class="w3-main" style="margin-left:0px">
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="../../static/js/ie-emulation-modes-warning.js"></script>
 
-  <div class="w3-row w3-padding-64">
-    <div class="w3-twothird w3-container">
-{% block content %}{% endblock %}
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
 
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">IH Timetabling</a>
         </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="/">Home</a></li>
+              <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">View<span class="caret"></span></a>
+              <ul class="dropdown-menu">
+            <li><a href="subjects">Subjects</a></li>
+            <li><a href="timetable">Timetable</a></li>
+            <li><a href="rolls">Rolls</a></li>
+              <li><a href="viewtutors">Tutors</a></li>
+              <li><a href="viewstudents">Students</a></li>
+              </ul></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Upload Data <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="uploadstudentdata">Student Data</a></li>
+                <li><a href="uploadtutordata">Tutor Data</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
 
-  </div>
+    <div class="container theme-showcase" role="main">
+    <div class = "page-header"></div>
+      <div class="page-header">
+        {% block content %}{% endblock %}
+      </div>
+
+    </div> <!-- /container -->
 
 
-
-     <footer id="myFooter">
-    <div class="w3-container w3-theme-l2 w3-padding-32">
-      <h4>Footer</h4>
-    </div>
-
-    <div class="w3-container w3-theme-l1">
-      <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a></p>
-    </div>
-  </footer>
-
-<!-- END MAIN -->
-</div>
-<script src="js/main.js"></script>
-</body>
-
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="../../static/js/bootstrap.min.js"></script>
+    <script src="../../static/js/docs.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../../static/js/ie10-viewport-bug-workaround.js"></script>
+  </body>
 </html>

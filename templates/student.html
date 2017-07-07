@@ -2,7 +2,9 @@
 {% block content %}
 <h1>Student Information</h1>
 {{ msg }}
-<table border = 1>
+<div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Student ID</td>
             <td>Name</td>
@@ -12,12 +14,14 @@
                <td>{{rows["firstname"]}} {{ rows["lastname"]}}</td>
             </tr>
       </table>
-
+        </div></div>
 
 
 
     <h1>Subjects this student takes:</h1>
-    <table border = 1>
+    <div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Subject Code</td>
             <td>Subject Name</td>
@@ -35,6 +39,7 @@
             </tr>
          {% endfor %}
       </table>
-    <a href="">Add Subject to Student</a>
+        </div></div>
+    <a href=""><button type="button" class="btn btn-lg btn-default">Add Subject to Student</button></a>
 
 {% endblock %}

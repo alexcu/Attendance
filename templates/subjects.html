@@ -2,7 +2,9 @@
 {% block content %}
 <h1>Subjects</h1>
 {{ msg }}
-<table border = 1>
+    <div class="row">
+        <div class="col-md-6">
+          <table class="table">
          <thead>
             <td>Subject Code</td>
             <td>Subject Name</td>
@@ -11,13 +13,13 @@
 
          {% for row in rows %}
             <tr>
-               <td>{{row["subcode"]}}</td>
+                <td><a href="{{ url_for('view_subject', subcode = row.subcode) }}">{{row["subcode"]}}</a></td>
                 <td><a href="{{ url_for('view_subject', subcode = row.subcode) }}">{{row["subname"]}}</a></td>
                <td> {{ row["studyperiod"]}}</td>
             </tr>
          {% endfor %}
-      </table>
+          </table></div></div>
 
-    <a href="addsubject">Add Subject</a>
+    <a href="addsubject"><button type="button" class="btn btn-lg btn-default">Add Subject</button></a>
 
 {% endblock %}
