@@ -18,12 +18,70 @@ def allowed_file(filename):
 
 
 # Route that will process the file upload
-@app.route('/upload', methods=['POST'])
-def upload():
-    # Get the name of the uploaded file
+@app.route('/uploadstudentdata', methods=['POST'])
+def uploadstudentdata():
+    try:
+        filename2 = upload(request.files['file'])
+        populate_students(filename2)
+        msg = "Completed Successfully"
+    except:
+        msg = "There was an error with the upload, please try again"
+        # Redirect the user to the uploaded_file route, which
+        # will basicaly show on the browser the uploaded file
+    return render_template("uploadstudentdata.html", msg = msg)
 
-    file = request.files['file']
-    # Check if the file is one of the allowed types/extensions
+
+@app.route('/uploadtutordata',methods = ['POST'])
+def uploadtutordata():
+    try:
+        filename2 = upload(request.files['file'])
+
+        populate_tutors(filename2)
+        os.remove(filename2)
+        msg = "Completed successfully"
+    except:
+        msg="There was an error with the upload, please try again."
+    return render_template("uploadtutordata.html",msg=msg)
+
+def populate_tutors(filename):
+
+    xl = pandas.ExcelFile(filename)
+
+    df = xl.parse(xl.sheet_names[0])
+    con = connect_db()
+    cur = con.cursor()
+    for index, row in df.iterrows():
+        try:
+            cur.execute("select * from tutors where firstname = ? and lastname = ?",(row['Given Name'],row['Family Name']))
+            if cur.fetchone() == None:
+                cur.execute("insert or ignore into tutors (firstname,lastname,email,phone) values (?,?,?,?)",
+                            (row['Given Name'], row['Family Name'], row['Email'], row['Phone']))
+        except:
+            print("Error with Tutor %d" % row['Family Name'])
+    try:
+
+        df = xl.parse(xl.sheet_names[1])
+        print("Doing this")
+        for index,row in df.iterrows():
+            print(get_tutor_from_name(row)["tutorid"])
+            cur.execute("insert or replace into subtutmap (tutorid,subcode) values (?,?)",(get_tutor_from_name(row)["tutorid"], row["Subject Code"]))
+    except:
+        msg = "No mappings detected. Skipping"
+    finally:
+        con.commit()
+        con.close()
+
+
+def get_tutor_from_name(tutor):
+    con =connect_db()
+    cur = con.cursor()
+    split = tutor["Tutor"].split()
+    cur.execute("select tutorid from tutors where firstname = ? and lastname = ?",(split[0],split[1]))
+    row = cur.fetchone()
+    con.close()
+    return row
+
+def upload(file):
     if file and allowed_file(file.filename):
         # Make the filename safe, remove unsupported chars
         filename = file.filename
@@ -31,15 +89,7 @@ def upload():
         # the upload folder we setup
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         filename2 = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        try:
-            populate_students(filename2)
-            msg = "Completed Successfully"
-        except:
-            msg = "There was an error with the upload, please try again"
-        # Redirect the user to the uploaded_file route, which
-        # will basicaly show on the browser the uploaded file
-        return render_template("uploadstudentdata.html", msg = msg)
-
+        return filename2
 
 #DATABASE METHODS
 def connect_db():
@@ -70,6 +120,7 @@ def init_db():
     cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null) ")
     cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null)")
     con.close()
+
 
 @app.route('/timetable')
 def view_timetable():
@@ -410,30 +461,7 @@ def remove_tutor(tutorid):
     finally:
         con.close()
 
-def get_subjects():
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from subjects")
-    rows = cur.fetchall()
-    con.close()
-    return rows
 
-
-def get_students():
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from students")
-    rows = cur.fetchall()
-    con.close()
-    return rows
-
-def get_subject(subcode):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from subjects where subcode = ?", (subcode,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
 
 @app.route('/viewtutors')
 def view_tutors():
@@ -452,25 +480,11 @@ def view_student(studentcode):
     return render_template('student.html', rows = get_student(studentcode), subjects=get_student_and_subjects(studentcode))
 
 
-def get_student(studentcode):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from students where studentcode = ?", (studentcode,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
 
 @app.route('/viewtutor?tutorid=<tutorid>')
 def view_tutor(tutorid):
     return view_tutor_template(tutorid)
 
-def get_tutor(tutorid):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from tutors where tutorid = ?", (tutorid,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
 
 
 @app.route('/addtutor',methods=['GET','POST'])
@@ -500,6 +514,57 @@ def add_tutor():
 @app.route('/uploadstudentdata')
 def upload_student_data():
     return render_template('uploadstudentdata.html')
+
+
+@app.route('/uploadtutordata')
+def upload_tutor_data():
+    return render_template('uploadtutordata.html')
+
+
+#HELPER METHODS
+def get_tutor(tutorid):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from tutors where tutorid = ?", (tutorid,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
+
+
+def get_student(studentcode):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from students where studentcode = ?", (studentcode,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
+
+
+def get_subjects():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from subjects")
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+
+def get_students():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from students")
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+
+def get_subject(subcode):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from subjects where subcode = ?", (subcode,))
+    rows = cur.fetchone()
+    con.close()
+    return rows
 
 
 if __name__ == '__main__':
