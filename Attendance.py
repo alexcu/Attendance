@@ -41,7 +41,7 @@ def upload():
         return render_template("uploadstudentdata.html", msg = msg)
 
 
-
+#DATABASE METHODS
 def connect_db():
 
     init_db()
@@ -71,9 +71,22 @@ def init_db():
     cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null)")
     con.close()
 
+@app.route('/timetable')
+def view_timetable():
+    return render_template('viewtimetable.html')
+
+
 @app.route('/removeclass?classid=<classid>')
 def remove_class(classid):
-    return "kittens"
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from classes where classid = ?",(classid,))
+    classdata = cur.fetchone()
+    cur.execute("delete from classes where classid = ?",(classid,))
+    cur.execute("delete from stuattendance where classid = ?", (classid,))
+    con.commit()
+    con.close()
+    return view_subject_template(classdata["subcode"])
 
 def get_tutor_availability(tutorid):
     con = connect_db()
@@ -221,7 +234,7 @@ def add_class(subcode):
 @app.route('/viewclass?classid=<classid>')
 def view_class(classid):
     classdata = get_class(classid)
-    return render_template('class.html', classdata = classdata, tutor = get_tutor(classdata["tutorid"]),students = get_subject_and_students(classdata["subcode"]), attendees = get_attendees(classid))
+    return render_template('class.html', classdata = classdata,subject = get_subject(classdata["subcode"]), tutor = get_tutor(classdata["tutorid"]),students = get_subject_and_students(classdata["subcode"]), attendees = get_attendees(classid))
 
 
 def get_attendees(classid):
@@ -285,6 +298,9 @@ def remove_subject_from_tutor(tutorid,subcode):
 def remove_tutor_from_subject(tutorid,subcode):
     msg = unlinksubjecttutor(tutorid,subcode)
     return view_subject_template(subcode,msg)
+
+
+
 
 def unlinksubjecttutor(tutorid, subcode):
     con = connect_db()

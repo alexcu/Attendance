@@ -31,7 +31,7 @@
                 <td>{% if tutor != None %}<a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["tutorid"]) }}">Remove</a>{% endif %}</td>
             </tr>
       </table>
-
+    {% if tutor == None %}
        <h3>Add Tutor to Subject</h3>
     <form action = "{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method = "POST">
     <select name = "tutor">
@@ -45,22 +45,22 @@
 
     <input type="submit" value = "Add Tutor to Subject" />
     </form>
+    {% endif %}
     {{ msg2 }}
 
     <h1>Students Enrolled in this subject</h1>
     <table border = 1>
          <thead>
             <td>Student Number</td>
-            <td>First Name</td>
-            <td>Last Name</td>
+            <td>Name</td>
          </thead>
 
          {% for student in students %}
             <tr>
 
                 <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["studentcode"]}}</a></td>
-               <td>{{student["firstname"]}}</td>
-                <td> {{ student["lastname"]}}</td>
+                <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["firstname"]}} {{ student["lastname"]}}</a></td>
+
             </tr>
          {% endfor %}
       </table>
@@ -70,7 +70,7 @@
     <h1>Mark Rolls for This Subject</h1>
         <table border = 1>
          <thead>
-            <td>Class Number</td>
+
             <td>Date</td>
             <td>Time</td>
             <td>Repeat</td>
@@ -80,7 +80,7 @@
          {% for class in classes %}
             <tr>
 
-                <td>{{ class["classid"] }}</td>
+
                <td>{{ class["datetime"] }}</td>
                 <td> </td>
                 <td>{{ class["repeat"] }}</td>
