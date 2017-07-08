@@ -8,7 +8,8 @@ app = Flask(__name__)
 #app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
-app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
+#app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
+app.config['DB_FILE'] = '/Users/justin/PycharmProjects/Attendance/static/database.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 
@@ -187,7 +188,8 @@ def view_subjects():
 @app.route('/viewsubjectsajax')
 def viewsubjects_ajax():
     data = get_subjects()
-    data = json.dump(data)
+    data = json.dumps([tuple(row) for row in data])
+    #data = json.dumps(data)
     print(data)
     return data
 
