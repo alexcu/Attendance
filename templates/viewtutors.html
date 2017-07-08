@@ -22,7 +22,7 @@
         "ajax": {"url" : '/viewtutorsajax',
                 "type" : 'GET'},
         "columns" : [{"data" : "firstname","render": function ( data, type, row, meta ) {
-                            return "<a href='/view_subject"+row.tutorid+"'>" + row.firstname + " " + row.lastname + "</a>";}}, {"data" : "email"}, {"data" : "phone"}]
+                            return "<a href='/viewtutor%3Ftutorid%3D"+row.tutorid+"'>" + row.firstname + " " + row.lastname + "</a>";}}, {"data" : "email"}, {"data" : "phone"}]
     } );
 } );
     </script>
