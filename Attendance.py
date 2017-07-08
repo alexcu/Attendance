@@ -9,7 +9,7 @@ app = Flask(__name__)
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
 #app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
-app.config['DB_FILE'] = '/Users/justin/Dropbox/Justin/Documents/Python/database.db'
+app.config['DB_FILE'] = '/Users/justin/Dropbox/Justin/Documents/Python/database2.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 
@@ -35,14 +35,15 @@ def create_connection():
 def init_db():
     con = create_connection()
     cur = con.cursor()
-    cur.execute("CREATE TABLE if not EXISTS subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) UNIQUE NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) unique NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1)")
-    cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null) ")
-    cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null)")
+    cur.execute("create table if not exists admin (id integer primary key autoincrement, currentyear integer default 2017, studyperiod char(50) default 'Semester 2')")
+    cur.execute("CREATE TABLE if not EXISTS subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL, year integer NOT NULL)")
+    cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL,year integer not null)")
+    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) unique NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL, year integer not null)")
+    cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL, year integer not null)")
+    cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL, year integer not null)")
+    cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1, year integer not null, studyperiod char(50) not null)")
+    cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null, year integer not null, studyperiod char(50) not null) ")
+    cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null, year integer not null, studyperiod char(50) not null)")
     con.close()
 
 ### APP ROUTES
@@ -144,6 +145,10 @@ def add_class(subcode):
 def view_class(classid):
     classdata = get_class(classid)
     return render_template('class.html', classdata = classdata,subject = get_subject(classdata["subcode"]), tutor = get_tutor(classdata["tutorid"]),students = get_subject_and_students(classdata["subcode"]), attendees = get_attendees(classid))
+
+@app.route('/admin')
+def admin():
+    return render_template('admin.html',admin = getadmin())
 
 
 
@@ -492,6 +497,13 @@ def get_tutor_and_subjects(tutorid):
     rows = cur.fetchall()
     con.close()
     return rows
+
+def getadmin():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from admin")
+    cur.fetchall()
+
 
 
 def get_tutors():
