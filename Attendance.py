@@ -1,6 +1,6 @@
 from flask import Flask
 from flask import render_template, request, redirect, url_for, send_from_directory
-import os, pandas
+import os, pandas, json
 import sqlite3 as sql
 app = Flask(__name__)
 
@@ -178,12 +178,18 @@ def hello_world():
 def view_rolls():
     return render_template('rolls.html')
 
+
 @app.route('/subjects')
 def view_subjects():
 
-    rows = get_subjects()
-    return render_template('subjects.html', rows = rows)
 
+    return render_template('subjects.html')
+@app.route('/viewsubjectsajax')
+def viewsubjects_ajax():
+    data = get_subjects()
+    data = json.dump(data)
+    print(data)
+    return data
 
 @app.route('/addsubject',methods=['GET','POST'])
 def add_subject():
