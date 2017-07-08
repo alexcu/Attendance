@@ -4,23 +4,27 @@
 {{ msg }}
     <div class="row">
         <div class="col-md-6">
-          <table class="table">
+          <table class="table" id="tutors">
          <thead>
             <td>Name</td>
             <td>Email</td>
             <td>Phone</td>
          </thead>
-
-         {% for row in rows %}
-            <tr>
-                <td><a href="{{ url_for('view_tutor', tutorid = row["tutorid"]) }}">{{row["firstname"]}} {{ row["lastname"] }}</a></td>
-               <td>{{row["email"]}}</td>
-               <td> {{ row["phone"]}}</td>
-            </tr>
-         {% endfor %}
           </table></div></div>
 
 
 <a href="addtutor"><button type="button" class="btn btn-lg btn-default">Add Tutor</button></a>
+
+     <script>
+
+    $(document).ready(function() {
+    $('#tutors').DataTable( {
+        "ajax": {"url" : '/viewtutorsajax',
+                "type" : 'GET'},
+        "columns" : [{"data" : "firstname","render": function ( data, type, row, meta ) {
+                            return "<a href='/view_subject"+row.tutorid+"'>" + row.firstname + " " + row.lastname + "</a>";}}, {"data" : "email"}, {"data" : "phone"}]
+    } );
+} );
+    </script>
 
 {% endblock %}

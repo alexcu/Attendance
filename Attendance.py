@@ -1,6 +1,6 @@
 from flask import Flask
 from flask import render_template, request, redirect, url_for, send_from_directory
-import os, pandas
+import os, pandas, json
 import sqlite3 as sql
 app = Flask(__name__)
 
@@ -8,7 +8,8 @@ app = Flask(__name__)
 #app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
-app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
+#app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
+app.config['DB_FILE'] = '/Users/justin/PycharmProjects/Attendance/static/database.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 
@@ -178,12 +179,34 @@ def hello_world():
 def view_rolls():
     return render_template('rolls.html')
 
+
 @app.route('/subjects')
 def view_subjects():
 
-    rows = get_subjects()
-    return render_template('subjects.html', rows = rows)
 
+    return render_template('subjects.html')
+@app.route('/viewsubjectsajax')
+def viewsubjects_ajax():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select subcode,subname,studyperiod from subjects")
+    data = cur.fetchall()
+    columns = [d[0] for d in cur.description]
+    con.close()
+    data = json.dumps([dict(zip(columns, row)) for row in data])
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/viewtutorsajax')
+def viewtutors_ajax():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from tutors")
+    data = cur.fetchall()
+    columns = [d[0] for d in cur.description]
+    con.close()
+    data = json.dumps([dict(zip(columns, row)) for row in data])
+    return '{ "data" : ' + data + '}'
 
 @app.route('/addsubject',methods=['GET','POST'])
 def add_subject():
@@ -207,6 +230,7 @@ def add_subject():
         finally:
             con.close()
             return render_template("subjects.html", msg=msg, rows = get_subjects())
+
 
 @app.route('/subject?subcode=<subcode>')
 def view_subject(subcode):
@@ -334,6 +358,11 @@ def get_subjects():
     cur.execute("select * from subjects")
     rows = cur.fetchall()
     con.close()
+    return rows
+
+
+def get_subjects_without_subjectid():
+
     return rows
 
 

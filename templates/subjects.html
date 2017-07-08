@@ -4,22 +4,42 @@
 {{ msg }}
     <div class="row">
         <div class="col-md-6">
-          <table class="table">
+          <table class="table", id="subjects">
          <thead>
             <td>Subject Code</td>
             <td>Subject Name</td>
             <td>Study Period</td>
          </thead>
 
-         {% for row in rows %}
-            <tr>
-                <td><a href="{{ url_for('view_subject', subcode = row.subcode) }}">{{row["subcode"]}}</a></td>
-                <td><a href="{{ url_for('view_subject', subcode = row.subcode) }}">{{row["subname"]}}</a></td>
-               <td> {{ row["studyperiod"]}}</td>
-            </tr>
-         {% endfor %}
+        <tfoot>
+        <tr>
+            <td>Subject Code</td>
+            <td>Subject Name</td>
+            <td>Study Period</td>
+        </tr>
+
+
+        </tfoot>
           </table></div></div>
 
     <a href="addsubject"><button type="button" class="btn btn-lg btn-default">Add Subject</button></a>
+<link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+
+
+
+    <script>
+
+    $(document).ready(function() {
+    $('#subjects').DataTable( {
+        "ajax": {"url" : '/viewsubjectsajax',
+                "type" : 'GET'},
+        "columns" : [{"data" : "subcode","render": function ( data, type, row, meta ) {
+                            return "<a href='/subject?subcode="+row.subcode+"'>" + data + "</a>";}}, {"data" : "subname","render": function ( data, type, row, meta ) {
+                            return "<a href='/subject?subcode="+row.subcode+"'>" + data + "</a>";}}, {"data" : "studyperiod"}]
+    } );
+} );
+    </script>
+
+
 
 {% endblock %}
