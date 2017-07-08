@@ -187,11 +187,26 @@ def view_subjects():
     return render_template('subjects.html')
 @app.route('/viewsubjectsajax')
 def viewsubjects_ajax():
-    data = get_subjects()
-    data = json.dumps([tuple(row) for row in data])
-    #data = json.dumps(data)
-    print(data)
-    return data
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select subcode,subname,studyperiod from subjects")
+    data = cur.fetchall()
+    columns = [d[0] for d in cur.description]
+    con.close()
+    data = json.dumps([dict(zip(columns, row)) for row in data])
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/viewtutorsajax')
+def viewtutors_ajax():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select * from tutors")
+    data = cur.fetchall()
+    columns = [d[0] for d in cur.description]
+    con.close()
+    data = json.dumps([dict(zip(columns, row)) for row in data])
+    return '{ "data" : ' + data + '}'
 
 @app.route('/addsubject',methods=['GET','POST'])
 def add_subject():
@@ -215,6 +230,7 @@ def add_subject():
         finally:
             con.close()
             return render_template("subjects.html", msg=msg, rows = get_subjects())
+
 
 @app.route('/subject?subcode=<subcode>')
 def view_subject(subcode):
@@ -342,6 +358,11 @@ def get_subjects():
     cur.execute("select * from subjects")
     rows = cur.fetchall()
     con.close()
+    return rows
+
+
+def get_subjects_without_subjectid():
+
     return rows
 
 

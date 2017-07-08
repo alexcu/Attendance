@@ -33,11 +33,9 @@
     $('#subjects').DataTable( {
         "ajax": {"url" : '/viewsubjectsajax',
                 "type" : 'GET'},
-        "columns" : [
-            {data: "subcode"},
-            {data: "subname"},
-            {data: "studyperiod"}
-        ]
+        "columns" : [{"data" : "subcode","render": function ( data, type, row, meta ) {
+                            return "<a href='/subject?subcode="+row.subcode+"'>" + data + "</a>";}}, {"data" : "subname","render": function ( data, type, row, meta ) {
+                            return "<a href='/subject?subcode="+row.subcode+"'>" + data + "</a>";}}, {"data" : "studyperiod"}]
     } );
 } );
     </script>
