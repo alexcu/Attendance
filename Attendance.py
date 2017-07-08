@@ -21,7 +21,6 @@ def allowed_file(filename):
 
 #DATABASE METHODS
 def connect_db():
-
     init_db()
     con = create_connection()
     return con
@@ -416,7 +415,7 @@ def get_subject(subcode):
     return rows
 
 def view_subject_template(subcode,msg=""):
-    return render_template("subject.html",rows = get_subject(subcode),students = get_subject_and_students(subcode), tutor = get_subject_and_tutor(subcode), tutors = get_tutors(),classes = get_classes_for_subject(subcode),msg=msg)
+    return render_template("subject.html",rows = get_subject(subcode),students = get_subject_and_students(subcode), tutor = get_subject_and_tutor(subcode), tutors = get_tutors(),classes = get_classes_for_subject(subcode),attendees = get_attendees_for_subject(subcode),msg=msg)
 
 def get_classes_for_subject(subcode):
     con = connect_db()
@@ -609,14 +608,23 @@ def add_students_to_class(specificclass, attendees):
     con = connect_db()
     cur = con.cursor()
     for i in range(len(attendees)):
-        print(specificclass["classid"])
         cur.execute("insert into stuattendance (classid,studentcode) values (?,?)", (specificclass["classid"],attendees[i]))
     con.commit()
     con.close()
     return "Completed Successfully"
 
-
-
+def get_attendees_for_subject(subcode):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select classes.classid, classes.subcode, stuattendance.studentcode from (stuattendance inner join classes on stuattendance.classid = classes.classid) where classes.subcode = ?",(subcode,))
+    rows = cur.fetchall()
+    con.close()
+    data = {}
+    for row in rows:
+        data[row["classid"]] = []
+    for row in rows:
+        data[row["classid"]].append(row["studentcode"])
+    return data
 
 
 if __name__ == '__main__':
