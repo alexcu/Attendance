@@ -34,8 +34,8 @@
         "ajax": {"url" : '/viewsubjectsajax',
                 "type" : 'GET'},
         "columns" : [{"data" : "subcode","render": function ( data, type, row, meta ) {
-                            return "<a href='/subject?subcode="+row.subcode+"'>" + data + "</a>";}}, {"data" : "subname","render": function ( data, type, row, meta ) {
-                            return "<a href='/subject?subcode="+row.subcode+"'>" + data + "</a>";}}, {"data" : "studyperiod"}]
+                            return "<a href='/subject%3Fsubcode%3D"+row.subcode+"'>" + data + "</a>";}}, {"data" : "subname","render": function ( data, type, row, meta ) {
+                            return "<a href='/subject%3Fsubcode%3D"+row.subcode+"'>" + data + "</a>";}}, {"data" : "studyperiod"}]
     } );
 } );
     </script>

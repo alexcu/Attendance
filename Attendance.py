@@ -9,7 +9,7 @@ app = Flask(__name__)
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
 #app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
-app.config['DB_FILE'] = '/Users/justin/PycharmProjects/Attendance/static/database.db'
+app.config['DB_FILE'] = '/Users/justin/Dropbox/Justin/Documents/Python/database.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 
@@ -202,6 +202,17 @@ def viewtutors_ajax():
     con = connect_db()
     cur = con.cursor()
     cur.execute("select * from tutors")
+    data = cur.fetchall()
+    columns = [d[0] for d in cur.description]
+    con.close()
+    data = json.dumps([dict(zip(columns, row)) for row in data])
+    return '{ "data" : ' + data + '}'
+
+@app.route('/viewstudentsajax')
+def viewstudents_ajax():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select studentcode,firstname,lastname from students")
     data = cur.fetchall()
     columns = [d[0] for d in cur.description]
     con.close()
