@@ -332,14 +332,17 @@ def add_tutor():
         return render_template('addtutor.html')
     elif request.method == 'POST':
         try:
-            firstnm = request.form['firstnm']
-            lastnm = request.form['lastnm']
-            email = request.form['email']
-            phone = request.form['phone']
-
+            firstnm = request.form['firstnm'].strip()
+            lastnm = request.form['lastnm'].strip()
+            email = request.form['email'].strip()
+            phone = request.form['phone'].strip()
+            year = get_current_year()
+            studyperiod = get_current_studyperiod()
             con = connect_db()
             cur = con.cursor()
-            cur.execute("INSERT INTO tutors (firstname,lastname,email,phone, year, studyperiod) VALUES(?, ?,?,?,?,?)",(firstnm,lastnm,email,phone,get_current_year(), get_current_studyperiod()))
+            cur.execute("select firstname from tutors where firstname = ? and lastname = ? and year = ? and studyperiod = ?",(firstnm,lastnm,year,studyperiod))
+            if cur.fetchone() is None:
+                cur.execute("INSERT INTO tutors (firstname,lastname,email,phone, year, studyperiod) VALUES(?, ?,?,?,?,?)",(firstnm,lastnm,email,phone,get_current_year(), get_current_studyperiod()))
             con.commit()
             msg = "Record successfully added"
         except:
@@ -650,7 +653,7 @@ def add_students_to_class(specificclass, attendees):
     con = connect_db()
     cur = con.cursor()
     for i in range(len(attendees)):
-        cur.execute("insert into stuattendance (classid,studentcode,year,studyperiod) values (?,?)", (specificclass["classid"],attendees[i],get_current_year(),get_current_studyperiod()))
+        cur.execute("insert into stuattendance (classid,studentcode,year,studyperiod) values (?,?,?,?)", (specificclass["classid"],attendees[i],get_current_year(),get_current_studyperiod()))
     con.commit()
     con.close()
     return "Completed Successfully"
