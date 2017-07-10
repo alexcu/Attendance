@@ -38,9 +38,9 @@ def init_db():
     cur.execute("create table if not exists admin (id integer primary key autoincrement, key char(50) unique not null, value char(50))")
     cur.execute("insert or ignore into admin (key,value) values ('studyperiod','Semester 2')")
     cur.execute("insert or ignore into admin (key,value) values ('currentyear',2017)")
-    cur.execute("CREATE TABLE if not EXISTS subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL, year integer NOT NULL)")
+    cur.execute("CREATE TABLE if not exists subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL, year integer NOT NULL)")
     cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL,year integer not null, studyperiod char(50) not null)")
-    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) unique NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
+    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
     cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
     cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
     cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1, year integer not null, studyperiod char(50) not null)")
@@ -522,6 +522,9 @@ def get_tutors():
 
 
 def populate_students(filename):
+    print("Populating Students")
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
     xl = pandas.ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
 
@@ -529,21 +532,27 @@ def populate_students(filename):
     cur = con.cursor()
     for index,row in df.iterrows():
         try:
-            if row['Study Period'] == "Semester 2":
-                cur.execute("insert or ignore into students (studentcode,firstname,lastname,year,studyperiod) values (?,?,?)", (row['Student Id'],row['Given Name'],row['Family Name'],get_current_year(), get_current_studyperiod()))
-                cur.execute("insert or ignore into subjects (subcode,subname,year,studyperiod) values (?,?,?)", (row['Component Study Package Code'], row['Component Study Package Title'], get_current_year(),get_current_studyperiod()))
-                cur.execute("select id from substumap where substumap.studentcode = ? and substumap.subjectcode = ? and year = ? and studyperiod = ? ", (row['Student Id'], row['Component Study Package Code'],get_current_year(),get_current_studyperiod()))
+            if row['Study Period'] == studyperiod:
+                cur.execute("select studentcode from students where studentcode = ? and year = ? and studyperiod = ?", (row["Student Id"],year,studyperiod))
                 if cur.fetchone() is None:
-                    cur.execute("insert into substumap (studentcode, subjectcode, year, studyperiod) values (?,?,?,?)", (row['Student Id'],row['Component Study Package Code'],get_current_year(), get_current_studyperiod()))
+                    cur.execute("insert or ignore into students (studentcode,firstname,lastname,year,studyperiod) values (?,?,?,?,?)", (row['Student Id'],row['Given Name'],row['Family Name'],year, studyperiod))
+                cur.execute("select subcode from subjects where subcode = ? and year = ? and studyperiod = ?", (row["Component Study Package Code"],year,studyperiod))
+                if cur.fetchone() is None:
+                    cur.execute("insert or ignore into subjects (subcode,subname,year,studyperiod) values (?,?,?,?)", (row['Component Study Package Code'], row['Component Study Package Title'], year,studyperiod))
+                cur.execute("select id from substumap where substumap.studentcode = ? and substumap.subjectcode = ? and substumap.year = ? and substumap.studyperiod = ? ", (row['Student Id'], row['Component Study Package Code'],year,studyperiod))
+                if cur.fetchone() is None:
+                    cur.execute("insert into substumap (studentcode, subjectcode, year, studyperiod) values (?,?,?,?)", (row['Student Id'],row['Component Study Package Code'],year, studyperiod))
+                print("Successful")
         except:
-            print("Error with StudentID %d" % row['Student Id'])
+            print("Error with StudentID %d with Subject" % (row['Student Id'],row['Component Study Package Code']))
     con.commit()
     con.close()
 
 
 
 def populate_tutors(filename):
-
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
     xl = pandas.ExcelFile(filename)
 
     df = xl.parse(xl.sheet_names[0])
@@ -551,11 +560,11 @@ def populate_tutors(filename):
     cur = con.cursor()
     for index, row in df.iterrows():
         try:
-            cur.execute("select * from tutors where firstname = ? and lastname = ? and year = ? and studyperiod = ?",(row['Given Name'],row['Family Name'],get_current_year(), get_current_studyperiod()))
+            cur.execute("select * from tutors where firstname = ? and lastname = ? and year = ? and studyperiod = ?",(row['Given Name'],row['Family Name'],year, studyperiod))
             if cur.fetchone() == None:
                 print("Trying Insert")
                 cur.execute("insert or ignore into tutors (firstname,lastname,email,phone,year,studyperiod) values (?,?,?,?,?,?)",
-                            (row['Given Name'], row['Family Name'], row['Email'], row['Phone'],get_current_year(),get_current_studyperiod()))
+                            (row['Given Name'], row['Family Name'], row['Email'], row['Phone'],year,studyperiod))
             con.commit()
         except:
             print("Error with Tutor %d" % row['Family Name'])
