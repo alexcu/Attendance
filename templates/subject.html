@@ -104,9 +104,9 @@
          {% endfor %}
           </table></div></div>
 
-    {% endif %}
-    <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}"><button type="button" class="btn btn-lg btn-default">Add a Class</button></a>
 
+    <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}"><button type="button" class="btn btn-lg btn-default">Add a Class</button></a>
+{% endif %}
 
 
 {% endblock %}

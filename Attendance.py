@@ -9,7 +9,7 @@ app = Flask(__name__)
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
 #app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
-app.config['DB_FILE'] = '/Users/justin/Dropbox/Justin/Documents/Python/database.db'
+app.config['DB_FILE'] = '/home/justin/Dropbox/Justin/Documents/Python/database2.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 
@@ -35,14 +35,17 @@ def create_connection():
 def init_db():
     con = create_connection()
     cur = con.cursor()
-    cur.execute("CREATE TABLE if not EXISTS subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) UNIQUE NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) unique NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL)")
-    cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1)")
-    cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null) ")
-    cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null)")
+    cur.execute("create table if not exists admin (id integer primary key autoincrement, key char(50) unique not null, value char(50))")
+    cur.execute("insert or ignore into admin (key,value) values ('studyperiod','Semester 2')")
+    cur.execute("insert or ignore into admin (key,value) values ('currentyear',2017)")
+    cur.execute("CREATE TABLE if not exists subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL, year integer NOT NULL)")
+    cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL,year integer not null, studyperiod char(50) not null)")
+    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
+    cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
+    cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
+    cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1, year integer not null, studyperiod char(50) not null)")
+    cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null, year integer not null, studyperiod char(50) not null) ")
+    cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null, year integer not null, studyperiod char(50) not null)")
     con.close()
 
 ### APP ROUTES
@@ -61,14 +64,24 @@ def uploadstudentdata():
         # will basicaly show on the browser the uploaded file
     return render_template("uploadstudentdata.html", msg = msg)
 
+@app.route('/updateadminsettings', methods=['POST'])
+def updateadminsettings():
+    year = request.form['year']
+    studyperiod = request.form['studyperiod']
+    update_year(year)
+    update_studyperiod(studyperiod)
+    return render_template('admin.html',admin = getadmin())
+
 
 @app.route('/uploadtutordata',methods = ['POST'])
 def uploadtutordata():
     try:
         filename2 = upload(request.files['file'])
-
+        print(filename2)
+        print("Uploaded Successfully")
         populate_tutors(filename2)
-        os.remove(filename2)
+        print("Populated Tutors")
+        #os.remove(filename2)
         msg = "Completed successfully"
     except:
         msg="There was an error with the upload, please try again."
@@ -145,6 +158,10 @@ def view_class(classid):
     classdata = get_class(classid)
     return render_template('class.html', classdata = classdata,subject = get_subject(classdata["subcode"]), tutor = get_tutor(classdata["tutorid"]),students = get_subject_and_students(classdata["subcode"]), attendees = get_attendees(classid))
 
+@app.route('/admin')
+def admin():
+    return render_template('admin.html',admin = getadmin())
+
 
 
 @app.route('/addtutortosubject?subcode=<subcode>',methods=['GET','POST'])
@@ -188,7 +205,7 @@ def view_subjects():
 def viewsubjects_ajax():
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select subcode,subname,studyperiod from subjects")
+    cur.execute("select subcode,subname,studyperiod from subjects where year = ? and studyperiod = ?", (get_current_year(),get_current_studyperiod()))
     data = cur.fetchall()
     columns = [d[0] for d in cur.description]
     con.close()
@@ -200,7 +217,7 @@ def viewsubjects_ajax():
 def viewtutors_ajax():
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select * from tutors")
+    cur.execute("select * from tutors where year = ? and studyperiod = ?", (get_current_year(), get_current_studyperiod()))
     data = cur.fetchall()
     columns = [d[0] for d in cur.description]
     con.close()
@@ -211,7 +228,7 @@ def viewtutors_ajax():
 def viewstudents_ajax():
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select studentcode,firstname,lastname from students")
+    cur.execute("select studentcode,firstname,lastname from students where year = ? and studyperiod = ?", (get_current_year(), get_current_studyperiod()))
     data = cur.fetchall()
     columns = [d[0] for d in cur.description]
     con.close()
@@ -230,7 +247,7 @@ def add_subject():
 
             con = connect_db()
             cur = con.cursor()
-            cur.execute("INSERT OR IGNORE INTO subjects (subcode,subname,studyperiod) VALUES(?, ?, ?)",(subcode,subname,studyperiod))
+            cur.execute("INSERT OR IGNORE INTO subjects (subcode,subname,year, studyperiod) VALUES(?, ?, ?)",(subcode,subname,get_current_year(), studyperiod))
             con.commit()
             msg = "Record successfully added"
         except:
@@ -253,7 +270,7 @@ def remove_subject(subcode):
     try:
         con = connect_db()
         cur = con.cursor()
-        cur.execute("delete from subjects where subcode = ?", (subcode,))
+        cur.execute("delete from subjects where subcode = ? and year = ? and studyperiod = ?", (subcode, get_current_year(), get_current_studyperiod()))
         con.commit()
         msg = "Completed Successfully"
         con.close()
@@ -322,7 +339,7 @@ def add_tutor():
 
             con = connect_db()
             cur = con.cursor()
-            cur.execute("INSERT INTO tutors (firstname,lastname,email,phone) VALUES(?, ?,?, ?)",(firstnm,lastnm,email,phone))
+            cur.execute("INSERT INTO tutors (firstname,lastname,email,phone, year, studyperiod) VALUES(?, ?,?,?,?,?)",(firstnm,lastnm,email,phone,get_current_year(), get_current_studyperiod()))
             con.commit()
             msg = "Record successfully added"
         except:
@@ -356,7 +373,7 @@ def get_tutor(tutorid):
 def get_student(studentcode):
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select * from students where studentcode = ?", (studentcode,))
+    cur.execute("select * from students where studentcode = ? and year = ? and studyperiod = ?", (studentcode,get_current_year(), get_current_studyperiod()))
     rows = cur.fetchone()
     con.close()
     return rows
@@ -365,14 +382,9 @@ def get_student(studentcode):
 def get_subjects():
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select * from subjects")
+    cur.execute("select * from subjects where year = ? and studyperiod = ?", (get_current_year(),get_current_studyperiod()))
     rows = cur.fetchall()
     con.close()
-    return rows
-
-
-def get_subjects_without_subjectid():
-
     return rows
 
 
@@ -399,8 +411,8 @@ def linksubjecttutor(tutorid, subcode):
     cur.execute("select id from subtutmap where subtutmap.tutorid = ? and subtutmap.subcode = ? ",
                 (tutorid, subcode))
     if cur.fetchone() is None:
-        cur.execute("insert into subtutmap (tutorid, subcode) values (?,?)",
-                    (tutorid, subcode))
+        cur.execute("insert into subtutmap (tutorid, subcode, year, studyperiod) values (?,?,?,?)",
+                    (tutorid, subcode, get_current_year(), get_current_studyperiod()))
     con.commit()
     con.close()
     msg = "Subject Linked to Tutor Successfully"
@@ -409,7 +421,7 @@ def linksubjecttutor(tutorid, subcode):
 def get_subject(subcode):
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select * from subjects where subcode = ?", (subcode,))
+    cur.execute("select * from subjects where subcode = ? and year = ? and studyperiod = ?", (subcode,get_current_year(),get_current_studyperiod()))
     rows = cur.fetchone()
     con.close()
     return rows
@@ -420,7 +432,7 @@ def view_subject_template(subcode,msg=""):
 def get_classes_for_subject(subcode):
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select * from classes where subcode = ?",(subcode,))
+    cur.execute("select * from classes where subcode = ? and year = ? and studyperiod = ?",(subcode,get_current_year(), get_current_studyperiod()))
     return cur.fetchall()
 
 
@@ -435,7 +447,7 @@ def get_tutor_availability(tutorid):
 def set_tutor_availability(tutorid, availability):
     con = connect_db()
     cur = con.cursor()
-    cur.execute("insert or replace into tutavailability (tutorid, time1,time2,time3,time4,time5,time6,time7,time8,time9) VALUES (?,?,?,?,?,?,?,?,?,?)", (tutorid,availability[0],availability[1], availability[2], availability[3],availability[4],availability[5], availability[6], availability[7], availability[8]))
+    cur.execute("insert or replace into tutavailability (tutorid, time1,time2,time3,time4,time5,time6,time7,time8,time9,year,studyperiod) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (tutorid,availability[0],availability[1], availability[2], availability[3],availability[4],availability[5], availability[6], availability[7], availability[8],get_current_year(), get_current_studyperiod()))
     con.commit()
     con.close()
     return "Successful."
@@ -457,7 +469,7 @@ def get_student_and_subjects(studentcode):
     con = connect_db()
     cur = con.cursor()
     cur.execute(
-        "select students.studentcode, students.firstname, students.lastname, subjects.subcode, subjects.subname,subjects.studyperiod from ((substumap inner join students on substumap.studentcode = students.studentcode) inner join subjects on substumap.subjectcode = subjects.subcode) where students.studentcode = ?", (studentcode,))
+        "select students.studentcode, students.firstname, students.lastname, subjects.subcode, subjects.subname,subjects.studyperiod from ((substumap inner join students on substumap.studentcode = students.studentcode) inner join subjects on substumap.subjectcode = subjects.subcode) where students.studentcode = ? and students.year = ? and students.studyperiod = ? and subjects.year = ? and subjects.studyperiod = ? and substumap.year = ? and substumap.studyperiod = ?", (studentcode,get_current_year(),get_current_studyperiod(),get_current_year(),get_current_studyperiod(),get_current_year(),get_current_studyperiod()))
     rows = cur.fetchall()
     return rows
 
@@ -465,8 +477,7 @@ def get_subject_and_students(subcode):
     con = connect_db()
     cur = con.cursor()
     cur.execute(
-        "select students.studentcode, students.firstname, students.lastname, subjects.subcode, subjects.subname,subjects.studyperiod from ((substumap inner join students on substumap.studentcode = students.studentcode) inner join subjects on substumap.subjectcode = subjects.subcode) where subjects.subcode = ?",
-        (subcode,))
+        "select students.studentcode, students.firstname, students.lastname, subjects.subcode, subjects.subname,subjects.studyperiod from ((substumap inner join students on substumap.studentcode = students.studentcode) inner join subjects on substumap.subjectcode = subjects.subcode) where subjects.subcode = ? and students.year = ? and students.studyperiod = ? and subjects.year = ? and subjects.studyperiod = ? and substumap.year = ? and substumap.studyperiod = ?",        (subcode,get_current_year(), get_current_studyperiod(),get_current_year(), get_current_studyperiod(),get_current_year(), get_current_studyperiod()))
     rows = cur.fetchall()
     con.close()
     return rows
@@ -476,8 +487,8 @@ def get_subject_and_tutor(subcode):
     con = connect_db()
     cur = con.cursor()
     cur.execute(
-        "select tutors.tutorid, tutors.firstname, tutors.lastname, tutors.email, tutors.phone,subjects.subcode, subjects.subname,subjects.studyperiod from ((subtutmap inner join tutors on subtutmap.tutorid = tutors.tutorid) inner join subjects on subtutmap.subcode = subjects.subcode) where subjects.subcode = ?",
-        (subcode,))
+        "select tutors.tutorid, tutors.firstname, tutors.lastname, tutors.email, tutors.phone,subjects.subcode, subjects.subname,subjects.studyperiod from ((subtutmap inner join tutors on subtutmap.tutorid = tutors.tutorid) inner join subjects on subtutmap.subcode = subjects.subcode) where subjects.subcode = ? and tutors.year = ? and tutors.studyperiod = ? and subjects.year = ? and subjects.studyperiod = ? and subtutmap.year = ? and subtutmap.studyperiod = ?",
+        (subcode,get_current_year(),get_current_studyperiod(),get_current_year(),get_current_studyperiod(),get_current_year(),get_current_studyperiod()))
     rows = cur.fetchone()
     con.close()
     return rows
@@ -487,23 +498,33 @@ def get_tutor_and_subjects(tutorid):
     con = connect_db()
     cur = con.cursor()
     cur.execute(
-        "select tutors.tutorid, tutors.firstname, tutors.lastname, subjects.subcode, subjects.subname,subjects.studyperiod from ((subtutmap inner join tutors on subtutmap.tutorid = tutors.tutorid) inner join subjects on subtutmap.subcode = subjects.subcode) where tutors.tutorid = ?",
-        (tutorid,))
+        "select tutors.tutorid, tutors.firstname, tutors.lastname, subjects.subcode, subjects.subname,subjects.studyperiod from ((subtutmap inner join tutors on subtutmap.tutorid = tutors.tutorid) inner join subjects on subtutmap.subcode = subjects.subcode) where tutors.tutorid = ? and tutors.year = ? and tutors.studyperiod = ? and subjects.year = ? and subjects.studyperiod = ? and subtutmap.year = ? and subtutmap.studyperiod = ?",
+        (tutorid,get_current_year(),get_current_studyperiod(),get_current_year(),get_current_studyperiod(),get_current_year(),get_current_studyperiod()))
     rows = cur.fetchall()
     con.close()
     return rows
+
+def getadmin():
+    admin = {}
+    admin["currentyear"] = get_current_year()
+    admin["studyperiod"] = get_current_studyperiod()
+    return admin
+
 
 
 def get_tutors():
     con = connect_db()
     cur = con.cursor()
-    cur.execute("SELECT * FROM tutors")
+    cur.execute("SELECT * FROM tutors where year = ? and studyperiod = ?", (get_current_year(), get_current_studyperiod()))
     rows = cur.fetchall()
     con.close()
     return rows
 
 
 def populate_students(filename):
+    print("Populating Students")
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
     xl = pandas.ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
 
@@ -511,21 +532,27 @@ def populate_students(filename):
     cur = con.cursor()
     for index,row in df.iterrows():
         try:
-            if row['Study Period'] == "Semester 2":
-                cur.execute("insert or ignore into students (studentcode,firstname,lastname) values (?,?,?)", (row['Student Id'],row['Given Name'],row['Family Name']))
-                cur.execute("insert or ignore into subjects (subcode,subname,studyperiod) values (?,?,?)", (row['Component Study Package Code'], row['Component Study Package Title'], "Semester 2"))
-                cur.execute("select id from substumap where substumap.studentcode = ? and substumap.subjectcode = ? ", (row['Student Id'], row['Component Study Package Code']))
+            if row['Study Period'] == studyperiod:
+                cur.execute("select studentcode from students where studentcode = ? and year = ? and studyperiod = ?", (row["Student Id"],year,studyperiod))
                 if cur.fetchone() is None:
-                    cur.execute("insert into substumap (studentcode, subjectcode) values (?,?)", (row['Student Id'],row['Component Study Package Code']))
+                    cur.execute("insert or ignore into students (studentcode,firstname,lastname,year,studyperiod) values (?,?,?,?,?)", (row['Student Id'],row['Given Name'],row['Family Name'],year, studyperiod))
+                cur.execute("select subcode from subjects where subcode = ? and year = ? and studyperiod = ?", (row["Component Study Package Code"],year,studyperiod))
+                if cur.fetchone() is None:
+                    cur.execute("insert or ignore into subjects (subcode,subname,year,studyperiod) values (?,?,?,?)", (row['Component Study Package Code'], row['Component Study Package Title'], year,studyperiod))
+                cur.execute("select id from substumap where substumap.studentcode = ? and substumap.subjectcode = ? and substumap.year = ? and substumap.studyperiod = ? ", (row['Student Id'], row['Component Study Package Code'],year,studyperiod))
+                if cur.fetchone() is None:
+                    cur.execute("insert into substumap (studentcode, subjectcode, year, studyperiod) values (?,?,?,?)", (row['Student Id'],row['Component Study Package Code'],year, studyperiod))
+                print("Successful")
         except:
-            print("Error with StudentID %d" % row['Student Id'])
+            print("Error with StudentID %d with Subject" % (row['Student Id'],row['Component Study Package Code']))
     con.commit()
     con.close()
 
 
 
 def populate_tutors(filename):
-
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
     xl = pandas.ExcelFile(filename)
 
     df = xl.parse(xl.sheet_names[0])
@@ -533,10 +560,12 @@ def populate_tutors(filename):
     cur = con.cursor()
     for index, row in df.iterrows():
         try:
-            cur.execute("select * from tutors where firstname = ? and lastname = ?",(row['Given Name'],row['Family Name']))
+            cur.execute("select * from tutors where firstname = ? and lastname = ? and year = ? and studyperiod = ?",(row['Given Name'],row['Family Name'],year, studyperiod))
             if cur.fetchone() == None:
-                cur.execute("insert or ignore into tutors (firstname,lastname,email,phone) values (?,?,?,?)",
-                            (row['Given Name'], row['Family Name'], row['Email'], row['Phone']))
+                print("Trying Insert")
+                cur.execute("insert or ignore into tutors (firstname,lastname,email,phone,year,studyperiod) values (?,?,?,?,?,?)",
+                            (row['Given Name'], row['Family Name'], row['Email'], row['Phone'],year,studyperiod))
+            con.commit()
         except:
             print("Error with Tutor %d" % row['Family Name'])
     try:
@@ -545,19 +574,32 @@ def populate_tutors(filename):
         print("Doing this")
         for index,row in df.iterrows():
             print(get_tutor_from_name(row)["tutorid"])
-            cur.execute("insert or replace into subtutmap (tutorid,subcode) values (?,?)",(get_tutor_from_name(row)["tutorid"], row["Subject Code"]))
+            cur.execute("insert or replace into subtutmap (tutorid,subcode,year,studyperiod) values (?,?,?,?)",(get_tutor_from_name(row)["tutorid"], row["Subject Code"],get_current_year(),get_current_studyperiod()))
+        con.commit()
     except:
         msg = "No mappings detected. Skipping"
     finally:
-        con.commit()
         con.close()
 
+def update_year(year):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("update admin set value = ? where key = 'currentyear'",(int(year),))
+    con.commit()
+    con.close()
+
+def update_studyperiod(studyperiod):
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("update admin set value = ? where key = 'studyperiod'",(studyperiod,))
+    con.commit()
+    con.close()
 
 def get_tutor_from_name(tutor):
     con =connect_db()
     cur = con.cursor()
     split = tutor["Tutor"].split()
-    cur.execute("select tutorid from tutors where firstname = ? and lastname = ?",(split[0],split[1]))
+    cur.execute("select tutorid from tutors where firstname = ? and lastname = ? and year = ? and studyperiod = ?",(split[0],split[1],get_current_year(),get_current_studyperiod()))
     row = cur.fetchone()
     con.close()
     return row
@@ -596,9 +638,9 @@ def add_class_to_db(classtime,subcode,attendees,repeat=1):
     con = connect_db()
     cur = con.cursor()
     tutor = get_subject_and_tutor(subcode)
-    cur.execute("insert into classes (classtime,subcode,repeat,tutorid) values (?,?,?,?)",(classtime,subcode,repeat,tutor["tutorid"]))
+    cur.execute("insert into classes (classtime,subcode,repeat,tutorid,year,studyperiod) values (?,?,?,?,?,?)",(classtime,subcode,repeat,tutor["tutorid"],get_current_year(),get_current_studyperiod()))
     con.commit()
-    cur.execute("select * from classes where classtime = ? and subcode = ? and repeat = ? and tutorid = ?", (classtime,subcode,repeat,tutor["tutorid"]))
+    cur.execute("select * from classes where classtime = ? and subcode = ? and repeat = ? and tutorid = ? and year = ? and studyperiod=?", (classtime,subcode,repeat,tutor["tutorid"],get_current_year(),get_current_studyperiod()))
     specificclass=cur.fetchone()
     con.close()
     add_students_to_class(specificclass, attendees)
@@ -608,7 +650,7 @@ def add_students_to_class(specificclass, attendees):
     con = connect_db()
     cur = con.cursor()
     for i in range(len(attendees)):
-        cur.execute("insert into stuattendance (classid,studentcode) values (?,?)", (specificclass["classid"],attendees[i]))
+        cur.execute("insert into stuattendance (classid,studentcode,year,studyperiod) values (?,?)", (specificclass["classid"],attendees[i],get_current_year(),get_current_studyperiod()))
     con.commit()
     con.close()
     return "Completed Successfully"
@@ -616,7 +658,7 @@ def add_students_to_class(specificclass, attendees):
 def get_attendees_for_subject(subcode):
     con = connect_db()
     cur = con.cursor()
-    cur.execute("select classes.classid, classes.subcode, stuattendance.studentcode from (stuattendance inner join classes on stuattendance.classid = classes.classid) where classes.subcode = ?",(subcode,))
+    cur.execute("select classes.classid, classes.subcode, stuattendance.studentcode from (stuattendance inner join classes on stuattendance.classid = classes.classid) where classes.subcode = ? and classes.year = ? and stuattendance.year = ? and classes.studyperiod = ? and stuattendance.studyperiod = ?",(subcode,get_current_year(),get_current_year(),get_current_studyperiod(),get_current_studyperiod()))
     rows = cur.fetchall()
     con.close()
     data = {}
@@ -626,6 +668,21 @@ def get_attendees_for_subject(subcode):
         data[row["classid"]].append(row["studentcode"])
     return data
 
+def get_current_year():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select value from admin where key = 'currentyear'")
+    data = cur.fetchone()
+    data = data["value"]
+    return int(data)
+
+def get_current_studyperiod():
+    con = connect_db()
+    cur = con.cursor()
+    cur.execute("select value from admin where key = 'studyperiod'")
+    data = cur.fetchone()
+    data = data["value"]
+    return data
 
 if __name__ == '__main__':
     app.run(debug=True)
