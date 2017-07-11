@@ -1,5 +1,9 @@
 from flask import Flask
 from flask import render_template, request, redirect, url_for, send_from_directory
+from flask_sqlalchemy import *
+from sqlalchemy import *
+from sqlalchemy.ext.declarative import declarative_base
+from flask.ext.bcrypt import Bcrypt
 import os, pandas, json
 import sqlite3 as sql
 app = Flask(__name__)
@@ -9,44 +13,130 @@ app = Flask(__name__)
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
 #app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
-app.config['DB_FILE'] = '/home/justin/Dropbox/Justin/Documents/Python/database2.db'
+#app.config['DB_FILE'] = '/home/justin/Dropbox/Justin/Documents/Python/database2.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database3.db'
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
 
+####MODELS
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True)
+    password = db.Column(db.String(50))
+    def __init__(self, username,password):
+        self.username = username
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+
+class Admin(db.model):
+    __tablename__ = 'admin'
+    id = db.Column(db.Integer,primary_key=True)
+    key = db.Column(db.String(50),unique=True,nullable=False)
+    value = db.Column(db.String(50),nullable=False)
+
+
+class SubStuMap(object):
+    def __init__(self,studentcode,subcode):
+        self.studentcode = studentcode
+        self.subcode = subcode
+
+
+class SubTutMap(object):
+    def __init__(self,tutor_id,subcode):
+        self.tutor_id = tutor_id
+        self.subcode = subcode
+
+
+##Association tables
+substumap = db.Table('substumap',
+    db.Column('id',db.Integer,primary_key=True),
+    db.Column('studentcode', db.Integer, db.ForeignKey('students.id')),
+    db.Column('subcode', db.Integer, db.ForeignKey('subjects.id')),
+)
+
+subtutmap = db.Table('subtutmap',
+    db.Column('id',db.Integer,primary_key = True),
+    db.Column('tutor_id', db.Integer, db.ForeignKey('tutors.id')),
+    db.Column('subcode', db.Integer, db.ForeignKey('subjects.id')),
+)
+
+class Subject(db.Model):
+    __tablename__ = 'subjects'
+    id = db.Column(db.Integer,primary_key=True)
+    subcode = db.Column(db.String(50),nullable = False)
+    subname = db.Column(db.String(50),nullable = False)
+    year = db.Column(db.Integer,nullable = False)
+    studyperiod = db.Column(db.String(50),nullable = False)
+    def __init__(self,subcode,subname,year,studyperiod):
+        self.subcode = subcode
+        self.subname = subname
+        self.year = year
+        self.studyperiod = studyperiod
+
+class Student(db.Model):
+    __tablename__ = 'students'
+    id = db.Column(db.Integer,primary_key=True)
+    studentcode = db.Column(db.String(50),nullable = False)
+    firstname = db.Column(db.String(50),nullable = False)
+    lastname = db.Column(db.String(50),nullable = False)
+    year = db.Column(db.Integer,nullable = False)
+    studyperiod = db.Column(db.String(50),nullable = False)
+    subjects = db.relationship("Subject",secondary = substumap,backref = db.backref('students'))
+    def __init__(self,studentcode,firstname,lastname,year,studyperiod):
+        self.studentcode = studentcode
+        self.firstname = firstname
+        self.lastname = lastname
+        self.year = year
+        self.studyperiod = studyperiod
+
+class Tutor(db.Model):
+    __tablename__ = 'tutors'
+    id = db.Column(db.Integer, primary_key=True)
+    firstname = db.Column(db.String(50),nullable = False)
+    lastname = db.Column(db.String(50),nullable = False)
+    email = db.Column(db.String(100))
+    phone = db.Column(db.String(50))
+    year = db.Column(db.Integer,nullable = False)
+    studyperiod = db.Column(db.String(50),nullable = False)
+    subjects = db.relationship("Subject", secondary = subtutmap,backref = db.backref('tutor'))
+    def __init__(self,firstname,lastname,email,phone,year,studyperiod):
+        self.firstname = firstname
+        self.lastname = lastname
+        self.email = email
+        self.phone = phone
+        self.year = year
+        self.studyperiod = studyperiod
+
+
+class Class(db.Model):
+    __tablename__ = 'classes'
+    id = db.Column(db.Integer,primary_key=True)
+    subjectid = db.Column(db.Integer,nullable=False)
+    tutorid = db.Column(db.Integer,nullable=False)
+    datetime = db.Column(db.String(50),nullable=False)
+    year = db.Column(db.Integer,nullable=False)
+    studyperiod = db.Column(db.String(50),nullable=False)
+    def __init__(self,subjectid,tutorid,datetime,year,studyperiod):
+        self.subjectid = subjectid
+        self.tutorid = tutorid
+        self.datetime = datetime
+        self.year = year
+        self.studyperiod = studyperiod
 
 #DATABASE METHODS
-def connect_db():
-    init_db()
-    con = create_connection()
-    return con
-
-
-def create_connection():
-    rv = sql.connect(app.config['DB_FILE'])
-    rv.row_factory = sql.Row
-    return rv
-
-
-def init_db():
-    con = create_connection()
-    cur = con.cursor()
-    cur.execute("create table if not exists admin (id integer primary key autoincrement, key char(50) unique not null, value char(50))")
-    cur.execute("insert or ignore into admin (key,value) values ('studyperiod','Semester 2')")
-    cur.execute("insert or ignore into admin (key,value) values ('currentyear',2017)")
-    cur.execute("CREATE TABLE if not exists subjects (subjectid integer primary key AUTOINCREMENT, subcode char(50) NOT NULL, subname char(50) NOT NULL, studyperiod char(50) NOT NULL, year integer NOT NULL)")
-    cur.execute("CREATE TABLE if not exists tutors (tutorid integer primary key autoincrement,firstname char(50) NOT NULL, lastname char(50) not null, email char(50) NOT NULL, phone char(50) NOT NULL,year integer not null, studyperiod char(50) not null)")
-    cur.execute("CREATE TABLE if not exists students (studentid integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, firstname char(50) NOT NULL, lastname char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
-    cur.execute("CREATE TABLE if not EXISTS substumap (id integer primary key AUTOINCREMENT, studentcode char(50) NOT NULL, subjectcode char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
-    cur.execute("CREATE TABLE if not exists subtutmap (id integer primary key autoincrement, tutorid integer NOT NULL, subcode char(50) NOT NULL, year integer not null, studyperiod char(50) not null)")
-    cur.execute("CREATE TABLE if not exists tutavailability (id integer primary key autoincrement, tutorid integer unique, time1 integer default 1, time2 integer default 1, time3 integer default 1, time4 integer default 1, time5 integer default 1, time6 integer default 1, time7 integer default 1, time8 integer default 1, time9 integer default 1, year integer not null, studyperiod char(50) not null)")
-    cur.execute("create table if not exists classes (classid integer primary key autoincrement, classtime text, subcode char(50) not null, repeat integer, tutorid integer not null, year integer not null, studyperiod char(50) not null) ")
-    cur.execute("create table if not exists stuattendance (id integer primary key autoincrement, classid integer not null, studentcode char(50) not null, year integer not null, studyperiod char(50) not null)")
-    con.close()
+db.create_all()
+db.mapper(SubStuMap,substumap)
+db.mapper(SubTutMap,subtutmap)
 
 ### APP ROUTES
 
