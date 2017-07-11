@@ -56,7 +56,10 @@ class SubTutMap(object):
         self.tutor_id = tutor_id
         self.subcode = subcode
 
-
+class StuAttendance(object):
+    def __init__(self,classid,studentid):
+        self.classid=classid
+        self.studentid=studentid
 ##Association tables
 substumap = db.Table('substumap',
     db.Column('id',db.Integer,primary_key=True),
@@ -70,6 +73,13 @@ subtutmap = db.Table('subtutmap',
     db.Column('subcode', db.Integer, db.ForeignKey('subjects.id')),
 )
 
+stuattendance = db.Table('stuattendance',
+                         db.Column('id',db.Integer,primary_key=True),
+                         db.Column('classid',db.Integer,db.ForeignKey('classes.id')),
+                         db.Column('studentid',db.Integer,db.ForeignKey('students.id'))
+                         )
+
+
 class Subject(db.Model):
     __tablename__ = 'subjects'
     id = db.Column(db.Integer,primary_key=True)
@@ -77,6 +87,7 @@ class Subject(db.Model):
     subname = db.Column(db.String(50),nullable = False)
     year = db.Column(db.Integer,nullable = False)
     studyperiod = db.Column(db.String(50),nullable = False)
+
     def __init__(self,subcode,subname,year,studyperiod):
         self.subcode = subcode
         self.subname = subname
@@ -92,6 +103,7 @@ class Student(db.Model):
     year = db.Column(db.Integer,nullable = False)
     studyperiod = db.Column(db.String(50),nullable = False)
     subjects = db.relationship("Subject",secondary = substumap,backref = db.backref('students'))
+
     def __init__(self,studentcode,firstname,lastname,year,studyperiod):
         self.studentcode = studentcode
         self.firstname = firstname
@@ -109,6 +121,7 @@ class Tutor(db.Model):
     year = db.Column(db.Integer,nullable = False)
     studyperiod = db.Column(db.String(50),nullable = False)
     subjects = db.relationship("Subject", secondary = subtutmap,backref = db.backref('tutor'))
+
     def __init__(self,firstname,lastname,email,phone,year,studyperiod):
         self.firstname = firstname
         self.lastname = lastname
@@ -121,11 +134,13 @@ class Tutor(db.Model):
 class Class(db.Model):
     __tablename__ = 'classes'
     id = db.Column(db.Integer,primary_key=True)
-    subjectid = db.Column(db.Integer,nullable=False)
-    tutorid = db.Column(db.Integer,nullable=False)
+    subjectid = db.Column(db.Integer,db.ForeignKey('subjects.id'))
+    tutorid = db.Column(db.Integer,db.ForeignKey('tutors.id'))
     datetime = db.Column(db.String(50),nullable=False)
     year = db.Column(db.Integer,nullable=False)
     studyperiod = db.Column(db.String(50),nullable=False)
+    attendees = db.relationship("Student",secondary = stuattendance)
+
     def __init__(self,subjectid,tutorid,datetime,year,studyperiod):
         self.subjectid = subjectid
         self.tutorid = tutorid
@@ -137,6 +152,7 @@ class Class(db.Model):
 db.create_all()
 db.mapper(SubStuMap,substumap)
 db.mapper(SubTutMap,subtutmap)
+db.mapper(StuAttendance,stuattendance)
 
 ### APP ROUTES
 
