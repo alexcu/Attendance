@@ -691,27 +691,21 @@ def populate_tutors(filename):
         con.close()
 
 def update_year(year):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("update admin set value = ? where key = 'currentyear'",(int(year),))
-    con.commit()
-    con.close()
+    admin = Admin.query.filter_by(key='currentyear').first()
+    admin.value = year
+    db.session.commit()
 
 def update_studyperiod(studyperiod):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("update admin set value = ? where key = 'studyperiod'",(studyperiod,))
-    con.commit()
-    con.close()
+    admin = Admin.query.filter_by(key='studyperiod').first()
+    admin.value = studyperiod
+    db.session.commit()
 
 def get_tutor_from_name(tutor):
-    con =connect_db()
-    cur = con.cursor()
     split = tutor["Tutor"].split()
-    cur.execute("select tutorid from tutors where firstname = ? and lastname = ? and year = ? and studyperiod = ?",(split[0],split[1],get_current_year(),get_current_studyperiod()))
-    row = cur.fetchone()
-    con.close()
-    return row
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    tutor = Tutor.query.filter_by(firstname = split[0],lastname=split[1],year = year,studyperiod = studyperiod).first(0)
+    return tutor
 
 def upload(file):
     if file and allowed_file(file.filename):
@@ -724,24 +718,15 @@ def upload(file):
         return filename2
 
 def get_attendees(classid):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select studentcode from stuattendance where classid = ?", (classid,))
-    rows = cur.fetchall()
-
+    classdata = Class.query.filter_by(classid = classid).first()
+    rows = classdata.attendees
     returns = []
     for row in rows:
         returns.append(row["studentcode"])
-    con.close()
     return returns
 
 def get_class(classid):
-    con = connect_db()
-    cur = con.cursor()
-    cur.execute("select * from classes where classid = ?", (classid,))
-    rows = cur.fetchone()
-    con.close()
-    return rows
+    return Class.query.filter_by(classid=classid).first()
 
 def add_class_to_db(classtime,subcode,attendees,repeat=1):
     con = connect_db()
