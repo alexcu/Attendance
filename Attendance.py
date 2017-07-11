@@ -9,7 +9,7 @@ app = Flask(__name__)
 #LINUX
 app.config['UPLOAD_FOLDER'] = '/home/justin/Downloads/uploads/'
 #app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
-app.config['DB_FILE'] = '/home/justin/Dropbox/Justin/Documents/Python/database2.db'
+app.config['DB_FILE'] = '/Users/justin/Dropbox/Justin/Documents/Python/database2.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 
