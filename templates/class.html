@@ -9,12 +9,12 @@
         <td>Study Period</td>
         </thead>
         <tr>
-            <td><a href="{{ url_for('view_subject', subcode = classdata.subcode) }}">{{ classdata["subcode"] }}</a></td>
-            <td><a href="{{ url_for('view_subject', subcode = classdata.subcode) }}">{{ subject["subname"] }}</a></td>
+            <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{ subject["subcode"] }}</a></td>
+            <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{ subject["subname"] }}</a></td>
             <td> {{ subject["studyperiod"] }}</td>
         </tr>
     </table>
-    <a href="{{ url_for('remove_class', classid = classdata["classid"]) }}">Delete Class</a>
+    <a href="{{ url_for('remove_class', classid = classdata["id"]) }}">Delete Class</a>
 
     <h1>Tutor</h1>
     <table border=1>

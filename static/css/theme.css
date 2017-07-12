@@ -16,3 +16,11 @@ body {
 .theme-showcase .navbar .container {
     width: auto;
 }
+
+td.attended {
+    background-color: green;
+}
+
+td.notattended {
+    background-color: red;
+}

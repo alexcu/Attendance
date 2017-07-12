@@ -1,13 +1,12 @@
 import json
-import os
+from datetime import datetime
+from operator import attrgetter
+
 import pandas
-import sqlite3 as sql
 from flask import Flask
-from flask import render_template, request, redirect, url_for, send_from_directory
+from flask import render_template
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
-from sqlalchemy import *
-from sqlalchemy.ext.declarative import declarative_base
 
 app = Flask(__name__)
 
@@ -98,7 +97,7 @@ class Subject(db.Model):
     subname = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
-
+    classes = db.relationship("Class")
     def __init__(self, subcode, subname, year, studyperiod):
         self.subcode = subcode
         self.subname = subname
@@ -134,7 +133,6 @@ class Tutor(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=subtutmap, backref=db.backref('tutor', uselist=False))
-
     def __init__(self, firstname, lastname, email, phone, year, studyperiod):
         self.firstname = firstname
         self.lastname = lastname
@@ -149,17 +147,19 @@ class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-    datetime = db.Column(db.String(50), nullable=False)
+    classtime = db.Column(db.DateTime, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
+    repeat = db.Column(db.Integer, default=1)
     attendees = db.relationship("Student", secondary=stuattendance)
 
-    def __init__(self, subjectid, tutorid, datetime, year, studyperiod):
+    def __init__(self, subjectid, tutorid, classtime, year, studyperiod, repeat):
         self.subjectid = subjectid
         self.tutorid = tutorid
-        self.datetime = datetime
+        self.classtime = classtime
         self.year = year
         self.studyperiod = studyperiod
+        self.repeat = repeat
 
 
 class TutorAvailability(db.Model):
@@ -253,10 +253,10 @@ def view_timetable():
 @app.route('/removeclass?classid=<classid>')
 def remove_class(classid):
     specificclass = Class.query.get(classid)
-    subcode = specificclass.subject
+    sub = Subject.query.get(specificclass.subjectid)
     db.session.delete(specificclass)
     db.session.commit()
-    return view_subject_template(subcode)
+    return view_subject_template(sub.subcode)
 
 
 @app.route('/updatetutoravailability?tutorid=<tutorid>', methods=['GET', 'POST'])
@@ -289,14 +289,15 @@ def add_class(subcode):
         return render_template('addclass.html', subject=get_subject(subcode),
                                students=get_subject_and_students(subcode))
     elif request.method == 'POST':
-        classtime = request.form["time"]
+        classtime = request.form["date"]
+        print(classtime)
         repeat = request.form["repeat"]
-
         students = get_subject_and_students(subcode)
         attendees = []
         for student in students:
-            if checkboxvalue(request.form.get(student["studentcode"])) == 1:
-                attendees.append(student["studentcode"])
+            print(student.studentcode)
+            if checkboxvalue(request.form.get(student.studentcode)) == 1:
+                attendees.append(student.studentcode)
         add_class_to_db(classtime, subcode, attendees, repeat)
         return view_subject_template(subcode)
 
@@ -304,9 +305,10 @@ def add_class(subcode):
 @app.route('/viewclass?classid=<classid>')
 def view_class(classid):
     classdata = get_class(classid)
-    return render_template('class.html', classdata=classdata, subject=get_subject(classdata["subcode"]),
-                           tutor=get_tutor(classdata["tutorid"]),
-                           students=get_subject_and_students(classdata["subcode"]), attendees=get_attendees(classid))
+    subject = Subject.query.get(classdata.subjectid)
+    return render_template('class.html', classdata=classdata, subject=get_subject(subject.subcode),
+                           tutor=get_tutor(classdata.tutorid),
+                           students=get_subject_and_students(subject.subcode), attendees=get_attendees(classid))
 
 
 @app.route('/admin')
@@ -512,6 +514,25 @@ def upload_tutor_data():
     return render_template('uploadtutordata.html')
 
 
+@app.route('/updatestudentattendance?subcode=<subcode>', methods=['POST'])
+def update_student_attendance(subcode):
+    subject = get_subject(subcode)
+    for specificclass in subject.classes:
+        specificclass.attendees = []
+
+    for (k, v) in request.form.items():
+        if v != '':
+            v = v.split('/')
+            classid = int(v[0])
+            studentid = int(v[1])
+            specificclass = Class.query.get(classid)
+            specificclass.attendees.append(Student.query.get(studentid))
+        db.session.commit()
+
+    print(subject.classes)
+    return view_subject_template(subcode)
+
+
 # HELPER METHODS
 def get_tutor(tutorid):
     return Tutor.query.get(tutorid)
@@ -571,7 +592,9 @@ def view_subject_template(subcode, msg=""):
 
 def get_classes_for_subject(subcode):
     sub = get_subject(subcode)
-    return Class.query.filter_by(subjectid=sub.id, year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    results = Class.query.filter_by(subjectid=sub.id, year=get_current_year(),
+                                    studyperiod=get_current_studyperiod()).all()
+    return sorted(results, key=attrgetter('classtime'))
 
 
 def get_tutor_availability(tutorid):
@@ -679,7 +702,6 @@ def populate_students(filename):
                     mapping = SubStuMap(student_id=student.id, subject_id=subject.id)
                     db.session.add(mapping)
                     db.session.commit()
-            print("Success")
         except:
             print("Error with StudentID %d with Subject" % (row['Student Id'], row['Component Study Package Code']))
 
@@ -747,28 +769,31 @@ def upload(file):
 
 
 def get_attendees(classid):
-    classdata = Class.query.filter_by(classid=classid).first()
+    classdata = Class.query.filter_by(id=classid).first()
     rows = classdata.attendees
     returns = []
     for row in rows:
-        returns.append(row["studentcode"])
+        returns.append(row.studentcode)
+    print(returns)
     return returns
 
 
 def get_class(classid):
-    return Class.query.filter_by(classid=classid).first()
+    return Class.query.filter_by(id=classid).first()
 
 
-def add_class_to_db(datetime, subcode, attendees, repeat=1):
+def add_class_to_db(classtime, subcode, attendees, repeat=1):
     tutor = get_subject_and_tutor(subcode)
     subject = get_subject(subcode)
-    if Class.query.filter_by(datetime=datetime, subjectid=subject.id, year=get_current_year(),
-                             studyperiod=get_current_studyperiod(), repeat=repeat).first() == None:
-        specificclass = Class(datetime=datetime, subjectid=subject.id, year=get_current_year(),
-                              studyperiod=get_current_studyperiod(), repeat=repeat)
+    classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M')
+    print(attendees)
+    if Class.query.filter_by(classtime=classtime, subjectid=subject.id, year=get_current_year(),
+                             studyperiod=get_current_studyperiod(), tutorid=tutor.id, repeat=repeat).first() == None:
+        specificclass = Class(classtime=classtime, subjectid=subject.id, year=get_current_year(),
+                              studyperiod=get_current_studyperiod(), tutorid=tutor.id, repeat=repeat)
         db.session.add(specificclass)
         db.session.commit()
-    add_students_to_class(specificclass, attendees)
+        add_students_to_class(specificclass, attendees)
     return "Completed Successfully"
 
 
@@ -776,6 +801,8 @@ def add_students_to_class(specificclass, attendees):
     for i in range(len(attendees)):
         student = get_student(attendees[i])
         mapping = StuAttendance(class_id=specificclass.id, student_id=student.id)
+        db.session.add(mapping)
+    db.session.commit()
     return "Completed Successfully"
 
 
