@@ -14,7 +14,7 @@
 
 
 <a href="addtutor"><button type="button" class="btn btn-lg btn-default">Add Tutor</button></a>
-
+<link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
      <script>
 
     $(document).ready(function() {
@@ -22,7 +22,7 @@
         "ajax": {"url" : '/viewtutorsajax',
                 "type" : 'GET'},
         "columns" : [{"data" : "firstname","render": function ( data, type, row, meta ) {
-                            return "<a href='/viewtutor%3Ftutorid%3D"+row.tutorid+"'>" + row.firstname + " " + row.lastname + "</a>";}}, {"data" : "email"}, {"data" : "phone"}]
+                            return "<a href='/viewtutor%3Ftutorid%3D"+row.id+"'>" + row.firstname + " " + row.lastname + "</a>";}}, {"data" : "email"}, {"data" : "phone"}]
     } );
 } );
     </script>

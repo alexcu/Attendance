@@ -35,11 +35,21 @@
                 <td>{{subject["subcode"]}}</td>
                <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subname"]}}</a></td>
                 <td> {{ subject["studyperiod"]}}</td>
-                <td>Remove</td>
+                <td><a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}">Remove</a></td>
             </tr>
          {% endfor %}
       </table>
         </div></div>
-    <a href=""><button type="button" class="btn btn-lg btn-default">Add Subject to Student</button></a>
+    <form action = "{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method = "POST">
+    <select name = "subject">
+        {%  for subject in eligiblesubjects %}
 
+            <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
+
+        {% endfor %}
+
+    </select>
+    <input type="submit" value = "Add Subject to Student" />
+    </form>
+{{ msg }}
 {% endblock %}

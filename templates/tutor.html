@@ -17,7 +17,7 @@
             </tr>
           </table></div></div>
 
-    <a href="{{ url_for('remove_tutor', tutorid = rows["tutorid"]) }}"><button type="button" class="btn btn-lg btn-default">Delete Tutor</button></a>
+    <a href="{{ url_for('remove_tutor', tutorid = rows["id"]) }}"><button type="button" class="btn btn-lg btn-default">Delete Tutor</button></a>
 
 
     <h1>Subjects this tutor teaches:</h1>
@@ -38,12 +38,12 @@
                 <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subcode"]}}</a></td>
                <td>{{subject["subname"]}}</td>
                 <td> {{ subject["studyperiod"]}}</td>
-                <td><a href="{{ url_for('remove_subject_from_tutor', subcode = subject.subcode, tutorid = rows['tutorid']) }}"><button type="button" class="btn btn-default">Remove</button></a></td>
+                <td><a href="{{ url_for('remove_subject_from_tutor', subcode = subject.subcode, tutorid = rows['id']) }}"><button type="button" class="btn btn-default">Remove</button></a></td>
             </tr>
          {% endfor %}
           </table></div></div>
     <h3>Add Subject to Tutor</h3>
-    <form action = "{{ url_for('add_subject_to_tutor', tutorid = rows["tutorid"]) }}" method = "POST">
+    <form action = "{{ url_for('add_subject_to_tutor', tutorid = rows["id"]) }}" method = "POST">
     <select name = "subject">
         {%  for subject in eligiblesubjects %}
 
@@ -88,7 +88,7 @@
 
           </table></div></div>
     <h3>Update Tutor Availability</h3>
-    <form action = "{{ url_for('update_tutor_availability', tutorid = rows['tutorid']) }}", method="POST">
+    <form action = "{{ url_for('update_tutor_availability', tutorid = rows['id']) }}", method="POST">
 
     <input type = "checkbox" name="time1" >Monday 7:30 <br>
     <input type = "checkbox" name="time2" >Monday 8:30 <br>
