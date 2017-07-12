@@ -126,7 +126,7 @@ class Tutor(db.Model):
     phone = db.Column(db.String(50))
     year = db.Column(db.Integer,nullable = False)
     studyperiod = db.Column(db.String(50),nullable = False)
-    subjects = db.relationship("Subject", secondary = subtutmap,backref = db.backref('tutor'))
+    subjects = db.relationship("Subject", secondary = subtutmap,backref = db.backref('tutor',uselist = False))
 
     def __init__(self,firstname,lastname,email,phone,year,studyperiod):
         self.firstname = firstname
@@ -324,7 +324,10 @@ def remove_tutor_from_subject(tutorid,subcode):
     msg = unlinksubjecttutor(tutorid,subcode)
     return view_subject_template(subcode,msg)
 
-
+@app.route('/removesubjectfromstudent?studentcode=<studentcode>&subcode=<subcode>')
+def remove_subject_from_student(studentcode,subcode):
+    msg = unlinksubjectstudent(studentcode,subcode)
+    return view_student_template(studentcode,msg)
 
 
 
@@ -442,7 +445,7 @@ def view_students():
 
 @app.route('/viewstudent?studentcode=<studentcode>')
 def view_student(studentcode):
-    return render_template('student.html', rows = get_student(studentcode), subjects=get_student_and_subjects(studentcode))
+    return view_student_template(studentcode)
 
 
 
@@ -490,7 +493,7 @@ def get_tutor(tutorid):
 
 
 def get_student(studentcode):
-    return Student.query.filter_by(studentcode = studentcode, year = get_current_year(),studyperiod = get_current_studyperiod()).all()
+    return Student.query.filter_by(studentcode = studentcode, year = get_current_year(),studyperiod = get_current_studyperiod()).first()
 
 
 def get_subjects():
@@ -502,29 +505,39 @@ def get_students():
 
 
 def unlinksubjecttutor(tutorid, subcode):
-    subject = Subject.query.filter_by(subcode = subcode, year = get_current_year(), studyperiod = get_current_studyperiod())
-    mapping = SubTutMap.query.filter_by(tutor_id = tutorid, subject_id = subject.id)
-    db.session.remove(mapping)
+    subject = Subject.query.filter_by(subcode = subcode, year = get_current_year(), studyperiod = get_current_studyperiod()).first()
+    subject.tutor = None
     db.session.commit()
     return "Unlinked Successfully."
 
+
+def unlinksubjectstudent(studentcode,subcode):
+    student = Student.query.filter_by(studentcode = studentcode,year=get_current_year(), studyperiod = get_current_studyperiod()).first()
+    subject = Subject.query.filter_by(subcode = subcode, year = get_current_year(), studyperiod = get_current_studyperiod()).first()
+    student.subjects.remove(subject)
+    db.session.commit()
+    return "Unlinked Successfully"
+
+
 def linksubjecttutor(tutorid, subcode):
-    subject = Subject.query.filter_by(subcode=subcode, year=get_current_year(), studyperiod=get_current_studyperiod())
-    if SubTutMap.query.filter_by(tutor_id=tutorid, subject_id = subject.id).first() == None:
-        mapping = SubTutMap(tutor_id=tutorid,subject_id = subject.id)
-        db.session.add(mapping)
-        db.session.commit()
+    subject = Subject.query.filter_by(subcode=subcode, year=get_current_year(), studyperiod=get_current_studyperiod()).first()
+    subject.tutor = Tutor.query.filter_by(id = tutorid).first()
+    db.session.commit()
     msg = "Subject Linked to Tutor Successfully"
     return msg
+
 
 def get_subject(subcode):
     return Subject.query.filter_by(subcode = subcode, year = get_current_year(), studyperiod = get_current_studyperiod()).first()
 
+
 def view_subject_template(subcode,msg=""):
-    return render_template("subject.html",rows = get_subject(subcode),students = get_subject_and_students(subcode), tutor = get_subject_and_tutor(subcode), tutors = get_tutors(),classes = get_classes_for_subject(subcode),attendees = get_attendees_for_subject(subcode),msg=msg)
+    return render_template("subject.html",rows = get_subject(subcode) ,students = get_subject_and_students(subcode), tutor = get_subject_and_tutor(subcode), tutors = get_tutors(),classes = get_classes_for_subject(subcode),attendees = get_attendees_for_subject(subcode),msg=msg)
+
 
 def get_classes_for_subject(subcode):
-    return Class.query.filter_by(subcode = subcode, year = get_current_year(), studyperiod = get_current_studyperiod()).all()
+    sub = get_subject(subcode)
+    return Class.query.filter_by(subjectid = sub.id, year = get_current_year(), studyperiod = get_current_studyperiod()).all()
 
 
 def get_tutor_availability(tutorid):
@@ -546,7 +559,7 @@ def set_tutor_availability(tutorid, availability):
         avail.time7 = availability[6]
         avail.time8 = availability[7]
         avail.time9 = availability[8]
-        db.commit()
+        db.session.commit()
     return "Successful."
 
 def checkboxvalue(checkbox):
@@ -578,7 +591,7 @@ def get_subject_and_tutor(subcode):
 
 
 def get_tutor_and_subjects(tutorid):
-    tutor = Tutor.query.filter_by(tutorid = tutorid).first()
+    tutor = Tutor.query.filter_by(id = tutorid).first()
     return tutor.subjects
 
 def getadmin():
@@ -722,6 +735,9 @@ def get_current_year():
 def get_current_studyperiod():
     admin = Admin.query.filter_by(key='studyperiod').first()
     return admin.value
+
+def view_student_template(studentcode,msg=""):
+    return render_template('student.html', rows=get_student(studentcode), subjects=get_student_and_subjects(studentcode),msg= msg)
 
 if __name__ == '__main__':
     app.run(debug=True)

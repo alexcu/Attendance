@@ -29,10 +29,10 @@
          <td />
          </thead>
             <tr>
-                <td><a href="{{ url_for('view_tutor', tutorid = tutor["tutorid"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a></td>
+                <td><a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a></td>
                <td>{{ tutor["email"] }}</td>
                <td>{{ tutor["phone"] }}</td>
-                <td>{% if tutor != None %}<a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["tutorid"]) }}"><button type="button" class="btn btn-default">Remove</button></a>{% endif %}</td>
+                <td>{% if tutor != None %}<a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}"><button type="button" class="btn btn-default">Remove</button></a>{% endif %}</td>
             </tr>
           </table></div></div>
     {% if tutor == None %}
@@ -41,7 +41,7 @@
     <select name = "tutor">
         {%  for temptutor in tutors %}
 
-            <option value={{ temptutor["tutorid"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
+            <option value={{ temptutor["id"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
 
         {% endfor %}
 
