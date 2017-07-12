@@ -12,9 +12,6 @@ app = Flask(__name__)
 #app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 #LINUX
 app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
-#app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
-#app.config['DB_FILE'] = '/home/justin/Dropbox/Justin/Documents/Python/database2.db'
-#app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database3.db'
 db = SQLAlchemy(app)
