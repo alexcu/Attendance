@@ -1,55 +1,61 @@
-{%  extends "layout.html" %}
+{% extends "layout.html" %}
 {% block content %}
-<h1>Student Information</h1>
-{{ msg }}
-<div class="row">
+    <h1>Student Information</h1>
+    {{ msg }}
+    <div class="row">
         <div class="col-md-6">
-          <table class="table">
-         <thead>
-            <td>Student ID</td>
-            <td>Name</td>
-         </thead>
-            <tr>
-               <td>{{rows["studentcode"]}}</td>
-               <td>{{rows["firstname"]}} {{ rows["lastname"]}}</td>
-            </tr>
-      </table>
-        </div></div>
+            <table class="table">
+                <thead>
+                <td>Student ID</td>
+                <td>Name</td>
+                </thead>
+                <tr>
+                    <td>{{ rows["studentcode"] }}</td>
+                    <td>{{ rows["firstname"] }} {{ rows["lastname"] }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
 
 
 
     <h1>Subjects this student takes:</h1>
     <div class="row">
         <div class="col-md-6">
-          <table class="table">
-         <thead>
-            <td>Subject Code</td>
-            <td>Subject Name</td>
-            <td>Study Period</td>
-            <td></td>
-         </thead>
+            <table class="table">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Study Period</td>
+                <td></td>
+                </thead>
 
-         {% for subject in subjects%}
-            <tr>
+                {% for subject in subjects %}
+                    <tr>
 
-                <td>{{subject["subcode"]}}</td>
-               <td><a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{subject["subname"]}}</a></td>
-                <td> {{ subject["studyperiod"]}}</td>
-                <td><a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}">Remove</a></td>
-            </tr>
-         {% endfor %}
-      </table>
-        </div></div>
-    <form action = "{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method = "POST">
-    <select name = "subject">
-        {%  for subject in eligiblesubjects %}
+                        <td>{{ subject["subcode"] }}</td>
+                        <td>
+                            <a href="{{ url_for('view_subject', subcode = subject.subcode) }}">{{ subject["subname"] }}</a>
+                        </td>
+                        <td> {{ subject["studyperiod"] }}</td>
+                        <td>
+                            <a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}">Remove</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    <form action="{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method="POST">
+        <select name="subject">
+            {% for subject in eligiblesubjects %}
 
-            <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
+                <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
 
-        {% endfor %}
+            {% endfor %}
 
-    </select>
-    <input type="submit" value = "Add Subject to Student" />
+        </select>
+        <input type="submit" value="Add Subject to Student"/>
     </form>
-{{ msg }}
+    {{ msg }}
 {% endblock %}

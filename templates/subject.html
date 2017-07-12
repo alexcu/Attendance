@@ -1,114 +1,137 @@
-{%  extends "layout.html" %}
+{% extends "layout.html" %}
 {% block content %}
-<h1>Subject Information</h1>
-{{ msg }}
-<div class="row">
+    <h1>Subject Information</h1>
+    {{ msg }}
+    <div class="row">
         <div class="col-md-6">
-          <table class="table">
-         <thead>
-            <td>Subject Code</td>
-            <td>Subject Name</td>
-            <td>Study Period</td>
-         </thead>
-            <tr>
-               <td>{{rows["subcode"]}}</td>
-               <td>{{rows["subname"]}}</td>
-               <td> {{ rows["studyperiod"]}}</td>
-            </tr>
-          </table></div></div>
+            <table class="table">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Study Period</td>
+                </thead>
+                <tr>
+                    <td>{{ rows["subcode"] }}</td>
+                    <td>{{ rows["subname"] }}</td>
+                    <td> {{ rows["studyperiod"] }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
     <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
 
     <h1>Tutor</h1>
     <div class="row">
         <div class="col-md-6">
-          <table class="table">
-         <thead>
-            <td>Tutor Name</td>
-            <td>Email</td>
-            <td>Phone</td>
-         <td />
-         </thead>
-            <tr>
-                <td><a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a></td>
-               <td>{{ tutor["email"] }}</td>
-               <td>{{ tutor["phone"] }}</td>
-                <td>{% if tutor != None %}<a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}"><button type="button" class="btn btn-default">Remove</button></a>{% endif %}</td>
-            </tr>
-          </table></div></div>
+            <table class="table">
+                <thead>
+                <td>Tutor Name</td>
+                <td>Email</td>
+                <td>Phone</td>
+                <td/>
+                </thead>
+                <tr>
+                    <td>
+                        <a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a>
+                    </td>
+                    <td>{{ tutor["email"] }}</td>
+                    <td>{{ tutor["phone"] }}</td>
+                    <td>{% if tutor != None %}
+                        <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
+                            <button type="button" class="btn btn-default">Remove</button>
+                        </a>{% endif %}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
     {% if tutor == None %}
-       <h3>Add Tutor to Subject</h3>
-    <form action = "{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method = "POST">
-    <select name = "tutor">
-        {%  for temptutor in tutors %}
+        <h3>Add Tutor to Subject</h3>
+        <form action="{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method="POST">
+            <select name="tutor">
+                {% for temptutor in tutors %}
 
-            <option value={{ temptutor["id"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
+                    <option value={{ temptutor["id"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
 
-        {% endfor %}
+                {% endfor %}
 
-    </select>
+            </select>
 
-    <input type="submit" value = "Add Tutor to Subject" />
-    </form>
+            <input type="submit" value="Add Tutor to Subject"/>
+        </form>
     {% endif %}
     {{ msg2 }}
 
     <h1>Students Enrolled in this subject</h1>
     <div class="row">
         <div class="col-md-6">
-          <table class="table">
-         <thead>
-            <td>Student Number</td>
-            <td>Name</td>
-            <td />
-         {% for class in classes %}
-            <td>{{ class["classid"] }}</td>
-         {% endfor %}
-         </thead>
-
-         {% for student in students %}
-            <tr>
-
-                <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["studentcode"]}}</a></td>
-                <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["firstname"]}} {{ student["lastname"]}}</a></td>
-                <td><a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}">Remove</a></a></td>
+            <table class="table">
+                <thead>
+                <td>Student Number</td>
+                <td>Name</td>
+                <td/>
                 {% for class in classes %}
-                <td>{% if student["studentcode"] in attendees[class["classid"]] %}
-                1
-                {% endif %}</td>
-                    {% endfor %}
-            </tr>
-         {% endfor %}
-          </table></div></div>
+                    <td>{{ class["classid"] }}</td>
+                {% endfor %}
+                </thead>
+
+                {% for student in students %}
+                    <tr>
+
+                        <td>
+                            <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["studentcode"] }}</a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["firstname"] }} {{ student["lastname"] }}</a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}">Remove</a></a>
+                        </td>
+                        {% for class in classes %}
+                            <td>{% if student["studentcode"] in attendees[class["classid"]] %}
+                                1
+                            {% endif %}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 
     {% if tutor != None %}
 
-    <h1>Mark Rolls for This Subject</h1>
+        <h1>Mark Rolls for This Subject</h1>
         <div class="row">
-        <div class="col-md-6">
-          <table class="table">
-         <thead>
+            <div class="col-md-6">
+                <table class="table">
+                    <thead>
 
-            <td>Date</td>
-            <td>Time</td>
-            <td>Repeat</td>
-         <td></td>
-         </thead>
+                    <td>Date</td>
+                    <td>Time</td>
+                    <td>Repeat</td>
+                    <td></td>
+                    </thead>
 
-         {% for class in classes %}
-            <tr>
-
-
-               <td>{{ class["datetime"] }}</td>
-                <td> </td>
-                <td>{{ class["repeat"] }}</td>
-                <td><a href="{{ url_for('view_class', classid = class["classid"]) }}"><button type="button" class="btn btn-lg btn-default">View Class</button></a></td>
-            </tr>
-         {% endfor %}
-          </table></div></div>
+                    {% for class in classes %}
+                        <tr>
 
 
-    <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}"><button type="button" class="btn btn-lg btn-default">Add a Class</button></a>
-{% endif %}
+                            <td>{{ class["datetime"] }}</td>
+                            <td></td>
+                            <td>{{ class["repeat"] }}</td>
+                            <td><a href="{{ url_for('view_class', classid = class["classid"]) }}">
+                                <button type="button" class="btn btn-lg btn-default">View Class</button>
+                            </a></td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+
+        <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
+            <button type="button" class="btn btn-lg btn-default">Add a Class</button>
+        </a>
+    {% endif %}
 
 
 {% endblock %}

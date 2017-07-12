@@ -1,35 +1,35 @@
-{%  extends "layout.html" %}
+{% extends "layout.html" %}
 {% block content %}
-<form action="updateadminsettings" method="POST">
-Current Year: <select name="year" id="year">
-    <option value=2017>2017</option>
-    <option value=2018>2018</option>
-    <option value=2019>2019</option>
-</select>
-Study Period: <select name="studyperiod" id="studyperiod">
-    <option value="Semester 1">Semester 1</option>
-    <option value="Semester 2">Semester 2</option>
-</select>
-    <input type = 'submit' value = 'Submit' /></form>
+    <form action="updateadminsettings" method="POST">
+        Current Year: <select name="year" id="year">
+        <option value=2017>2017</option>
+        <option value=2018>2018</option>
+        <option value=2019>2019</option>
+    </select>
+        Study Period: <select name="studyperiod" id="studyperiod">
+        <option value="Semester 1">Semester 1</option>
+        <option value="Semester 2">Semester 2</option>
+    </select>
+        <input type='submit' value='Submit'/></form>
 
 
-</form>
+    </form>
 
-<script>
-$(document).ready(function() {
-    var select = document.getElementById("year")
-    var el = document.createElement("option")
-    el.textContent = {{ admin["currentyear"] }}
-        el.selected = true
-    select.appendChild(el)
+    <script>
+        $(document).ready(function () {
+            var select = document.getElementById("year")
+            var el = document.createElement("option")
+            el.textContent = {{ admin["currentyear"] }}
+                el.selected = true
+            select.appendChild(el)
 
-    var select2 = document.getElementById("studyperiod")
-    var el2 = document.createElement("option")
-    el2.textContent = '{{ admin["studyperiod"] }}'
-        el2.selected = true
-    select2.appendChild(el2)
-});
-</script>
+            var select2 = document.getElementById("studyperiod")
+            var el2 = document.createElement("option")
+            el2.textContent = '{{ admin["studyperiod"] }}'
+            el2.selected = true
+            select2.appendChild(el2)
+        });
+    </script>
 
 
 {% endblock %}

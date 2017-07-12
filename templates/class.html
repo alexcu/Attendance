@@ -1,58 +1,62 @@
-{%  extends "layout.html" %}
+{% extends "layout.html" %}
 {% block content %}
-<h1>Class Information</h1>
-{{ msg }}
-<table border = 1>
-         <thead>
-            <td>Subject Code</td>
-            <td>Subject Name</td>
-            <td>Study Period</td>
-         </thead>
-            <tr>
-                <td><a href="{{ url_for('view_subject', subcode = classdata.subcode) }}">{{classdata["subcode"]}}</a></td>
-               <td><a href="{{ url_for('view_subject', subcode = classdata.subcode) }}">{{ subject["subname"] }}</a></td>
-               <td> {{ subject["studyperiod"] }}</td>
-            </tr>
-      </table>
+    <h1>Class Information</h1>
+    {{ msg }}
+    <table border=1>
+        <thead>
+        <td>Subject Code</td>
+        <td>Subject Name</td>
+        <td>Study Period</td>
+        </thead>
+        <tr>
+            <td><a href="{{ url_for('view_subject', subcode = classdata.subcode) }}">{{ classdata["subcode"] }}</a></td>
+            <td><a href="{{ url_for('view_subject', subcode = classdata.subcode) }}">{{ subject["subname"] }}</a></td>
+            <td> {{ subject["studyperiod"] }}</td>
+        </tr>
+    </table>
     <a href="{{ url_for('remove_class', classid = classdata["classid"]) }}">Delete Class</a>
 
     <h1>Tutor</h1>
-    <table border = 1>
-         <thead>
-            <td>Tutor Name</td>
-            <td>Email</td>
-            <td>Phone</td>
+    <table border=1>
+        <thead>
+        <td>Tutor Name</td>
+        <td>Email</td>
+        <td>Phone</td>
 
-         </thead>
-            <tr>
-                <td><a href="{{ url_for('view_tutor', tutorid = tutor["tutorid"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a></td>
-               <td>{{ tutor["email"] }}</td>
-               <td>{{ tutor["phone"] }}</td>
+        </thead>
+        <tr>
+            <td>
+                <a href="{{ url_for('view_tutor', tutorid = tutor["tutorid"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a>
+            </td>
+            <td>{{ tutor["email"] }}</td>
+            <td>{{ tutor["phone"] }}</td>
 
-            </tr>
-      </table>
+        </tr>
+    </table>
 
 
 
     <h1>Students Enrolled in this subject</h1>
-    <table border = 1>
-         <thead>
-            <td>Student Number</td>
-            <td>Name</td>
-         <td>Attended?</td>
-         </thead>
+    <table border=1>
+        <thead>
+        <td>Student Number</td>
+        <td>Name</td>
+        <td>Attended?</td>
+        </thead>
 
-         {% for student in students %}
+        {% for student in students %}
             <tr>
 
-                <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["studentcode"]}}</a></td>
-               <td>{{student["firstname"]}} {{ student["lastname"]}}</td>
+                <td>
+                    <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["studentcode"] }}</a>
+                </td>
+                <td>{{ student["firstname"] }} {{ student["lastname"] }}</td>
                 <td> {% if student["studentcode"] in attendees %}
-                1
+                    1
                 {% endif %} </td>
             </tr>
-         {% endfor %}
-      </table>
+        {% endfor %}
+    </table>
 
 
 
