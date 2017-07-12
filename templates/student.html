@@ -40,6 +40,16 @@
          {% endfor %}
       </table>
         </div></div>
-    <a href=""><button type="button" class="btn btn-lg btn-default">Add Subject to Student</button></a>
+    <form action = "{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method = "POST">
+    <select name = "subject">
+        {%  for subject in eligiblesubjects %}
+
+            <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
+
+        {% endfor %}
+
+    </select>
+    <input type="submit" value = "Add Subject to Student" />
+    </form>
 {{ msg }}
 {% endblock %}

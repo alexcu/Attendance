@@ -329,7 +329,16 @@ def remove_subject_from_student(studentcode,subcode):
     msg = unlinksubjectstudent(studentcode,subcode)
     return view_student_template(studentcode,msg)
 
+@app.route('/removestudentfromsubject?studentcode=<studentcode>&subcode=<subcode>')
+def remove_student_from_subject(studentcode,subcode):
+    msg = unlinksubjectstudent(studentcode,subcode)
+    return view_subject_template(subcode,msg)
 
+@app.route('/addsubjecttostudent?studentcode=<studentcode>',methods=['POST'])
+def add_subject_to_student(studentcode):
+    subcode = request.form['subject']
+    msg=linksubjectstudent(studentcode,subcode)
+    return view_student_template(studentcode,msg=msg)
 
 @app.route('/')
 def hello_world():
@@ -736,8 +745,17 @@ def get_current_studyperiod():
     admin = Admin.query.filter_by(key='studyperiod').first()
     return admin.value
 
+def linksubjectstudent(studentcode,subcode):
+    student = Student.query.filter_by(studentcode = studentcode,year=get_current_year(),studyperiod= get_current_studyperiod()).first()
+    subject = Subject.query.filter_by(subcode = subcode, year=get_current_year(),studyperiod = get_current_studyperiod()).first()
+    mapping = SubStuMap(student_id = student.id,subject_id = subject.id)
+    db.session.add(mapping)
+    db.session.commit()
+    return "Linked Successfully."
+
+
 def view_student_template(studentcode,msg=""):
-    return render_template('student.html', rows=get_student(studentcode), subjects=get_student_and_subjects(studentcode),msg= msg)
+    return render_template('student.html', rows=get_student(studentcode),eligiblesubjects = get_subjects(), subjects=get_student_and_subjects(studentcode),msg= msg)
 
 if __name__ == '__main__':
     app.run(debug=True)

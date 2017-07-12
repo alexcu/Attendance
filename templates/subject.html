@@ -59,6 +59,7 @@
          <thead>
             <td>Student Number</td>
             <td>Name</td>
+            <td />
          {% for class in classes %}
             <td>{{ class["classid"] }}</td>
          {% endfor %}
@@ -69,6 +70,7 @@
 
                 <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["studentcode"]}}</a></td>
                 <td><a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{student["firstname"]}} {{ student["lastname"]}}</a></td>
+                <td><a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}">Remove</a></a></td>
                 {% for class in classes %}
                 <td>{% if student["studentcode"] in attendees[class["classid"]] %}
                 1
