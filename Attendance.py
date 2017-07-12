@@ -11,14 +11,16 @@ app = Flask(__name__)
 #WINDOWS
 #app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 #LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 #app.config['DB_FILE'] = '/home/justin/PycharmProjects/Attendance/static/database.db'
 #app.config['DB_FILE'] = '/home/justin/Dropbox/Justin/Documents/Python/database2.db'
 #app.config['DB_FILE'] = 'C:/Users/justi/PycharmProjects/Attendance/static/database.db'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls','xlsx', 'csv'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database3.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database3.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
@@ -37,6 +39,7 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
+
 
 class Admin(db.Model):
     __tablename__ = 'admin'
@@ -176,6 +179,7 @@ class TutorAvailability(db.Model):
         self.time7 = time7
         self.time8 = time8
         self.time9 = time9
+
 #DATABASE METHODS
 db.create_all()
 db.mapper(SubStuMap,substumap)
@@ -220,7 +224,6 @@ def updateadminsettings():
 def uploadtutordata():
     try:
         filename2 = upload(request.files['file'])
-        print(filename2)
         print("Uploaded Successfully")
         populate_tutors(filename2)
         print("Populated Tutors")
@@ -329,6 +332,7 @@ def remove_tutor_from_subject(tutorid,subcode):
 def hello_world():
     return render_template('index.html')
 
+
 @app.route('/rolls')
 def view_rolls():
     return render_template('rolls.html')
@@ -336,9 +340,9 @@ def view_rolls():
 
 @app.route('/subjects')
 def view_subjects():
-
-
     return render_template('subjects.html')
+
+
 @app.route('/viewsubjectsajax')
 def viewsubjects_ajax():
     data = Subject.query.filter_by(year = get_current_year(),studyperiod = get_current_studyperiod()).all()
@@ -401,7 +405,7 @@ def view_subject(subcode):
 @app.route('/removesubject?subcode=<subcode>')
 def remove_subject(subcode):
     try:
-        sub = Subject.query.filter_by(subcode = subcode,year = get_current_year(), studyperiod = get_current_studyperiod())
+        sub = Subject.query.filter_by(subcode = subcode,year = get_current_year(), studyperiod = get_current_studyperiod()).first()
         db.session.remove(sub)
         db.session.commit()
         msg = "Completed Successfully"
