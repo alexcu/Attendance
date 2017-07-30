@@ -13,9 +13,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database3.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database6.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -233,16 +233,23 @@ def updateadminsettings():
 
 @app.route('/uploadtutordata', methods=['POST'])
 def uploadtutordata():
-    try:
-        filename2 = upload(request.files['file'])
-        print("Uploaded Successfully")
-        populate_tutors(filename2)
-        print("Populated Tutors")
-        # os.remove(filename2)
-        msg = "Completed successfully"
-    except:
-        msg = "There was an error with the upload, please try again."
+
+    filename2 = upload(request.files['file'])
+    print("Uploaded Successfully")
+    populate_tutors(filename2)
+    print("Populated Tutors")
+    # os.remove(filename2)
+    msg = "Completed successfully"
     return render_template("uploadtutordata.html", msg=msg)
+
+@app.route('/uploadtutoravailabilities', methods=['POST'])
+def upload_tutor_availabilities():
+    filename2 = upload(request.files['file'])
+    print("Uploaded Successfully")
+    populate_availabilities(filename2)
+    msg2 = "Completed Successfully"
+    return render_template("uploadtutordata.html",msg2=msg2)
+
 
 
 @app.route('/timetable')
@@ -676,34 +683,41 @@ def populate_students(filename):
     studyperiod = get_current_studyperiod()
     xl = pandas.ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
-
     for index, row in df.iterrows():
-        try:
-            if row['Study Period'] == studyperiod:
-                if Student.query.filter_by(studentcode=row["Student Id"], year=year,
-                                           studyperiod=studyperiod).first() == None:
-                    student = Student(studentcode=row["Student Id"], firstname=row["Given Name"],
-                                      lastname=row['Family Name'], year=year, studyperiod=studyperiod)
-                    db.session.add(student)
-                    db.session.commit()
-                if Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
-                                           studyperiod=studyperiod).first() == None:
-                    subject = Subject(subcode=row["Component Study Package Code"],
-                                      subname=row["Component Study Package Title"], year=year, studyperiod=studyperiod)
-                    db.session.add(subject)
-                    db.session.commit()
-                student = Student.query.filter_by(studentcode=row["Student Id"], firstname=row["Given Name"],
-                                                  lastname=row['Family Name'], year=year,
-                                                  studyperiod=studyperiod).first()
-                subject = Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
-                                                  studyperiod=studyperiod).first()
-                if db.session.query(substumap).filter(substumap.c.student_id == student.id,
-                                                      substumap.c.subject_id == subject.id).first() is None:
-                    mapping = SubStuMap(student_id=student.id, subject_id=subject.id)
-                    db.session.add(mapping)
-                    db.session.commit()
-        except:
-            print("Error with StudentID %d with Subject" % (row['Student Id'], row['Component Study Package Code']))
+        if row['Study Period'] == studyperiod:
+            if Student.query.filter_by(studentcode=str(int(row["Student Id"])), year=year,
+                                       studyperiod=studyperiod).first() == None:
+                student = Student(studentcode=str(int(row["Student Id"])), firstname=row["Given Name"],
+                                  lastname=row['Family Name'], year=year, studyperiod=studyperiod)
+                db.session.add(student)
+                db.session.commit()
+            if Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
+                                       studyperiod=studyperiod).first() == None:
+                subject = Subject(subcode=row["Component Study Package Code"],
+                                  subname=row["Component Study Package Title"], year=year, studyperiod=studyperiod)
+                db.session.add(subject)
+                db.session.commit()
+            student = Student.query.filter_by(studentcode=str(int(row["Student Id"])), firstname=row["Given Name"],
+                                              lastname=row['Family Name'], year=year,
+                                              studyperiod=studyperiod).first()
+            subject = Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
+                                              studyperiod=studyperiod).first()
+            if db.session.query(substumap).filter(substumap.c.student_id == student.id,
+                                                  substumap.c.subject_id == subject.id).first() is None:
+                mapping = SubStuMap(student_id=student.id, subject_id=subject.id)
+                db.session.add(mapping)
+                db.session.commit()
+
+
+def populate_availabilities(filename):
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    xl = pandas.ExcelFile(filename)
+    df = xl.parse(xl.sheet_names[0])
+    for index,row in df.iterrows():
+        tutor = Tutor.query.filter_by(firstname = row["Given Name"], lastname = row["Family Name"],year=year,studyperiod = studyperiod).first()
+        availability = [row["Monday730"], row["Monday830"], row["Monday930"], row["Tuesday730"], row["Tuesday830"], row["Tuesday930"], row["Wednesday730"], row["Wednesday830"], row["Wednesday930"]]
+        msg = set_tutor_availability(tutor.id, availability)
 
 
 def populate_tutors(filename):
@@ -723,18 +737,18 @@ def populate_tutors(filename):
                 db.session.commit()
         except:
             print("Error with Tutor %d" % row['Family Name'])
-    try:
-        df = xl.parse(xl.sheet_names[1])
-        for index, row in df.iterrows():
-            tutor = Tutor.query.filter_by(firstname=row['Given Name'], lastname=row['Family Name'], email=row['Email'],
-                                          phone=row['Phone'], year=year, studyperiod=studyperiod).first()
-            subject = Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first()
-            if SubTutMap.query.filter_by(tutor_id=tutor.id, subject_id=subject.id).first() == None:
-                mapping = SubTutMap(tutor_id=tutor.id, subject_id=subject.id)
-                db.session.add(mapping)
-                db.session.commit()
-    except:
-        msg = "No mappings detected. Skipping"
+
+    df = xl.parse(xl.sheet_names[1])
+    for index, row in df.iterrows():
+        tutor = Tutor.query.filter_by(firstname=row['Given Name'], lastname=row['Family Name'], year=year, studyperiod=studyperiod).first()
+        print(tutor.id)
+        subject = Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first()
+        print(subject.id)
+        if subject not in tutor.subjects:
+            subject.tutor = tutor
+            print("HI")
+            msg = db.session.commit()
+            print(msg)
 
 
 def update_year(year):
