@@ -71,7 +71,7 @@
                 <td>Name</td>
                 <td/>
                 {% for class in classes %}
-                    <td>{{ class["classtime"].strftime('%Y-%m-%d') }}</td>
+                    <td id="{{ class.id }}/date" class="classdate">{{ class["classtime"].strftime('%Y-%m-%d') }}</td>
                 {% endfor %}
                 </thead>
                 <tr>
@@ -79,7 +79,7 @@
                     <td></td>
                     <td></td>
                     {% for class in classes %}
-                        <td>{{ class["classtime"].strftime('%H:%M') }}</td>
+                        <td id="{{ class.id }}/time" class="classtime">{{ class["classtime"].strftime('%H:%M') }}</td>
                     {% endfor %}
                 </tr>
 
@@ -113,35 +113,6 @@
 
     {% if tutor != None %}
 
-        <h1>Mark Rolls for This Subject</h1>
-        <div class="row">
-            <div class="col-md-6">
-                <table class="table">
-                    <thead>
-
-                    <td>Date</td>
-                    <td>Time</td>
-                    <td>Repeat</td>
-                    <td></td>
-                    </thead>
-
-                    {% for class in classes %}
-                        <tr>
-
-
-                            <td>{{ class["classtime"].strftime('%Y-%m-%d') }}</td>
-                            <td>{{ class["classtime"].strftime('%H:%M') }}</td>
-                            <td>{{ class["repeat"] }}</td>
-                            <td><a href="{{ url_for('view_class', classid = class["id"]) }}">
-                                <button type="button" class="btn btn-lg btn-default">View Class</button>
-                            </a></td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        </div>
-
-
         <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
             <button type="button" class="btn btn-lg btn-default">Add a Class</button>
         </a>
@@ -156,14 +127,25 @@
             z[0].hidden = false
             var x = document.getElementsByClassName("attended")
             var y = document.getElementsByClassName("notattended")
-
+            var q = document.getElementsByClassName("classdate")
+            var w = document.getElementsByClassName("classtime")
             for (i = 0; i < y.length; i++) {
-                y[i].innerHTML = "<input type = 'checkbox' name = 'checkbox" + y[i].id + "' value = '" + y[i].id + "' />"
+                y[i].innerHTML = "<input type = 'checkbox' name = 'checkbox" + y[i].id + "' value = '" + y[i].id + "' />";
                 y[i].style.backgroundColor = "transparent";
             }
             for (i = 0; i < x.length; i++) {
-                x[i].innerHTML = "<input type = 'checkbox' name = 'checkbox" + x[i].id + "' value = '" + x[i].id + "' checked />"
+                x[i].innerHTML = "<input type = 'checkbox' name = 'checkbox" + x[i].id + "' value = '" + x[i].id + "' checked />";
                 x[i].style.backgroundColor = "transparent";
+            }
+
+            for (i = 0; i < q.length; i++) {
+                var date = q[i].innerHTML;
+                q[i].innerHTML = "<input type = 'date' name = 'classdate" + q[i].id + "' value = '" + date + "'>";
+            }
+
+            for (i = 0; i < w.length; i++) {
+                var time = w[i].innerHTML;
+                w[i].innerHTML = "<input type = 'time' name = 'classdate" + w[i].id + "' value = '" + time + "'>";
             }
 
         }

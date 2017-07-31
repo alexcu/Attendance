@@ -13,9 +13,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database6.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database6.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -526,17 +526,32 @@ def update_student_attendance(subcode):
     subject = get_subject(subcode)
     for specificclass in subject.classes:
         specificclass.attendees = []
-
+    dates = {}
+    times = {}
     for (k, v) in request.form.items():
         if v != '':
-            v = v.split('/')
-            classid = int(v[0])
-            studentid = int(v[1])
-            specificclass = Class.query.get(classid)
-            specificclass.attendees.append(Student.query.get(studentid))
-        db.session.commit()
+            if "classdate" not in k:
+                v = v.split('/')
+                classid = int(v[0])
+                studentid = int(v[1])
+                specificclass = Class.query.get(classid)
+                specificclass.attendees.append(Student.query.get(studentid))
+            else:
+                k = k.split('/')
+                v = v.split('/')
+                if (k[1] == 'date'):
+                    dates[int(k[0].split('classdate')[1])] = v
+                else:
+                    times[int(k[0].split('classdate')[1])] = v
 
-    print(subject.classes)
+        db.session.commit()
+    for key, value in dates.items():
+        classtime = dates[key] + times[key]
+        classtime = classtime[0] + "T" + classtime[1]
+        classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M')
+        specificclass = Class.query.get(key)
+        specificclass.classtime = classtime
+        db.session.commit()
     return view_subject_template(subcode)
 
 

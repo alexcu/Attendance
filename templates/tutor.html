@@ -86,15 +86,52 @@
                 <td>Wednesday 9:30pm</td>
                 </thead>
                 <tr>
-                    <td>{{ availability["time1"] }}</td>
-                    <td>{{ availability["time2"] }}</td>
-                    <td>{{ availability["time3"] }}</td>
-                    <td>{{ availability["time4"] }}</td>
-                    <td>{{ availability["time5"] }}</td>
-                    <td>{{ availability["time6"] }}</td>
-                    <td>{{ availability["time7"] }}</td>
-                    <td>{{ availability["time8"] }}</td>
-                    <td>{{ availability["time9"] }}</td>
+                    {% if  availability["time1"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time2"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time3"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time4"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time5"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time6"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time7"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time8"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+                    {% if  availability["time9"] == 1 %}
+                        <td class="attended"></td>
+                    {% else %}
+                        <td class="notattended"></td>
+                    {% endif %}
+
                 </tr>
 
 
