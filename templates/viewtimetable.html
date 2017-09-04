@@ -1,6 +1,45 @@
 {% extends "layout.html" %}
 {% block content %}
+    <h1>Timetable</h1>
+    {{ msg }}
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table" id="timetable">
+                <thead>
+                <td>Subject</td>
+                <td>Time</td>
+                <td>Tutor</td>
+                </thead>
 
-    Hello
 
+            </table>
+        </div>
+    </div>
+
+
+
+
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+
+    <script>
+
+        $(document).ready(function () {
+            $('#timetable').DataTable({
+                "ajax": {
+                    "url": '/viewtimetableajax',
+                    "type": 'GET'
+                },
+
+                "columns": [{
+                    "data": "subject", "render": function (data, type, row, meta) {
+                        return row.subject.subname;
+                    }
+                }, {"data": "time"}, {
+                    "data": "tutor", "render": function (data, type, row, meta) {
+                        return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
+                    }
+                }]
+            });
+        });
+    </script>
 {% endblock %}

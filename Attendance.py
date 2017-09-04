@@ -15,7 +15,7 @@ app = Flask(__name__)
 # LINUX
 app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database6.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database32.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -70,6 +70,12 @@ class StuAttendance(object):
         self.student_id = student_id
 
 
+class StuTimetable(object):
+    def __init__(self, timetabledclass_id, student_id):
+        self.timetabledclass_id = timetabledclass_id
+        self.student_id = student_id
+
+
 ##Association tables
 substumap = db.Table('substumap',
                      db.Column('id', db.Integer, primary_key=True),
@@ -89,6 +95,12 @@ stuattendance = db.Table('stuattendance',
                          db.Column('student_id', db.Integer, db.ForeignKey('students.id'))
                          )
 
+stutimetable = db.Table('stutimetable',
+                        db.Column('id', db.Integer, primary_key=True),
+                        db.Column('timetabledclass_id', db.Integer, db.ForeignKey('timetabledclass.id')),
+                        db.Column('student_id', db.Integer, db.ForeignKey('students.id'))
+                        )
+
 
 class Subject(db.Model):
     __tablename__ = 'subjects'
@@ -98,6 +110,7 @@ class Subject(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     classes = db.relationship("Class")
+    timetabledclasses = db.relationship("TimetabledClass")
     def __init__(self, subcode, subname, year, studyperiod):
         self.subcode = subcode
         self.subname = subname
@@ -111,35 +124,66 @@ class Student(db.Model):
     studentcode = db.Column(db.String(50), nullable=False)
     firstname = db.Column(db.String(50), nullable=False)
     lastname = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(50), nullable=True)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
-
+    timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable, backref=db.backref('students'))
     def __init__(self, studentcode, firstname, lastname, year, studyperiod):
         self.studentcode = studentcode
         self.firstname = firstname
         self.lastname = lastname
+        self.name = firstname + " " + lastname
         self.year = year
         self.studyperiod = studyperiod
+
+
+class Timetable(db.Model):
+    __tablename__ = 'timetable'
+    id = db.Column(db.Integer, primary_key=True)
+    studyperiod = db.Column(db.String(50), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    key = db.Column(db.String(50), nullable=True)
+
+    def __init__(self, year, studyperiod, key=""):
+        self.studyperiod = studyperiod
+        self.year = year
+        self.key = key
+
+
 
 
 class Tutor(db.Model):
     __tablename__ = 'tutors'
     id = db.Column(db.Integer, primary_key=True)
-    firstname = db.Column(db.String(50), nullable=False)
-    lastname = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(100))
-    phone = db.Column(db.String(50))
+    name = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=subtutmap, backref=db.backref('tutor', uselist=False))
-    def __init__(self, firstname, lastname, email, phone, year, studyperiod):
-        self.firstname = firstname
-        self.lastname = lastname
-        self.email = email
-        self.phone = phone
+
+    def __init__(self, name, year, studyperiod):
+        self.name = name
         self.year = year
         self.studyperiod = studyperiod
+
+
+class TimetabledClass(db.Model):
+    __tablename__ = 'timetabledclass'
+    id = db.Column(db.Integer, primary_key=True)
+    studyperiod = db.Column(db.String(50), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    subject = db.Column(db.Integer, db.ForeignKey('subjects.id'))
+    timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
+    time = db.Column(db.String(50))
+    tutor = db.Column(db.Integer, db.ForeignKey('tutors.id'))
+
+    def __init__(self, studyperiod, year, subject, timetable, time, tutor):
+        self.studyperiod = studyperiod
+        self.year = year
+        self.subject = subject
+        self.timetable = timetable
+        self.time = time
+        self.tutor = tutor
 
 
 class Class(db.Model):
@@ -194,6 +238,7 @@ db.create_all()
 db.mapper(SubStuMap, substumap)
 db.mapper(SubTutMap, subtutmap)
 db.mapper(StuAttendance, stuattendance)
+db.mapper(StuTimetable, stutimetable)
 
 if Admin.query.filter_by(key='currentyear').first() == None:
     admin = Admin(key='currentyear', value=2017)
@@ -220,6 +265,16 @@ def uploadstudentdata():
         # Redirect the user to the uploaded_file route, which
         # will basicaly show on the browser the uploaded file
     return render_template("uploadstudentdata.html", msg=msg)
+
+
+@app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
+def uploadtimetableclasslists():
+    if request.method == 'POST':
+        filename2 = upload(request.files['file'])
+        populate_timetabledata(filename2)
+        msg = "Completed Successfully"
+    return render_template("uploadtimetabledata.html")
+
 
 
 @app.route('/updateadminsettings', methods=['POST'])
@@ -388,6 +443,21 @@ def viewsubjects_ajax():
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
+
+@app.route('/viewtimetableajax')
+def viewtimetable_ajax():
+    data = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+        row['tutor'] = Tutor.query.get(row['tutor']).__dict__
+        row['tutor']['_sa_instance_state'] = ""
+        row['subject'] = Subject.query.get(row['subject']).__dict__
+        row['subject']['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
 
 @app.route('/viewtutorsajax')
 def viewtutors_ajax():
@@ -609,7 +679,8 @@ def view_subject_template(subcode, msg=""):
     return render_template("subject.html", rows=get_subject(subcode), students=get_subject_and_students(subcode),
                            tutor=get_subject_and_tutor(subcode), tutors=get_tutors(),
                            classes=get_classes_for_subject(subcode), attendees=get_attendees_for_subject(subcode),
-                           msg=msg)
+                           msg=msg, times=find_possible_times(subcode),
+                           timetabledclasses=get_timetabled_classes(subcode))
 
 
 def get_classes_for_subject(subcode):
@@ -618,6 +689,12 @@ def get_classes_for_subject(subcode):
                                     studyperiod=get_current_studyperiod()).all()
     return sorted(results, key=attrgetter('classtime'))
 
+
+def get_timetabled_classes(subcode):
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    subject = Subject.query.filter_by(subcode=subcode, year=year, studyperiod=studyperiod).first()
+    return subject.timetabledclasses
 
 def get_tutor_availability(tutorid):
     return TutorAvailability.query.filter_by(tutorid=tutorid).first()
@@ -681,6 +758,21 @@ def get_tutor_and_subjects(tutorid):
     return tutor.subjects
 
 
+def find_possible_times(subcode):
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    subject = Subject.query.filter_by(subcode=subcode, year=year, studyperiod=studyperiod).first()
+    students = subject.students
+    times = ["Monday 7:30", "Monday 8:30", "Monday 9:30", "Tuesday 7:30", "Tuesday 8:30", "Tuesday 9:30",
+             "Wednesday 7:30", "Wednesday 8:30", "Wednesday 9:30"]
+    for student in students:
+        for classes in student.timetabledclasses:
+            if classes.time in times:
+                times.remove(classes.time)
+    print(times)
+    return times
+
+
 def getadmin():
     admin = {}
     admin["currentyear"] = get_current_year()
@@ -724,13 +816,51 @@ def populate_students(filename):
                 db.session.commit()
 
 
+def populate_timetabledata(filename):
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    if Timetable.query.filter_by(year=year, studyperiod=studyperiod).first() is None:
+        timetable = Timetable(year, studyperiod, "default")
+        db.session.add(timetable)
+        db.session.commit()
+
+    print("Timetable Created")
+    xl = pandas.ExcelFile(filename)
+    df = xl.parse(xl.sheet_names[0])
+    for index, row in df.iterrows():
+        tutor = Tutor.query.filter_by(year=year, studyperiod=studyperiod, name=row['x3']).first()
+        subject = Subject.query.filter_by(subcode=row['x1'], year=year, studyperiod=studyperiod).first()
+        time = row['x4']
+        timetable = Timetable.query.filter_by(year=year, studyperiod=studyperiod, key="default").first()
+        if TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=time, subject=subject,
+                                           timetable=timetable).first() is not None:
+            timetabledclass = TimetabledClass(studyperiod, year, subject.id, timetable.id, time, tutor.id)
+            db.session.add(timetabledclass)
+            db.session.commit()
+        timetabledclass = TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=time,
+                                                          subject=subject, timetable=timetable).first()
+        for i in range(5, len(row)):
+            if not pandas.isnull(row[i]):
+                print(row[i])
+                student = Student.query.filter_by(year=year, studyperiod=studyperiod, name=row[i]).first()
+                if db.session.query(stutimetable).filter(stutimetable.c.student_id == student.id,
+                                                         stutimetable.c.timetabledclass_id == timetabledclass.id).first() is None:
+                    mapping = StuTimetable(student_id=student.id, timetabledclass_id=timetabledclass.id)
+                    db.session.add(mapping)
+                    db.session.commit()
+
+
+
+
+
+
 def populate_availabilities(filename):
     year = get_current_year()
     studyperiod = get_current_studyperiod()
     xl = pandas.ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
     for index,row in df.iterrows():
-        tutor = Tutor.query.filter_by(firstname = row["Given Name"], lastname = row["Family Name"],year=year,studyperiod = studyperiod).first()
+        tutor = Tutor.query.filter_by(name=row["Tutor"], year=year, studyperiod=studyperiod).first()
         availability = [row["Monday730"], row["Monday830"], row["Monday930"], row["Tuesday730"], row["Tuesday830"], row["Tuesday930"], row["Wednesday730"], row["Wednesday830"], row["Wednesday930"]]
         msg = set_tutor_availability(tutor.id, availability)
 
@@ -742,28 +872,21 @@ def populate_tutors(filename):
 
     df = xl.parse(xl.sheet_names[0])
     for index, row in df.iterrows():
-        try:
-            if Tutor.query.filter_by(firstname=row['Given Name'], lastname=row['Family Name'], year=year,
-                                     studyperiod=studyperiod).first() == None:
-                print("Trying Insert")
-                tutor = Tutor(firstname=row['Given Name'], lastname=row['Family Name'], email=row['Email'],
-                              phone=row['Phone'], year=year, studyperiod=studyperiod)
-                db.session.add(tutor)
-                db.session.commit()
-        except:
-            print("Error with Tutor %d" % row['Family Name'])
+        if Tutor.query.filter_by(name=row['Tutor'], year=year, studyperiod=studyperiod).first() is None:
+            tutor = Tutor(name=row['Tutor'], year=year, studyperiod=studyperiod)
+            db.session.add(tutor)
+            db.session.commit()
 
-    df = xl.parse(xl.sheet_names[1])
-    for index, row in df.iterrows():
-        tutor = Tutor.query.filter_by(firstname=row['Given Name'], lastname=row['Family Name'], year=year, studyperiod=studyperiod).first()
-        print(tutor.id)
+        tutor = Tutor.query.filter_by(name=row['Tutor'], year=year, studyperiod=studyperiod).first()
+        print(tutor.name)
+        if Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first() is None:
+            subject = Subject(subcode=row["Subject Code"], subname=" ", year=year, studyperiod=studyperiod)
+            db.session.add(subject)
+            db.session.commit()
         subject = Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first()
-        print(subject.id)
         if subject not in tutor.subjects:
             subject.tutor = tutor
-            print("HI")
             msg = db.session.commit()
-            print(msg)
 
 
 def update_year(year):

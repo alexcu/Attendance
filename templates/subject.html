@@ -26,16 +26,14 @@
             <table class="table">
                 <thead>
                 <td>Tutor Name</td>
-                <td>Email</td>
-                <td>Phone</td>
+
                 <td/>
                 </thead>
                 <tr>
                     <td>
-                        <a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a>
+                        <a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["name"] }}</a>
                     </td>
-                    <td>{{ tutor["email"] }}</td>
-                    <td>{{ tutor["phone"] }}</td>
+
                     <td>{% if tutor != None %}
                         <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
                             <button type="button" class="btn btn-default">Remove</button>
@@ -50,7 +48,7 @@
             <select name="tutor">
                 {% for temptutor in tutors %}
 
-                    <option value={{ temptutor["id"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
+                    <option value={{ temptutor["id"] }}>{{ temptutor["name"] }}</option>
 
                 {% endfor %}
 
@@ -116,6 +114,98 @@
         <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
             <button type="button" class="btn btn-lg btn-default">Add a Class</button>
         </a>
+
+
+        <h1>Timetable Explorer</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table">
+                    <thead>
+                    <td>Monday 7:30pm</td>
+                    <td>Monday 8:30pm</td>
+                    <td>Monday 9:30pm</td>
+                    <td>Tuesday 7:30pm</td>
+                    <td>Tuesday 8:30pm</td>
+                    <td>Tuesday 9:30pm</td>
+                    <td>Wednesday 7:30pm</td>
+                    <td>Wednesday 8:30pm</td>
+                    <td>Wednesday 9:30pm</td>
+                    </thead>
+                    <tr>
+                        {% if  "Monday 7:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Monday 8:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Monday 9:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Tuesday 7:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Tuesday 8:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Tuesday 9:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Wednesday 7:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Wednesday 8:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+                        {% if  "Wednesday 9:30" in times %}
+                            <td class="attended"></td>
+                        {% else %}
+                            <td class="notattended"></td>
+                        {% endif %}
+
+                    </tr>
+
+
+                </table>
+            </div>
+        </div>
+
+
+        <h1>Timetabled Classes</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table">
+                    <thead>
+                    <td>Time</td>
+                    <td/>
+                    </thead>
+                    {% for row in timetabledclasses %}
+                        <tr>
+                            <td>
+                                {{ row['time'] }}
+                            </td>
+
+
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
     {% endif %}
 
     <script>
