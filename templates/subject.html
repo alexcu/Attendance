@@ -193,7 +193,8 @@
                                 {{ row.timeslot.day }}
                             </td>
                             <td>{{ row.timeslot.time }}</td>
-
+                            <td><a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = row.id) }}">Remove</a>
+                            </td>
                         </tr>
                     {% endfor %}
                 </table>
