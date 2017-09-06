@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Timeslots</h1>
+    {{ msg }}
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table" id="timeslots">
+                <thead>
+                <td>Day</td>
+                <td>Time</td>
+                <td></td>
+                </thead>
+
+
+            </table>
+        </div>
+    </div>
+
+
+    <a href="addtimeslot">
+        <button type="button" class="btn btn-lg btn-default">Add Timeslot</button>
+    </a>
+
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+
+    <script>
+
+        $(document).ready(function () {
+            $('#timeslots').DataTable({
+                "ajax": {
+                    "url": '/viewtimeslotsajax',
+                    "type": 'GET'
+                },
+                "columns": [{"data": "day"}, {"data": "time"}, {
+                    "render": function (data, type, row, meta) {
+                        return "<a href='/removetimeslot%3Ftimeslotid%3D" + row.id + "'>Remove</a>";
+                    }
+                }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

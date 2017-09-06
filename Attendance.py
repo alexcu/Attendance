@@ -15,7 +15,7 @@ app = Flask(__name__)
 # LINUX
 app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database32.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database37.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -76,6 +76,17 @@ class StuTimetable(object):
         self.student_id = student_id
 
 
+class TimeslotClasses(object):
+    def __init__(self, timeslot_id, timetabledclass_id):
+        self.timetabledclass_id = timetabledclass_id
+        self.timeslot_id = timeslot_id
+
+
+class TutorAvailability(object):
+    def __init__(self, tutor_id, timeslot_id):
+        self.tutor_id = tutor_id
+        self.timeslot_id = timeslot_id
+
 ##Association tables
 substumap = db.Table('substumap',
                      db.Column('id', db.Integer, primary_key=True),
@@ -101,6 +112,17 @@ stutimetable = db.Table('stutimetable',
                         db.Column('student_id', db.Integer, db.ForeignKey('students.id'))
                         )
 
+timeslotclassesmap = db.Table('timeslotclassesmap',
+                              db.Column('id', db.Integer, primary_key=True),
+                              db.Column('timeslot_id', db.Integer, db.ForeignKey('timeslots.id')),
+                              db.Column('timetabledclass_id', db.Integer, db.ForeignKey('timetabledclass.id'))
+                              )
+
+tutoravailabilitymap = db.Table('tutoravailabilitymap',
+                                db.Column('id', db.Integer, primary_key=True),
+                                db.Column('tutor_id', db.Integer, db.ForeignKey('tutors.id')),
+                                db.Column('timeslot_id', db.Integer, db.ForeignKey('timeslots.id'))
+                                )
 
 class Subject(db.Model):
     __tablename__ = 'subjects'
@@ -144,7 +166,7 @@ class Timetable(db.Model):
     studyperiod = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     key = db.Column(db.String(50), nullable=True)
-
+    timeslots = db.relationship("Timeslot")
     def __init__(self, year, studyperiod, key=""):
         self.studyperiod = studyperiod
         self.year = year
@@ -160,7 +182,7 @@ class Tutor(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=subtutmap, backref=db.backref('tutor', uselist=False))
-
+    availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap, backref=db.backref('availabiletutors'))
     def __init__(self, name, year, studyperiod):
         self.name = name
         self.year = year
@@ -174,7 +196,8 @@ class TimetabledClass(db.Model):
     year = db.Column(db.Integer, nullable=False)
     subject = db.Column(db.Integer, db.ForeignKey('subjects.id'))
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
-    time = db.Column(db.String(50))
+    time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
+    timeslot = db.relationship('Timeslot')
     tutor = db.Column(db.Integer, db.ForeignKey('tutors.id'))
 
     def __init__(self, studyperiod, year, subject, timetable, time, tutor):
@@ -185,6 +208,24 @@ class TimetabledClass(db.Model):
         self.time = time
         self.tutor = tutor
 
+
+class Timeslot(db.Model):
+    __tablename__ = 'timeslots'
+    id = db.Column(db.Integer, primary_key=True)
+    studyperiod = db.Column(db.String(50), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
+    day = db.Column(db.String(50), nullable=False)
+    daynumeric = db.Column(db.String(50), nullable=False)
+    time = db.Column(db.String(50), nullable=False)
+
+    def __init__(self, studyperiod, year, timetable, day, time):
+        self.studyperiod = studyperiod
+        self.year = year
+        self.timetable = timetable
+        self.day = day
+        self.daynumeric = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(day)
+        self.time = time
 
 class Class(db.Model):
     __tablename__ = 'classes'
@@ -206,31 +247,31 @@ class Class(db.Model):
         self.repeat = repeat
 
 
-class TutorAvailability(db.Model):
-    __tablename__ = 'tutoravailability'
-    id = db.Column(db.Integer, primary_key=True)
-    tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-    time1 = db.Column(db.Integer, default=1)
-    time2 = db.Column(db.Integer, default=1)
-    time3 = db.Column(db.Integer, default=1)
-    time4 = db.Column(db.Integer, default=1)
-    time5 = db.Column(db.Integer, default=1)
-    time6 = db.Column(db.Integer, default=1)
-    time7 = db.Column(db.Integer, default=1)
-    time8 = db.Column(db.Integer, default=1)
-    time9 = db.Column(db.Integer, default=1)
-
-    def __init__(self, tutorid, time1, time2, time3, time4, time5, time6, time7, time8, time9):
-        self.tutorid = tutorid
-        self.time1 = time1
-        self.time2 = time2
-        self.time3 = time3
-        self.time4 = time4
-        self.time5 = time5
-        self.time6 = time6
-        self.time7 = time7
-        self.time8 = time8
-        self.time9 = time9
+# class TutorAvailability(db.Model):
+#    __tablename__ = 'tutoravailability'
+#    id = db.Column(db.Integer, primary_key=True)
+#    tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
+#    time1 = db.Column(db.Integer, default=1)
+#    time2 = db.Column(db.Integer, default=1)
+#    time3 = db.Column(db.Integer, default=1)
+#    time4 = db.Column(db.Integer, default=1)
+#    time5 = db.Column(db.Integer, default=1)
+#    time6 = db.Column(db.Integer, default=1)
+#    time7 = db.Column(db.Integer, default=1)
+#    time8 = db.Column(db.Integer, default=1)
+#    time9 = db.Column(db.Integer, default=1)
+#
+#    def __init__(self, tutorid, time1, time2, time3, time4, time5, time6, time7, time8, time9):
+#        self.tutorid = tutorid
+#        self.time1 = time1
+#        self.time2 = time2
+#        self.time3 = time3
+#        self.time4 = time4
+#        self.time5 = time5
+#        self.time6 = time6
+#        self.time7 = time7
+#        self.time8 = time8
+#        self.time9 = time9
 
 
 # DATABASE METHODS
@@ -239,15 +280,8 @@ db.mapper(SubStuMap, substumap)
 db.mapper(SubTutMap, subtutmap)
 db.mapper(StuAttendance, stuattendance)
 db.mapper(StuTimetable, stutimetable)
-
-if Admin.query.filter_by(key='currentyear').first() == None:
-    admin = Admin(key='currentyear', value=2017)
-    db.session.add(admin)
-    db.session.commit()
-if Admin.query.filter_by(key='studyperiod').first() == None:
-    study = Admin(key='studyperiod', value='Semester 2')
-    db.session.add(study)
-    db.session.commit()
+db.mapper(TimeslotClasses, timeslotclassesmap)
+db.mapper(TutorAvailability, tutoravailabilitymap)
 
 
 ### APP ROUTES
@@ -312,6 +346,11 @@ def view_timetable():
     return render_template('viewtimetable.html')
 
 
+@app.route('/timeslots')
+def view_timeslots():
+    return render_template('viewtimeslots.html')
+
+
 @app.route('/removeclass?classid=<classid>')
 def remove_class(classid):
     specificclass = Class.query.get(classid)
@@ -323,17 +362,27 @@ def remove_class(classid):
 
 @app.route('/updatetutoravailability?tutorid=<tutorid>', methods=['GET', 'POST'])
 def update_tutor_availability(tutorid):
-    time1 = checkboxvalue(request.form.get('time1'))
-    time2 = checkboxvalue(request.form.get('time2'))
-    time3 = checkboxvalue(request.form.get('time3'))
-    time4 = checkboxvalue(request.form.get('time4'))
-    time5 = checkboxvalue(request.form.get('time5'))
-    time6 = checkboxvalue(request.form.get('time6'))
-    time7 = checkboxvalue(request.form.get('time7'))
-    time8 = checkboxvalue(request.form.get('time8'))
-    time9 = checkboxvalue(request.form.get('time9'))
-    availability = [time1, time2, time3, time4, time5, time6, time7, time8, time9]
-    msg = set_tutor_availability(tutorid, availability)
+    tutor = Tutor.query.get(tutorid)
+    tutor.availabletimes = []
+    for (k, v) in request.form.items():
+
+        if k.find('time') != -1:
+            id = int(k.split('/')[1])
+            timeslot = Timeslot.query.get(id)
+            tutor.availabletimes.append(timeslot)
+    db.session.commit()
+    msg = ""
+    # time1 = checkboxvalue(request.form.get('time1'))
+    # time2 = checkboxvalue(request.form.get('time2'))
+    # time3 = checkboxvalue(request.form.get('time3'))
+    # time4 = checkboxvalue(request.form.get('time4'))
+    # time5 = checkboxvalue(request.form.get('time5'))
+    # time6 = checkboxvalue(request.form.get('time6'))
+    # time7 = checkboxvalue(request.form.get('time7'))
+    # time8 = checkboxvalue(request.form.get('time8'))
+    # time9 = checkboxvalue(request.form.get('time9'))
+    # availability = [time1, time2, time3, time4, time5, time6, time7, time8, time9]
+    #msg = set_tutor_availability(tutorid, availability)
     return view_tutor_template(tutorid, msg3=msg)
 
 
@@ -362,6 +411,22 @@ def add_class(subcode):
                 attendees.append(student.studentcode)
         add_class_to_db(classtime, subcode, attendees, repeat)
         return view_subject_template(subcode)
+
+
+@app.route('/addtimetabledclasstosubject?subcode=<subcode>', methods=['POST'])
+def add_timetabledclass_to_subject(subcode):
+    subject = get_subject(subcode)
+    timeslot = Timeslot.query.get(request.form['timeslot'])
+    timetable = get_current_timetable()
+    if TimetabledClass.query.filter_by(studyperiod=get_current_studyperiod(), year=get_current_year(),
+                                       subject=subject.id, timetable=timetable, time=timeslot.id,
+                                       tutor=subject.tutor.id).first() is None:
+        timetabledclass = TimetabledClass(studyperiod=get_current_studyperiod(), year=get_current_year(),
+                                          subject=subject.id, timetable=timetable, time=timeslot.id,
+                                          tutor=subject.tutor.id)
+        db.session.add(timetabledclass)
+        db.session.commit()
+    return view_subject_template(subcode)
 
 
 @app.route('/viewclass?classid=<classid>')
@@ -404,6 +469,13 @@ def remove_subject_from_student(studentcode, subcode):
     return view_student_template(studentcode, msg)
 
 
+@app.route('/removetimetabledclass?timetabledclassid=<timetabledclassid>')
+def remove_timetabled_class(timetabledclassid):
+    timetabledclass = TimetabledClass.query.get(timetabledclassid)
+    db.session.delete(timetabledclass)
+    db.session.commit()
+    return render_template("viewtimetable.html")
+
 @app.route('/removestudentfromsubject?studentcode=<studentcode>&subcode=<subcode>')
 def remove_student_from_subject(studentcode, subcode):
     msg = unlinksubjectstudent(studentcode, subcode)
@@ -444,6 +516,19 @@ def viewsubjects_ajax():
     return '{ "data" : ' + data + '}'
 
 
+@app.route('/viewtimeslotsajax')
+def viewtimeslots_ajax():
+    data = get_timeslots()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+
+
 @app.route('/viewtimetableajax')
 def viewtimetable_ajax():
     data = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
@@ -456,6 +541,8 @@ def viewtimetable_ajax():
         row['tutor']['_sa_instance_state'] = ""
         row['subject'] = Subject.query.get(row['subject']).__dict__
         row['subject']['_sa_instance_state'] = ""
+        row['time'] = Timeslot.query.get(row['time']).__dict__
+        row['time']['_sa_instance_state'] = ""
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
@@ -504,6 +591,24 @@ def add_subject():
             return render_template("subjects.html", msg=msg, rows=get_subjects())
 
 
+@app.route('/addtimeslot', methods=['GET', 'POST'])
+def add_timeslot():
+    if request.method == 'GET':
+        return render_template("addtimeslot.html")
+    else:
+        day = request.form['day']
+        time = request.form['time']
+        print(time)
+        if Timeslot.query.filter_by(year=get_current_year(), timetable=get_current_timetable(),
+                                    studyperiod=get_current_studyperiod(), day=day, time=time).first() is None:
+            timeslot = Timeslot(studyperiod=get_current_studyperiod(), year=get_current_year(),
+                                timetable=get_current_timetable(), day=day, time=time)
+            db.session.add(timeslot)
+            db.session.commit()
+
+        return render_template("viewtimeslots.html")
+
+
 @app.route('/subject?subcode=<subcode>')
 def view_subject(subcode):
     return view_subject_template(subcode)
@@ -536,6 +641,14 @@ def remove_tutor(tutorid):
         return render_template("viewtutors.html", rows=get_tutors(), msg=msg)
 
 
+@app.route('/removetimeslot?timeslotid=<timeslotid>')
+def remove_timeslot(timeslotid):
+    timeslot = Timeslot.query.get(timeslotid)
+    print(timeslot.day)
+    db.session.delete(timeslot)
+    db.session.commit()
+    return render_template("viewtimeslots.html")
+
 @app.route('/viewtutors')
 def view_tutors():
     return render_template('viewtutors.html', rows=get_tutors())
@@ -562,15 +675,12 @@ def add_tutor():
         return render_template('addtutor.html')
     elif request.method == 'POST':
         try:
-            firstnm = request.form['firstnm'].strip()
-            lastnm = request.form['lastnm'].strip()
-            email = request.form['email'].strip()
-            phone = request.form['phone'].strip()
+            name = request.form['name'].strip()
             year = get_current_year()
             studyperiod = get_current_studyperiod()
-            if Tutor.query.filter_by(firstname=firstnm, lastname=lastnm, email=email, phone=phone, year=year,
-                                     studyperiod=studyperiod).first() == None:
-                tut = Tutor(firstname=firstnm, lastname=lastnm, email=email, phone=phone, year=year,
+            if Tutor.query.filter_by(name=name, year=year,
+                                     studyperiod=studyperiod).first() is None:
+                tut = Tutor(name=name, year=year,
                             studyperiod=studyperiod)
                 db.session.add(tut)
                 db.session.commit()
@@ -679,7 +789,8 @@ def view_subject_template(subcode, msg=""):
     return render_template("subject.html", rows=get_subject(subcode), students=get_subject_and_students(subcode),
                            tutor=get_subject_and_tutor(subcode), tutors=get_tutors(),
                            classes=get_classes_for_subject(subcode), attendees=get_attendees_for_subject(subcode),
-                           msg=msg, times=find_possible_times(subcode),
+                           msg=msg, subject=get_subject(subcode), times=find_possible_times(subcode),
+                           timeslots=get_timeslots(),
                            timetabledclasses=get_timetabled_classes(subcode))
 
 
@@ -697,29 +808,8 @@ def get_timetabled_classes(subcode):
     return subject.timetabledclasses
 
 def get_tutor_availability(tutorid):
-    return TutorAvailability.query.filter_by(tutorid=tutorid).first()
-
-
-def set_tutor_availability(tutorid, availability):
-    if TutorAvailability.query.filter_by(tutorid=tutorid).first() == None:
-        avail = TutorAvailability(tutorid=tutorid, time1=availability[0], time2=availability[1], time3=availability[2],
-                                  time4=availability[3], time5=availability[4], time6=availability[5],
-                                  time7=availability[6], time8=availability[7], time9=availability[8])
-        db.session.add(avail)
-        db.session.commit()
-    else:
-        avail = TutorAvailability.query.filter_by(tutorid=tutorid).first()
-        avail.time1 = availability[0]
-        avail.time2 = availability[1]
-        avail.time3 = availability[2]
-        avail.time4 = availability[3]
-        avail.time5 = availability[4]
-        avail.time6 = availability[5]
-        avail.time7 = availability[6]
-        avail.time8 = availability[7]
-        avail.time9 = availability[8]
-        db.session.commit()
-    return "Successful."
+    tutor = Tutor.query.get(tutorid)
+    return tutor.availabletimes
 
 
 def checkboxvalue(checkbox):
@@ -731,7 +821,8 @@ def checkboxvalue(checkbox):
 
 def view_tutor_template(tutorid, msg="", msg2="", msg3=""):
     return render_template('tutor.html', rows=get_tutor(tutorid), eligiblesubjects=get_subjects(),
-                           subjects=get_tutor_and_subjects(tutorid), availability=get_tutor_availability(tutorid),
+                           subjects=get_tutor_and_subjects(tutorid), timeslots=get_timeslots(),
+                           availability=get_tutor_availability(tutorid),
                            msg=msg, msg2=msg2, msg3=msg3)
 
 
@@ -739,6 +830,17 @@ def get_student_and_subjects(studentcode):
     student = Student.query.filter_by(studentcode=studentcode, year=get_current_year(),
                                       studyperiod=get_current_studyperiod()).first()
     return student.subjects
+
+
+def get_timeslots():
+    timetable = get_current_timetable()
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    timeslots = Timeslot.query.filter_by(timetable=timetable, year=year, studyperiod=studyperiod).order_by(
+        Timeslot.daynumeric.asc(), Timeslot.time.asc()).all()
+    return timeslots
+
+
 
 
 def get_subject_and_students(subcode):
@@ -763,13 +865,12 @@ def find_possible_times(subcode):
     studyperiod = get_current_studyperiod()
     subject = Subject.query.filter_by(subcode=subcode, year=year, studyperiod=studyperiod).first()
     students = subject.students
-    times = ["Monday 7:30", "Monday 8:30", "Monday 9:30", "Tuesday 7:30", "Tuesday 8:30", "Tuesday 9:30",
-             "Wednesday 7:30", "Wednesday 8:30", "Wednesday 9:30"]
+    times = get_timeslots()
     for student in students:
         for classes in student.timetabledclasses:
-            if classes.time in times:
-                times.remove(classes.time)
-    print(times)
+            timeslot = Timeslot.query.get(classes.time)
+            if timeslot in times:
+                times.remove(timeslot)
     return times
 
 
@@ -823,22 +924,36 @@ def populate_timetabledata(filename):
         timetable = Timetable(year, studyperiod, "default")
         db.session.add(timetable)
         db.session.commit()
-
     print("Timetable Created")
     xl = pandas.ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
     for index, row in df.iterrows():
+        if Tutor.query.filter_by(year=year, studyperiod=studyperiod, name=row['x3']).first() is None:
+            tutor = Tutor(year=year, studyperiod=studyperiod, name=row['x3'])
+            db.session.add(tutor)
+            db.session.commit()
         tutor = Tutor.query.filter_by(year=year, studyperiod=studyperiod, name=row['x3']).first()
+        if Subject.query.filter_by(year=year, studyperiod=studyperiod, subcode=row['x1']).first() is None:
+            subject = Subject(year=year, studyperiod=studyperiod, subcode=row['x1'])
+            db.session.add(subject)
+            db.session.commit()
         subject = Subject.query.filter_by(subcode=row['x1'], year=year, studyperiod=studyperiod).first()
-        time = row['x4']
-        timetable = Timetable.query.filter_by(year=year, studyperiod=studyperiod, key="default").first()
-        if TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=time, subject=subject,
-                                           timetable=timetable).first() is not None:
-            timetabledclass = TimetabledClass(studyperiod, year, subject.id, timetable.id, time, tutor.id)
+        time2 = row['x4'].split(' ')
+        day = time2[0]
+        time2 = time2[1]
+        time2 = check_time(time2)
+        print(day)
+        print(time2)
+        timeslot = Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first()
+        timetable = Timetable.query.get(get_current_timetable())
+        print(timeslot)
+        if TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=timeslot.id, subject=subject.id,
+                                           timetable=timetable.id).first() is None:
+            timetabledclass = TimetabledClass(studyperiod, year, subject.id, timetable.id, timeslot.id, tutor.id)
             db.session.add(timetabledclass)
             db.session.commit()
-        timetabledclass = TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=time,
-                                                          subject=subject, timetable=timetable).first()
+        timetabledclass = TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=timeslot.id,
+                                                          subject=subject.id, timetable=timetable.id).first()
         for i in range(5, len(row)):
             if not pandas.isnull(row[i]):
                 print(row[i])
@@ -857,12 +972,32 @@ def populate_timetabledata(filename):
 def populate_availabilities(filename):
     year = get_current_year()
     studyperiod = get_current_studyperiod()
+    timetable = get_current_timetable()
     xl = pandas.ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
     for index,row in df.iterrows():
+        if Tutor.query.filter_by(name=row["Tutor"], year=year, studyperiod=studyperiod).first() is None:
+            tutor = Tutor(name=row["Tutor"], year=year, studyperiod=studyperiod)
+            db.session.add(tutor)
+            db.session.commit()
         tutor = Tutor.query.filter_by(name=row["Tutor"], year=year, studyperiod=studyperiod).first()
-        availability = [row["Monday730"], row["Monday830"], row["Monday930"], row["Tuesday730"], row["Tuesday830"], row["Tuesday930"], row["Wednesday730"], row["Wednesday830"], row["Wednesday930"]]
-        msg = set_tutor_availability(tutor.id, availability)
+        tutor.availabletimes = []
+        db.session.commit()
+        for key in row.keys():
+            keysplit = key.split(' ')
+            if keysplit[0] in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
+                if Timeslot.query.filter_by(year=year, studyperiod=studyperiod, timetable=timetable, day=keysplit[0],
+                                            time=keysplit[1]).first() is None:
+                    timeslot = Timeslot(year=year, studyperiod=studyperiod, timetable=timetable, day=keysplit[0],
+                                        time=keysplit[1])
+                    db.session.add(timeslot)
+                    db.session.commit()
+                timeslot = Timeslot.query.filter_by(year=year, studyperiod=studyperiod, timetable=timetable,
+                                                    day=keysplit[0], time=keysplit[1]).first()
+                if row[key] == 1:
+                    tutor.availabletimes.append(timeslot)
+                db.session.commit()
+
 
 
 def populate_tutors(filename):
@@ -878,7 +1013,6 @@ def populate_tutors(filename):
             db.session.commit()
 
         tutor = Tutor.query.filter_by(name=row['Tutor'], year=year, studyperiod=studyperiod).first()
-        print(tutor.name)
         if Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first() is None:
             subject = Subject(subcode=row["Subject Code"], subname=" ", year=year, studyperiod=studyperiod)
             db.session.add(subject)
@@ -899,6 +1033,15 @@ def update_studyperiod(studyperiod):
     admin = Admin.query.filter_by(key='studyperiod').first()
     admin.value = studyperiod
     db.session.commit()
+
+
+def check_time(time2):
+    if time2.find('pm') != -1:
+        time2 = time.strftime("%H:%M", time.strptime(time2, "%I:%M%p"))
+    elif len(time2) < 5:
+        time2 = time2 + "pm"
+        time2 = time.strftime("%H:%M", time.strptime(time2, "%I:%M%p"))
+    return time2
 
 
 def get_tutor_from_name(tutor):
@@ -938,7 +1081,6 @@ def add_class_to_db(classtime, subcode, attendees, repeat=1):
     tutor = get_subject_and_tutor(subcode)
     subject = get_subject(subcode)
     classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M')
-    print(attendees)
     if Class.query.filter_by(classtime=classtime, subjectid=subject.id, year=get_current_year(),
                              studyperiod=get_current_studyperiod(), tutorid=tutor.id, repeat=repeat).first() == None:
         specificclass = Class(classtime=classtime, subjectid=subject.id, year=get_current_year(),
@@ -947,6 +1089,9 @@ def add_class_to_db(classtime, subcode, attendees, repeat=1):
         db.session.commit()
         add_students_to_class(specificclass, attendees)
     return "Completed Successfully"
+
+
+
 
 
 def add_students_to_class(specificclass, attendees):
@@ -972,6 +1117,10 @@ def get_current_year():
     return int(admin.value)
 
 
+def get_current_timetable():
+    admin = Admin.query.filter_by(key='timetable').first()
+    return int(admin.value)
+
 def get_current_studyperiod():
     admin = Admin.query.filter_by(key='studyperiod').first()
     return admin.value
@@ -991,6 +1140,24 @@ def linksubjectstudent(studentcode, subcode):
 def view_student_template(studentcode, msg=""):
     return render_template('student.html', rows=get_student(studentcode), eligiblesubjects=get_subjects(),
                            subjects=get_student_and_subjects(studentcode), msg=msg)
+
+
+if Admin.query.filter_by(key='currentyear').first() == None:
+    admin = Admin(key='currentyear', value=2017)
+    db.session.add(admin)
+    db.session.commit()
+if Admin.query.filter_by(key='studyperiod').first() == None:
+    study = Admin(key='studyperiod', value='Semester 2')
+    db.session.add(study)
+    db.session.commit()
+
+if Admin.query.filter_by(key='timetable').first() is None:
+    timetable = Timetable(year=get_current_year(), studyperiod=get_current_studyperiod(), key="default")
+    db.session.add(timetable)
+    db.session.commit()
+    timetableadmin = Admin(key='timetable', value=timetable.id)
+    db.session.add(timetableadmin)
+    db.session.commit()
 
 
 if __name__ == '__main__':

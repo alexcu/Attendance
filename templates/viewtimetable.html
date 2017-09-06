@@ -6,9 +6,12 @@
         <div class="col-md-6">
             <table class="table" id="timetable">
                 <thead>
-                <td>Subject</td>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Day</td>
                 <td>Time</td>
                 <td>Tutor</td>
+                <td></td>
                 </thead>
 
 
@@ -32,13 +35,31 @@
 
                 "columns": [{
                     "data": "subject", "render": function (data, type, row, meta) {
-                        return row.subject.subname;
+                        return row.subject.subcode;
                     }
-                }, {"data": "time"}, {
+                }, {
+                    "data": "subject", "render": function (data, type, row, meta) {
+                        return "<a href='/subject%3Fsubcode%3D" + row.subject.subcode + "'>" + row.subject.subname + "</a>";
+                    }
+                }, {
+                    "data": "time", "render": function (data, type, row, meta) {
+                        return row.time.day;
+                    }
+                }, {
+                    "data": "time", "render": function (data, type, row, meta) {
+                        return row.time.time;
+                    }
+                }, {
                     "data": "tutor", "render": function (data, type, row, meta) {
                         return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
                     }
-                }]
+                },
+                    {
+                        "data": "tutor", "render": function (data, type, row, meta) {
+                        return "<a href='/removetimetabledclass%3Ftimetabledclassid%3D" + row.id + "'>Remove</a>";
+                    }
+                    }
+                ]
             });
         });
     </script>
