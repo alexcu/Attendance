@@ -19,12 +19,15 @@ body {
 
 td.attended {
     background-color: green;
+    border: 1px solid black;
 }
 
 td.notattended {
     background-color: red;
+    border: 1px solid black;
 }
 
 td.occupied {
     background-color: blue;
+    border: 1px solid black;
 }

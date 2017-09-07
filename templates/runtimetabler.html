@@ -9,10 +9,54 @@
                 <td>Subject Code</td>
                 <td>Subject Name</td>
                 <td>Tutor Name</td>
+                <td></td>
                 </thead>
             </table>
         </div>
     </div>
+
+
+    <h1>Eligible Subject Mappings</h1>
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table" id="eligiblesubjects">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Number of Students</td>
+                <td></td>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    <h1>Current Tutor Availabilities</h1>
+
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table" id="tutoravailabilities">
+                <thead>
+                <td>Tutor Name</td>
+                {% for timeslot in timeslots %}
+                    <td>{{ timeslot.day }} {{ timeslot.time }}</td>
+                {% endfor %}
+                </thead>
+                {% for tutor in tutors %}
+                    <tr>
+                        <td><a href="{{ url_for('view_tutor',tutorid = tutor.id) }}">{{ tutor.name }}</a></td>
+                        {% for timeslot in timeslots %}
+                            {% if  timeslot in tutor.availabletimes %}
+                                <td class="attended"></td>
+                            {% else %}
+                                <td class="notattended"></td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
 <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 <script>
 
@@ -22,11 +66,42 @@
                     "url": '/viewcurrentmappedsubjectsajax',
                     "type": 'GET'
                 },
-                "columns": [{"data": "subcode"},{"data": "subname"}, {
+                "columns": [{"data": "subcode"}, {
+                    "data": "subname", "render": function (data, type, row, meta) {
+                        return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + row.subname + "</a>";
+                    }
+                }, {
                     "data": "name", "render": function (data, type, row, meta) {
-                        return "<a href='/viewtutor%tutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
+                        return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
+                    }
+                }, {
+                    "data": "remove", "render": function (data, type, row, meta) {
+                        return "<a href='/removesubjectfromtutortimetabler%3Ftutorid%3D" + row.tutor.id + "&subcode%3D" + row.subcode + "'>Remove</a>";
                     }
                 }]
+            });
+            $('#eligiblesubjects').DataTable({
+                "ajax": {
+                    "url": '/vieweligiblesubjectsajax',
+                    "type": 'GET'
+                },
+                "columns": [{"data": "subcode"}, {
+                    "data": "subname", "render": function (data, type, row, meta) {
+                        return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + row.subname + "</a>";
+                    }
+                }, {
+                    "data": "name", "render": function (data, type, row, meta) {
+                        return row.students;
+                    }
+                },
+                    {
+                        "data": "addtutor", "render": function (data, type, row, meta) {
+                        return "<form action='/addtutortosubjecttimetabler%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'>
+                                {% for temptutor in tutors %} <option value={{ temptutor['id'] }}>
+                                    {{ temptutor['name'] }}
+                                    </option>{% endfor %} </select> <input type='submit' value='Add Tutor to Subject'/> </form>";
+                    }
+                    }]
             });
         });
     </script>

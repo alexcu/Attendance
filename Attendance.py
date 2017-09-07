@@ -7,15 +7,16 @@ from flask import Flask
 from flask import render_template
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
+from sqlalchemy.orm import joinedload
 
 app = Flask(__name__)
 
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database41.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database41.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -389,7 +390,7 @@ def upload_tutor_availabilities():
 
 @app.route('/runtimetabler')
 def run_timetabler():
-    return render_template("runtimetabler.html")
+    return render_template("runtimetabler.html", tutors=get_tutors(), timeslots=get_timeslots())
 
 @app.route('/timetable')
 def view_timetable():
@@ -503,10 +504,24 @@ def add_tutor_to_subject(subcode):
         return view_subject_template(subcode, msg)
 
 
+@app.route('/addtutortosubjecttimetabler?subcode=<subcode>', methods=['GET', 'POST'])
+def add_tutor_to_subject_timetabler(subcode):
+    if request.method == 'POST':
+        tutorid = request.form['tutor']
+        msg = linksubjecttutor(tutorid, subcode)
+    return render_template("runtimetabler.html", tutors=get_tutors(), timeslots=get_timeslots())
+
+
 @app.route('/removesubjectfromtutor?tutorid=<tutorid>&subcode=<subcode>')
 def remove_subject_from_tutor(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
     return view_tutor_template(tutorid, msg2=msg)
+
+
+@app.route('/removesubjectfromtutortimetabler?tutorid=<tutorid>&subcode=<subcode>')
+def remove_subject_from_tutor_timetabler(tutorid, subcode):
+    msg = unlinksubjecttutor(tutorid, subcode)
+    return render_template("runtimetabler.html", timeslots=get_timeslots(), tutors=get_tutors())
 
 
 @app.route('/removetutorfromsubject?tutorid=<tutorid>&subcode=<subcode>')
@@ -592,6 +607,26 @@ def viewcurrentmappedsubjects_ajax():
         row['tutor']['_sa_instance_state']=""
     print(data2)
     data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/vieweligiblesubjectsajax')
+def vieweligiblesubjects_ajax():
+    data = Subject.query.options(joinedload('students')).filter(Subject.year == get_current_year(),
+                                                                Subject.studyperiod == get_current_studyperiod(),
+                                                                Subject.tutor == None).all()
+    data2 = []
+    for subject in data:
+        if len(subject.students) >= 3:
+            data2.append(subject)
+    data3 = []
+    for row in data2:
+        data3.append(row.__dict__)
+    for row in data3:
+        row['_sa_instance_state'] = ""
+        row['students'] = len(row['students'])
+    print(data3)
+    data = json.dumps(data3)
     return '{ "data" : ' + data + '}'
 
 
@@ -980,7 +1015,8 @@ def getadmin():
 
 
 def get_tutors():
-    return Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    return Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).order_by(
+        Tutor.name.asc()).all()
 
 
 def populate_students(filename):
