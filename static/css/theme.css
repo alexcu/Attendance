@@ -18,12 +18,12 @@ body {
 }
 
 td.attended {
-    background-color: green;
+    background-color: lightgreen;
     border: 1px solid black;
 }
 
 td.notattended {
-    background-color: red;
+    background-color: lightcoral;
     border: 1px solid black;
 }
 

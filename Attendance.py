@@ -14,9 +14,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database41.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database42.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
