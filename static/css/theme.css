@@ -28,6 +28,6 @@ td.notattended {
 }
 
 td.occupied {
-    background-color: blue;
+    background-color: rgba(69, 140, 255, 0.68);
     border: 1px solid black;
 }

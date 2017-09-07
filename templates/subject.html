@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
-{% block content %}
-    <h1>Subject Information</h1>
-    {{ msg }}
+{% block content2 %}
+
     <div class="row">
         <div class="col-md-6">
+            <h1>Subject Information</h1>
+            {{ msg }}
             <table class="table">
                 <thead>
                 <td>Subject Code</td>
@@ -16,13 +17,10 @@
                     <td> {{ rows["studyperiod"] }}</td>
                 </tr>
             </table>
+            <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
         </div>
-    </div>
-    <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
-
-    <h1>Tutor</h1>
-    <div class="row">
         <div class="col-md-6">
+            <h1>Tutor</h1>
             <table class="table">
                 <thead>
                 <td>Tutor Name</td>
@@ -40,28 +38,35 @@
                         </a>{% endif %}</td>
                 </tr>
             </table>
+            {% if tutor == None %}
+                <h3>Add Tutor to Subject</h3>
+                <form action="{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method="POST">
+                    <select name="tutor">
+                        {% for temptutor in tutors %}
+
+                            <option value={{ temptutor["id"] }}>{{ temptutor["name"] }}</option>
+
+                        {% endfor %}
+
+                    </select>
+
+                    <input type="submit" value="Add Tutor to Subject"/>
+                </form>
+                {{ msg2 }}
+            {% endif %}
         </div>
     </div>
-    {% if tutor == None %}
-        <h3>Add Tutor to Subject</h3>
-        <form action="{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method="POST">
-            <select name="tutor">
-                {% for temptutor in tutors %}
 
-                    <option value={{ temptutor["id"] }}>{{ temptutor["name"] }}</option>
 
-                {% endfor %}
 
-            </select>
 
-            <input type="submit" value="Add Tutor to Subject"/>
-        </form>
-    {% endif %}
-    {{ msg2 }}
 
-    <h1>Students Enrolled in this subject</h1>
+
+
+
     <div class="row">
         <div class="col-md-6">
+            <h1>Students Enrolled in this subject</h1>
             <form action="{{ url_for('update_student_attendance', subcode = rows["subcode"]) }}" method="post">
             <table class="table">
                 <thead>
@@ -109,17 +114,19 @@
         </div>
     </div>
 
+
     {% if tutor != None %}
 
-        <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
-            <button type="button" class="btn btn-lg btn-default">Add a Class</button>
-        </a>
-
-        {% if subject.timetabledclasses == [] %}
-        <h1>Timetable Explorer</h1>
-            <h2>Student Availability</h2>
         <div class="row">
             <div class="col-md-6">
+
+
+                <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
+                    <button type="button" class="btn btn-lg btn-default">Add a Class</button>
+                </a>
+                {% if subject.timetabledclasses == [] %}
+                    <h1>Timetable Explorer</h1>
+                    <h2>Student Availability</h2>
                 <table class="table">
                     <thead>
                     {% for timeslot in timeslots %}

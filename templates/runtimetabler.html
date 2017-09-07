@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h1>Current Subject Mappings</h1>
+
 <div class="row">
         <div class="col-md-6">
+            <h1>Current Subject Mappings</h1>
             <table class="table" id="currentmappedsubjects">
                 <thead>
                 <td>Subject Code</td>
@@ -13,27 +14,24 @@
                 </thead>
             </table>
         </div>
+    <div class="col-md-6">
+        <h1>Eligible Subject Mappings</h1>
+        <table class="table" id="eligiblesubjects">
+            <thead>
+            <td>Subject Code</td>
+            <td>Subject Name</td>
+            <td>Number of Students</td>
+            <td></td>
+            </thead>
+        </table>
+    </div>
     </div>
 
 
-    <h1>Eligible Subject Mappings</h1>
-    <div class="row">
-        <div class="col-md-6">
-            <table class="table" id="eligiblesubjects">
-                <thead>
-                <td>Subject Code</td>
-                <td>Subject Name</td>
-                <td>Number of Students</td>
-                <td></td>
-                </thead>
-            </table>
-        </div>
-    </div>
-
-    <h1>Current Tutor Availabilities</h1>
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
+            <h1>Current Tutor Availabilities</h1>
             <table class="table" id="tutoravailabilities">
                 <thead>
                 <td>Tutor Name</td>
@@ -46,9 +44,11 @@
                         <td><a href="{{ url_for('view_tutor',tutorid = tutor.id) }}">{{ tutor.name }}</a></td>
                         {% for timeslot in timeslots %}
                             {% if  timeslot in tutor.availabletimes %}
-                                <td class="attended"></td>
+                                <td class="attended" id="slot/{{ timeslot.id }}/{{ tutor.id }}"
+                                    onclick="updateAvailability({{ timeslot.id }},{{ tutor.id }},'slot/{{ timeslot.id }}/{{ tutor.id }}')"></td>
                             {% else %}
-                                <td class="notattended"></td>
+                                <td class="notattended" id="slot/{{ timeslot.id }}/{{ tutor.id }}"
+                                    onclick="updateAvailability({{ timeslot.id }},{{ tutor.id }},'slot/{{ timeslot.id }}/{{ tutor.id }}')"></td>
                             {% endif %}
                         {% endfor %}
                     </tr>
@@ -101,6 +101,27 @@
                     }]
             });
         });
+
+
+        function updateAvailability(timeslotid, tutorid, id) {
+            $.ajax({
+                url: "/updatetutoravailabilityajax",
+                data: {timeslotid: timeslotid, tutorid: tutorid},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+                    var x = document.getElementById(id);
+                    if (x.className == "attended") {
+                        x.className = "notattended";
+                    } else if (x.className == "notattended") {
+                        x.className = "attended";
+                    }
+                },
+                error: function () {
+
+                }
+            });
+        }
     </script>
 
 

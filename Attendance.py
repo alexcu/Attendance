@@ -1,12 +1,11 @@
 import json
-from datetime import datetime
-from operator import attrgetter
-
 import pandas
+from datetime import datetime
 from flask import Flask
 from flask import render_template
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
+from operator import attrgetter
 from sqlalchemy.orm import joinedload
 
 app = Flask(__name__)
@@ -14,9 +13,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database42.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database42.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -437,6 +436,20 @@ def update_tutor_availability(tutorid):
     return view_tutor_template(tutorid, msg3=msg)
 
 
+@app.route('/updatetutoravailabilityajax', methods=['POST'])
+def update_tutor_availability_ajax():
+    timeslotid = int(request.form['timeslotid'])
+    tutorid = int(request.form['tutorid'])
+    timeslot = Timeslot.query.get(timeslotid)
+    tutor = Tutor.query.get(tutorid)
+    if timeslot in tutor.availabletimes:
+        tutor.availabletimes.remove(timeslot)
+    else:
+        tutor.availabletimes.append(timeslot)
+    db.session.commit()
+    return json.dumps("Done")
+
+
 @app.route('/addsubjecttotutor?tutorid=<tutorid>', methods=['GET', 'POST'])
 def add_subject_to_tutor(tutorid):
     if request.method == 'POST':
@@ -642,7 +655,6 @@ def viewtimeslots_ajax():
         row['timetabledclasses'] = []
         row['tutor'] = []
         row['availabiletutors'] = []
-        print(row)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
