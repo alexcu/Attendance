@@ -26,16 +26,14 @@
             <table class="table">
                 <thead>
                 <td>Tutor Name</td>
-                <td>Email</td>
-                <td>Phone</td>
+
                 <td/>
                 </thead>
                 <tr>
                     <td>
-                        <a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["firstname"] }} {{ tutor["lastname"] }}</a>
+                        <a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["name"] }}</a>
                     </td>
-                    <td>{{ tutor["email"] }}</td>
-                    <td>{{ tutor["phone"] }}</td>
+
                     <td>{% if tutor != None %}
                         <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
                             <button type="button" class="btn btn-default">Remove</button>
@@ -50,7 +48,7 @@
             <select name="tutor">
                 {% for temptutor in tutors %}
 
-                    <option value={{ temptutor["id"] }}>{{ temptutor["firstname"] }} {{ temptutor["lastname"] }}</option>
+                    <option value={{ temptutor["id"] }}>{{ temptutor["name"] }}</option>
 
                 {% endfor %}
 
@@ -116,6 +114,93 @@
         <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
             <button type="button" class="btn btn-lg btn-default">Add a Class</button>
         </a>
+
+        {% if subject.timetabledclasses == [] %}
+        <h1>Timetable Explorer</h1>
+            <h2>Student Availability</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table">
+                    <thead>
+                    {% for timeslot in timeslots %}
+                        <td>{{ timeslot.day }} {{ timeslot.time }}</td>
+                    {% endfor %}
+                    </thead>
+                    <tr>
+                        {% for timeslot in timeslots %}
+                            {% if  timeslot in times %}
+                                <td class="attended"></td>
+                            {% else %}
+                                <td class="notattended"></td>
+                            {% endif %}
+                        {% endfor %}
+
+                    </tr>
+
+
+                </table>
+            </div>
+        </div>
+            <h2>Tutor Availability</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table">
+                        <thead>
+                        {% for row in timeslots %}
+                            <td>{{ row.day }} {{ row.time }}</td>
+                        {% endfor %}
+                        </thead>
+                        <tr>
+                            {% for timeslot in timeslots %}
+                                {% if  timeslot in tutor.availabletimes %}
+                                    <td class="attended"></td>
+                                {% else %}
+                                    <td class="notattended"></td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+
+
+                    </table>
+                    <form action="{{ url_for('add_timetabledclass_to_subject', subcode = subject.subcode) }}"
+                          method="POST">
+                        <select name="timeslot">
+                            {% for timeslot in timeslots %}
+
+                                <option value={{ timeslot.id }}>{{ timeslot.day }} {{ timeslot.time }}</option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <input type="submit" value="Timetable Class"/>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+        <h1>Timetabled Classes</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table">
+                    <thead>
+                    <td>Day</td>
+                    <td>Time</td>
+                    <td/>
+                    </thead>
+                    {% for row in timetabledclasses %}
+                        <tr>
+                            <td>
+                                {{ row.timeslot.day }}
+                            </td>
+                            <td>{{ row.timeslot.time }}</td>
+                            <td><a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = row.id) }}">Remove</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
     {% endif %}
 
     <script>

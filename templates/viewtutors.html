@@ -7,8 +7,6 @@
             <table class="table" id="tutors">
                 <thead>
                 <td>Name</td>
-                <td>Email</td>
-                <td>Phone</td>
                 </thead>
             </table>
         </div>
@@ -28,10 +26,10 @@
                     "type": 'GET'
                 },
                 "columns": [{
-                    "data": "firstname", "render": function (data, type, row, meta) {
-                        return "<a href='/viewtutor%3Ftutorid%3D" + row.id + "'>" + row.firstname + " " + row.lastname + "</a>";
+                    "data": "name", "render": function (data, type, row, meta) {
+                        return "<a href='/viewtutor%3Ftutorid%3D" + row.id + "'>" + row.name + "</a>";
                     }
-                }, {"data": "email"}, {"data": "phone"}]
+                }]
             });
         });
     </script>

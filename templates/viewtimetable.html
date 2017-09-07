@@ -1,6 +1,66 @@
 {% extends "layout.html" %}
 {% block content %}
+    <h1>Timetable</h1>
+    {{ msg }}
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table" id="timetable">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Day</td>
+                <td>Time</td>
+                <td>Tutor</td>
+                <td></td>
+                </thead>
 
-    Hello
 
+            </table>
+        </div>
+    </div>
+
+
+
+
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+
+    <script>
+
+        $(document).ready(function () {
+            $('#timetable').DataTable({
+                "ajax": {
+                    "url": '/viewtimetableajax',
+                    "type": 'GET'
+                },
+
+                "columns": [{
+                    "data": "subject", "render": function (data, type, row, meta) {
+                        return row.subject.subcode;
+                    }
+                }, {
+                    "data": "subject", "render": function (data, type, row, meta) {
+                        return "<a href='/subject%3Fsubcode%3D" + row.subject.subcode + "'>" + row.subject.subname + "</a>";
+                    }
+                }, {
+                    "data": "time", "render": function (data, type, row, meta) {
+                        return row.timeslot.day;
+                    }
+                }, {
+                    "data": "time", "render": function (data, type, row, meta) {
+                        return row.timeslot.time;
+                    }
+                }, {
+                    "data": "tutor", "render": function (data, type, row, meta) {
+                        return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
+                    }
+                },
+                    {
+                        "data": "tutor", "render": function (data, type, row, meta) {
+                        return "<a href='/removetimetabledclass%3Ftimetabledclassid%3D" + row.id + "'>Remove</a>";
+                    }
+                    }
+                ]
+            });
+        });
+    </script>
 {% endblock %}

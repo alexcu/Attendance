@@ -7,13 +7,9 @@
             <table class="table">
                 <thead>
                 <td>Name</td>
-                <td>Email</td>
-                <td>Phone</td>
                 </thead>
                 <tr>
-                    <td>{{ rows["firstname"] }} {{ rows["lastname"] }}</td>
-                    <td>{{ rows["email"] }}</td>
-                    <td> {{ rows["phone"] }}</td>
+                    <td>{{ rows["name"] }}</td>
                 </tr>
             </table>
         </div>
@@ -75,63 +71,18 @@
         <div class="col-md-6">
             <table class="table">
                 <thead>
-                <td>Monday 7:30pm</td>
-                <td>Monday 8:30pm</td>
-                <td>Monday 9:30pm</td>
-                <td>Tuesday 7:30pm</td>
-                <td>Tuesday 8:30pm</td>
-                <td>Tuesday 9:30pm</td>
-                <td>Wednesday 7:30pm</td>
-                <td>Wednesday 8:30pm</td>
-                <td>Wednesday 9:30pm</td>
+                {% for row in timeslots %}
+                    <td>{{ row.day }} {{ row.time }}</td>
+                {% endfor %}
                 </thead>
                 <tr>
-                    {% if  availability["time1"] == 1 %}
+                    {% for timeslot in timeslots %}
+                        {% if  timeslot in availability %}
                         <td class="attended"></td>
                     {% else %}
                         <td class="notattended"></td>
                     {% endif %}
-                    {% if  availability["time2"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time3"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time4"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time5"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time6"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time7"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time8"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-                    {% if  availability["time9"] == 1 %}
-                        <td class="attended"></td>
-                    {% else %}
-                        <td class="notattended"></td>
-                    {% endif %}
-
+                    {% endfor %}
                 </tr>
 
 
@@ -140,16 +91,9 @@
     </div>
     <h3>Update Tutor Availability</h3>
     <form action="{{ url_for('update_tutor_availability', tutorid = rows['id']) }}" , method="POST">
-
-        <input type="checkbox" name="time1">Monday 7:30 <br>
-        <input type="checkbox" name="time2">Monday 8:30 <br>
-        <input type="checkbox" name="time3">Monday 9:30 <br>
-        <input type="checkbox" name="time4">Tuesday 7:30 <br>
-        <input type="checkbox" name="time5">Tuesday 8:30 <br>
-        <input type="checkbox" name="time6">Tuesday 9:30 <br>
-        <input type="checkbox" name="time7">Wednesday 7:30 <br>
-        <input type="checkbox" name="time8">Wednesday 8:30 <br>
-        <input type="checkbox" name="time9">Wednesday 9:30 <br>
+        {% for timeslot in timeslots %}
+            <input type="checkbox" name="time/{{ timeslot.id }}">{{ timeslot.day }} {{ timeslot.time }} <br>
+        {% endfor %}
         <input type="submit" value="Submit Availability">
     </form>
 
