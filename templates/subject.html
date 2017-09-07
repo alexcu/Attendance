@@ -152,7 +152,9 @@
                         </thead>
                         <tr>
                             {% for timeslot in timeslots %}
-                                {% if  timeslot in tutor.availabletimes %}
+                                {% if timeslot in tutor.get_teaching_times() %}
+                                    <td class="occupied"></td>
+                                {% elif  timeslot in tutor.availabletimes %}
                                     <td class="attended"></td>
                                 {% else %}
                                     <td class="notattended"></td>

@@ -24,3 +24,7 @@ td.attended {
 td.notattended {
     background-color: red;
 }
+
+td.occupied {
+    background-color: blue;
+}

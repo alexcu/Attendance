@@ -83,7 +83,7 @@
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/../Attendance\sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database36.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/../Attendance\sqlite:///$PROJECT_DIR$/../../../justi/Dropbox/Justin/Documents/Python/database36.db</jdbc-url>
       <driver-properties>
         <property name="enable_load_extension" value="true" />
       </driver-properties>
@@ -96,6 +96,12 @@
       <driver-properties>
         <property name="enable_load_extension" value="true" />
       </driver-properties>
+    </data-source>
+    <data-source source="LOCAL" name="database41.db" uuid="685d2a58-3282-4351-a370-732222dd418e">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database41.db</jdbc-url>
     </data-source>
   </component>
 </project>

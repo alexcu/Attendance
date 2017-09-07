@@ -13,9 +13,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
-app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database40.db'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database41.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -132,7 +132,7 @@ class Subject(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     classes = db.relationship("Class")
-    timetabledclasses = db.relationship("TimetabledClass")
+    timetabledclasses = db.relationship("TimetabledClass",single_parent=True, cascade = 'all,delete-orphan')
     def __init__(self, subcode, subname, year, studyperiod):
         self.subcode = subcode
         self.subname = subname
@@ -149,9 +149,9 @@ class Student(db.Model):
     name = db.Column(db.String(50), nullable=True)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
-    subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students', lazy='joined'))
+    subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
     timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable,
-                                        backref=db.backref('students', lazy='joined'))
+                                        backref=db.backref('students'))
     def __init__(self, studentcode, firstname, lastname, year, studyperiod):
         self.studentcode = studentcode
         self.firstname = firstname
@@ -167,7 +167,7 @@ class Timetable(db.Model):
     studyperiod = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     key = db.Column(db.String(50), nullable=True)
-    timeslots = db.relationship("Timeslot")
+    timeslots = db.relationship("Timeslot", single_parent = True, cascade = 'all,delete-orphan')
     def __init__(self, year, studyperiod, key=""):
         self.studyperiod = studyperiod
         self.year = year
@@ -183,13 +183,20 @@ class Tutor(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=subtutmap,
-                               backref=db.backref('tutor', lazy='joined', uselist=False))
+                               backref=db.backref('tutor', uselist=False))
     availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap,
-                                     backref=db.backref('availabiletutors', lazy='joined'))
+                                     backref=db.backref('availabiletutors'))
+    timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('teacher'))
     def __init__(self, name, year, studyperiod):
         self.name = name
         self.year = year
         self.studyperiod = studyperiod
+
+    def get_teaching_times(self):
+        teachingtimes = []
+        for timeclass in self.timetabledclasses:
+            teachingtimes.append(timeclass.timeslot)
+        return teachingtimes
 
 
 class TimetabledClass(db.Model):
@@ -201,7 +208,6 @@ class TimetabledClass(db.Model):
     subject = db.relationship("Subject")
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
-    timeslot = db.relationship('Timeslot', backref=db.backref('timetabledclasses', lazy='joined'))
     tutor = db.Column(db.Integer, db.ForeignKey('tutors.id'))
 
     def __init__(self, studyperiod, year, subjectid, timetable, time, tutor):
@@ -222,7 +228,7 @@ class Timeslot(db.Model):
     day = db.Column(db.String(50), nullable=False)
     daynumeric = db.Column(db.String(50), nullable=False)
     time = db.Column(db.String(50), nullable=False)
-
+    timetabledclasses = db.relationship("TimetabledClass", backref = db.backref('timeslot'),single_parent=True,cascade ='all,delete-orphan')
     def __init__(self, studyperiod, year, timetable, day, time):
         self.studyperiod = studyperiod
         self.year = year
@@ -596,12 +602,8 @@ def viewtimetable_ajax():
 
     for row3 in data:
         data2.append(row3.__dict__)
-
-    print(data2[0]['time'])
-
-    print(data2)
     for i in range(len(data2)):
-        data2[i]['timeslot'] = Timeslot.query.get(data2[0]['time'])
+        data2[i]['timeslot'] = Timeslot.query.get(data2[i]['time'])
         data2[i]['tutor'] = Tutor.query.filter_by(id=data2[i]['tutor']).first()
         data2[i]['subject'] = Subject.query.filter_by(id=data2[i]['subjectid']).first()
     for i in range(len(data2)):
@@ -696,7 +698,7 @@ def remove_subject(subcode):
     try:
         sub = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
                                       studyperiod=get_current_studyperiod()).first()
-        db.session.remove(sub)
+        db.session.delete(sub)
         db.session.commit()
         msg = "Completed Successfully"
         return render_template("subjects.html", rows=get_subjects(), msg=msg)
@@ -708,8 +710,8 @@ def remove_subject(subcode):
 @app.route('/removetutor?tutorid=<tutorid>')
 def remove_tutor(tutorid):
     try:
-        tut = Tutor.query.filter_by(tutorid=tutorid)
-        db.session.remove(tut)
+        tut = Tutor.query.get(tutorid)
+        db.session.delete(tut)
         db.session.commit()
         msg = "Completed Successfully"
         return render_template("viewtutors.html", rows=get_tutors(), msg=msg)
@@ -889,6 +891,7 @@ def get_tutor_availability(tutorid):
     return tutor.availabletimes
 
 
+
 def checkboxvalue(checkbox):
     if (checkbox != None):
         return 1
@@ -897,7 +900,7 @@ def checkboxvalue(checkbox):
 
 
 def view_tutor_template(tutorid, msg="", msg2="", msg3=""):
-    return render_template('tutor.html', rows=get_tutor(tutorid), eligiblesubjects=get_subjects(),
+    return render_template('tutor.html', tutor=get_tutor(tutorid), eligiblesubjects=get_subjects(),
                            subjects=get_tutor_and_subjects(tutorid), timeslots=get_timeslots(),
                            availability=get_tutor_availability(tutorid),
                            msg=msg, msg2=msg2, msg3=msg3)
@@ -1021,6 +1024,10 @@ def populate_timetabledata(filename):
         time2 = check_time(time2)
         print(day)
         print(time2)
+        if Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first() is None:
+            timeslot = Timeslot(year = get_current_year(), studyperiod = get_current_studyperiod(),day = day,time = time2,timetable=get_current_timetable())
+            db.session.add(timeslot)
+            db.session.commit()
         timeslot = Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first()
         timetable = Timetable.query.get(get_current_timetable())
         print(timeslot)
