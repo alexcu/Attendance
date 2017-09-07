@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1>Current Subject Mappings</h1>
+<div class="row">
+        <div class="col-md-6">
+            <table class="table" id="currentmappedsubjects">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Tutor Name</td>
+                </thead>
+            </table>
+        </div>
+    </div>
+<link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+<script>
+
+        $(document).ready(function () {
+            $('#currentmappedsubjects').DataTable({
+                "ajax": {
+                    "url": '/viewcurrentmappedsubjectsajax',
+                    "type": 'GET'
+                },
+                "columns": [{"data": "subcode"},{"data": "subname"}, {
+                    "data": "name", "render": function (data, type, row, meta) {
+                        return "<a href='/viewtutor%tutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
+                    }
+                }]
+            });
+        });
+    </script>
+
+
+
+
+{% endblock %}

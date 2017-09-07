@@ -183,7 +183,7 @@ class Tutor(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=subtutmap,
-                               backref=db.backref('tutor', uselist=False))
+                               backref=db.backref('tutor', uselist=False,lazy='joined'))
     availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap,
                                      backref=db.backref('availabiletutors'))
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('teacher'))
@@ -387,7 +387,9 @@ def upload_tutor_availabilities():
     msg2 = "Completed Successfully"
     return render_template("uploadtutordata.html",msg2=msg2)
 
-
+@app.route('/runtimetabler')
+def run_timetabler():
+    return render_template("runtimetabler.html")
 
 @app.route('/timetable')
 def view_timetable():
@@ -576,6 +578,22 @@ def viewsubjects_ajax():
     print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
+
+@app.route('/viewcurrentmappedsubjectsajax')
+def viewcurrentmappedsubjects_ajax():
+    data = Subject.query.filter(Subject.year==get_current_year(), Subject.studyperiod==get_current_studyperiod(), Subject.tutor!= None).all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+        row['students'] = []
+        row['tutor'] = row['tutor'].__dict__
+        row['tutor']['_sa_instance_state']=""
+    print(data2)
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
 
 
 @app.route('/viewtimeslotsajax')
