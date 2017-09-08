@@ -3,3 +3,4 @@ pandas
 flask_bcrypt
 flask_sqlalchemy
 xlrd
+pulp
