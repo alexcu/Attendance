@@ -15,9 +15,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database43.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database43.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -450,6 +450,22 @@ def update_tutor_availability_ajax():
         tutor.availabletimes.remove(timeslot)
     else:
         tutor.availabletimes.append(timeslot)
+    db.session.commit()
+    return json.dumps("Done")
+
+
+@app.route('/updatestudentscheduledclassajax', methods=['POST'])
+def update_student_scheduled_class_ajax():
+    timeclassid = int(request.form['timeclassid'])
+    studentid = int(request.form['studentid'])
+    timeclass = TimetabledClass.query.get(timeclassid)
+    student = Student.query.get(studentid)
+    subject = timeclass.subject
+    if student not in timeclass.students:
+        for timeclass2 in subject.timetabledclasses:
+            if student in timeclass2.students:
+                timeclass2.students.remove(student)
+        timeclass.students.append(student)
     db.session.commit()
     return json.dumps("Done")
 
@@ -1371,7 +1387,7 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
         for j in SUBJECTS:
             if i in SUBJECTMAPPING[j]:
                 model += lpSum(assign_vars[(i,j,k,m)] for k in TIMES for m in TEACHERS) == 1
-              else:
+            else:
                 model += lpSum(assign_vars[(i,j,k,m)] for k in TIMES for m in TEACHERS) == 0
 
 

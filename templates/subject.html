@@ -83,12 +83,14 @@
                 <thead>
                 <td>Student Number</td>
                 <td>Name</td>
+                <td>Scheduled Class</td>
                 <td/>
                 {% for class in classes %}
                     <td id="{{ class.id }}/date" class="classdate">{{ class["classtime"].strftime('%Y-%m-%d') }}</td>
                 {% endfor %}
                 </thead>
                 <tr>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -106,6 +108,12 @@
                         <td>
                             <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["firstname"] }} {{ student["lastname"] }}</a>
                         </td>
+                        <td>{% for timeclass in rows.timetabledclasses %}
+                            {% if student in timeclass.students %}
+{{ timeclass.timeslot.day }} {{timeclass.timeslot.time }}
+                            {% endif %}
+                            {% endfor %}
+                            </td>
                         <td>
                             <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}">Remove</a></a>
                         </td>
@@ -219,6 +227,32 @@
                     {% endfor %}
                 </table>
             </div>
+        <div class="col-md-6">
+<table class="table">
+<thead>
+<td>Student</td>
+{% for timeclass in timetabledclasses %}
+<td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}</td>
+{% endfor %}
+</thead>
+{% for student in rows.students %}
+<tr>
+<td>{{ student.name }}</td>
+{% for timeclass in rows.timetabledclasses %}
+
+{% if  student in timeclass.students %}
+
+                            <td class="attended {{ student.id }}" id="slot/{{ timeclass.id }}/{{ student.id }}"
+                                onclick="updateStudentScheduledClass({{ timeclass.id }},{{ student.id }},'slot/{{ timeclass.id }}/{{ student.id }}')"></td>
+                    {% else %}
+                            <td class="notattended {{ student.id }}" id="slot/{{ timeclass.id }}/{{ student.id }}"
+                                onclick="updateStudentScheduledClass({{ timeclass.id }},{{ student.id }},'slot/{{ timeclass.id }}/{{ student.id }}')"></td>
+                    {% endif %}
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+        </div>
         </div>
         {% endif %}
     {% endif %}
@@ -273,6 +307,33 @@
 
         }
 
+
+    function updateStudentScheduledClass(timeclassid, studentid, id) {
+
+$.ajax({
+                url: "/updatestudentscheduledclassajax",
+                data: {timeclassid: timeclassid, studentid: studentid},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+                    var x = document.getElementById(id);
+                    var y = document.getElementsByClassName(studentid);
+                    if (x.className == "attended "+ studentid) {
+                    } else if (x.className == "notattended " + studentid) {
+                        for(i=0; i < y.length; i++) {
+                        y[i].className = "notattended " + studentid;
+                        }
+                        x.className = "attended " + studentid;
+                    }
+
+                },
+                error: function () {
+
+                }
+            });
+
+
+        }
     </script>
 
 {% endblock %}
