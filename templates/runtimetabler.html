@@ -10,6 +10,7 @@
                 <td>Subject Code</td>
                 <td>Subject Name</td>
                 <td>Tutor Name</td>
+                <td>Repeats</td>
                 <td></td>
                 </thead>
             </table>
@@ -56,7 +57,7 @@
             </table>
         </div>
     </div>
-
+    <button onclick="runtimetable()">Run Timetable</button>
 <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 <script>
 
@@ -74,7 +75,7 @@
                     "data": "name", "render": function (data, type, row, meta) {
                         return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
                     }
-                }, {
+                }, {"data": "repeats"}, {
                     "data": "remove", "render": function (data, type, row, meta) {
                         return "<a href='/removesubjectfromtutortimetabler%3Ftutorid%3D" + row.tutor.id + "&subcode%3D" + row.subcode + "'>Remove</a>";
                     }
@@ -116,6 +117,21 @@
                     } else if (x.className == "notattended") {
                         x.className = "attended";
                     }
+                },
+                error: function () {
+
+                }
+            });
+        }
+
+        function runtimetable() {
+            $.ajax({
+                url: "/runtimetableprogram",
+                data: {},
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+
                 },
                 error: function () {
 

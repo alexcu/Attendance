@@ -18,13 +18,21 @@
             </table>
         </div>
     </div>
-
+    <button onclick="deleteallclasses()">Delete All Classes</button>
 
 
 
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>
+        function deleteallclasses() {
+            $.ajax({
+                url: "/deleteallclasses",
+                type: "GET",
+            });
+            location.reload(forceGet)
+        }
+
 
         $(document).ready(function () {
             $('#timetable').DataTable({

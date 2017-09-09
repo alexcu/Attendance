@@ -1,21 +1,23 @@
 import json
-import pandas
 from datetime import datetime
+from operator import attrgetter
+
+import pandas
 from flask import Flask
 from flask import render_template
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
-from operator import attrgetter
-from sqlalchemy.orm import joinedload
 from pulp import *
+from sqlalchemy.orm import joinedload
+
 app = Flask(__name__)
 
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database42.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database43.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -590,10 +592,31 @@ def view_rolls():
     return render_template('rolls.html')
 
 
+@app.route('/deleteallclasses')
+def delete_all_classes():
+    timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                                        timetable=get_current_timetable()).all()
+    print(timetabledclasses)
+    for timeclass in timetabledclasses:
+        db.session.delete(timeclass)
+        db.session.commit()
+    timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(),
+                                                        studyperiod=get_current_studyperiod(),
+                                                        timetable=get_current_timetable()).all()
+    print(timetabledclasses)
+    return "Done"
+
 @app.route('/subjects')
 def view_subjects():
     return render_template('subjects.html')
 
+
+@app.route('/updatesubjectrepeats', methods=['POST'])
+def update_subject_repeats():
+    subject = Subject.query.get(int(request.form['subject']))
+    subject.repeats = int(request.form['repeats'])
+    db.session.commit()
+    return "Done"
 
 @app.route('/viewsubjectsajax')
 def viewsubjects_ajax():
@@ -809,6 +832,11 @@ def view_students():
 def view_student(studentcode):
     return view_student_template(studentcode)
 
+
+@app.route('/runtimetableprogram')
+def run_timetable_program():
+    preparetimetable()
+    return "Done"
 
 @app.route('/viewtutor?tutorid=<tutorid>')
 def view_tutor(tutorid):
@@ -1167,7 +1195,8 @@ def populate_tutors(filename):
 
         tutor = Tutor.query.filter_by(name=row['Tutor'], year=year, studyperiod=studyperiod).first()
         if Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first() is None:
-            subject = Subject(subcode=row["Subject Code"], subname=" ", year=year, studyperiod=studyperiod)
+            subject = Subject(subcode=row["Subject Code"], subname=" ", year=year, studyperiod=studyperiod,
+                              repeats=row["Repeats"])
             db.session.add(subject)
             db.session.commit()
         subject = Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first()
@@ -1295,46 +1324,9 @@ def view_student_template(studentcode, msg=""):
                            subjects=get_student_and_subjects(studentcode), msg=msg)
 
 #TIMETABLE CODE
-def preparetimetable():
-    SUBJECTS = []
-    allsubjects = Subject.query.filter(Subject.year == get_current_year(), Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
-    for subject in allsubjects:
-        SUBJECTS.append(subject.subcode)
-
-    STUDENTS = []
-    SUBJECTMAPPING = {}
-
-    TEACHERS = []
-    TUTORAVAILABILITY = {}
-    TEACHERMAPPING = {}
-    alltutors = Tutor.query.filter_by(year = get_current_year(), studyperiod = get_current_studyperiod())
-    for tutor in alltutors:
-        TEACHERS.append(tutor.name)
-        TUTORAVAILABILITY[tutor.name] = []
-        TEACHERMAPPING[tutor.name] = []
-        for timeslot in tutor.availabletimes:
-            TUTORAVAILABILITY[tutor.name].append(timeslot.day + " " + timeslot.time)
-        for subject in tutor.subjects:
-            TEACHERMAPPING[tutor.name].append(subject.subcode)
-
-    REPEATS = []
-    maxclasssize = 20
-    minclasssize = 1
-    TIMES = []
-    DAYS = []
-    timeslots = Timeslot.query.filter_by(year = get_current_year(), studyperiod = get_current_studyperiod(), timetable = get_current_timetable()).all()
-    for timeslot in timeslots:
-        TIMES.append(timeslot.day + " " + timeslot.time)
-        DAYS.append(timeslot.day)
-    DAYS = list(set(DAYS))
-
-
-
-
-
-
-
-def runtimetable(STUDENTS,SUBJECTS,TIMES,DAYS,TEACHERS,SUBJECTMAPPING, REPEATS,TEACHERMAPPING,TUTORAVAILABILITY,maxclasssize,minclasssize,nrooms):
+def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms):
+    print("Running solver")
     model = LpProblem('Timetabling', LpMinimize)
     #Create Variables
     print("Creating Variables")
@@ -1354,12 +1346,12 @@ def runtimetable(STUDENTS,SUBJECTS,TIMES,DAYS,TEACHERS,SUBJECTMAPPING, REPEATS,T
     #Count the days that a teacher is rostered on. Make it bigger than a small number times the sum
     #for that particular day.
     for m in TEACHERS:
-        for d in range(len(DAYS)):
-
-            model += daysforteachers[(m,d)] >= 0.1*lpSum(subject_vars[(j,k,m)] for j in SUBJECTS for k in DAYS[d])
-            model += daysforteachers[(m,d)] <=  lpSum(subject_vars[(j, k, m)] for j in SUBJECTS for k in DAYS[d])
+        for d in range(len(day)):
+            model += daysforteachers[(m, d)] >= 0.1 * lpSum(
+                subject_vars[(j, k, m)] for j in SUBJECTS for k in DAYS[day[d]])
+            model += daysforteachers[(m, d)] <= lpSum(subject_vars[(j, k, m)] for j in SUBJECTS for k in DAYS[day[d]])
     for m in TEACHERS:
-        model += daysforteacherssum[(m)] == lpSum(daysforteachers[(m,d)] for d in range(len(DAYS)))
+        model += daysforteacherssum[(m)] == lpSum(daysforteachers[(m, d)] for d in range(len(day)))
 
     print("Constraining tutor availability")
     #This bit of code puts in the constraints for the tutor availability.
@@ -1377,7 +1369,7 @@ def runtimetable(STUDENTS,SUBJECTS,TIMES,DAYS,TEACHERS,SUBJECTMAPPING, REPEATS,T
     print("Constraining student subjects")
     for i in STUDENTS:
         for j in SUBJECTS:
-              if j in SUBJECTMAPPING[i]:
+            if i in SUBJECTMAPPING[j]:
                 model += lpSum(assign_vars[(i,j,k,m)] for k in TIMES for m in TEACHERS) == 1
               else:
                 model += lpSum(assign_vars[(i,j,k,m)] for k in TIMES for m in TEACHERS) == 0
@@ -1427,7 +1419,7 @@ def runtimetable(STUDENTS,SUBJECTS,TIMES,DAYS,TEACHERS,SUBJECTMAPPING, REPEATS,T
 
     #This minimizes the number of 9:30 classes.
     for i in TIMES:
-        if i.find('9:30') != -1:
+        if i.find('21:30') != -1:
             model += num930classes[(i)] == lpSum(subject_vars[(j,i,m)] for j in SUBJECTS for m in TEACHERS)
 
         else:
@@ -1444,19 +1436,92 @@ def runtimetable(STUDENTS,SUBJECTS,TIMES,DAYS,TEACHERS,SUBJECTMAPPING, REPEATS,T
 
     #Solving the model
     model += (100*lpSum(studentsum[(i)] for i in STUDENTS) + lpSum(num930classes[(i)] for i in TIMES) + 500*lpSum(daysforteacherssum[(m)] for m in TEACHERS))
+    print("Solving Model")
     model.solve()
+    print("Complete")
+    for j in SUBJECTS:
+        subject = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                          subcode=j).first()
+        for k in TIMES:
+            timesplit = k.split(' ')
+            timeslot = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                                timetable=get_current_timetable(), day=timesplit[0],
+                                                time=timesplit[1]).first()
+            for m in TEACHERS:
+                tutor = Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                              name=m).first()
+                if subject_vars[(j, k, m)].varValue == 1:
 
-    for i in STUDENTS:
-        for j in SUBJECTS:
-            for k in TIMES:
-                for m in TEACHERS:
-                    if assign_vars[(i,j,k,m)].varValue == 1:
-                        print((i,j,k,m))
-    print(model.objective.value())
+                    timetabledclass = TimetabledClass(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                                      subjectid=subject.id, timetable=get_current_timetable(),
+                                                      time=timeslot.id, tutor=tutor.id)
+                    db.session.add(timetabledclass)
+                    db.session.commit()
+                    print(timetabledclass.subject.subname)
+                    for i in STUDENTS:
+
+                        if assign_vars[(i, j, k, m)].varValue == 1:
+                            student = Student.query.filter_by(year=get_current_year(),
+                                                              studyperiod=get_current_studyperiod(), name=i).first()
+                            timetabledclass.students.append(student)
+                            db.session.commit()
+
+    return model.objective.value()
 
 
+def preparetimetable():
+    print("Preparing Timetable")
+    SUBJECTS = []
+    SUBJECTMAPPING = {}
+    STUDENTS = []
+    REPEATS = {}
+    TEACHERS = []
+    TUTORAVAILABILITY = {}
+    TEACHERMAPPING = {}
+    allsubjects = Subject.query.filter(Subject.year == get_current_year(),
+                                       Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
+    alltutors = []
+    for subject in allsubjects:
+        SUBJECTMAPPING[subject.subcode] = []
+        REPEATS[subject.subcode] = subject.repeats
+        SUBJECTS.append(subject.subcode)
+        TEACHERS.append(subject.tutor.name)
+        if subject.tutor not in alltutors:
+            alltutors.append(subject.tutor)
+        for student in subject.students:
+            STUDENTS.append(student.name)
+            SUBJECTMAPPING[subject.subcode].append(student.name)
+    STUDENTS = list(set(STUDENTS))
+    TEACHERS = list(set(TEACHERS))
+    for tutor in alltutors:
+        TUTORAVAILABILITY[tutor.name] = []
+        TEACHERMAPPING[tutor.name] = []
+        for timeslot in tutor.availabletimes:
+            TUTORAVAILABILITY[tutor.name].append(timeslot.day + " " + timeslot.time)
+        for subject in tutor.subjects:
+            TEACHERMAPPING[tutor.name].append(subject.subcode)
+    print(TEACHERS)
 
-
+    maxclasssize = 400
+    minclasssize = 1
+    nrooms = 12
+    TIMES = []
+    day = []
+    timeslots = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                         timetable=get_current_timetable()).all()
+    for timeslot in timeslots:
+        TIMES.append(timeslot.day + " " + timeslot.time)
+        day.append(timeslot.day)
+    day = list(set(day))
+    DAYS = {}
+    for d in day:
+        DAYS[d] = []
+    for timeslot in timeslots:
+        DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
+    print("Everything ready")
+    print(runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                       TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms))
+    return render_template("viewtimetable.html")
 
 
 

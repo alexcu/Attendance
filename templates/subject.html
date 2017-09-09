@@ -10,11 +10,22 @@
                 <td>Subject Code</td>
                 <td>Subject Name</td>
                 <td>Study Period</td>
+                <td>Repeats</td>
                 </thead>
                 <tr>
                     <td>{{ rows["subcode"] }}</td>
                     <td>{{ rows["subname"] }}</td>
                     <td> {{ rows["studyperiod"] }}</td>
+                    <td><select id="repeats" onchange="changedvalue()">
+                        {% for i in range(1,5) %}
+                            {% if i == rows["repeats"] %}
+                                <option selected>{{ i }}</option>
+                            {% else %}
+                                <option>{{ i }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select></td>
+
                 </tr>
             </table>
             <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
@@ -243,7 +254,24 @@
             }
 
         }
+        function changedvalue() {
+            var x = document.getElementById("repeats");
+            var y = x.options[x.selectedIndex].text;
+            $.ajax({
+                url: "/updatesubjectrepeats",
+                data: {subject: {{ rows.id }}, repeats: y},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
 
+                }
+                ,
+                error: function () {
+
+                }
+            });
+
+        }
 
     </script>
 
