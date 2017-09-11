@@ -9,7 +9,10 @@ from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
 from pulp import *
 from sqlalchemy.orm import joinedload
+from concurrent.futures import ThreadPoolExecutor
 
+# DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
+executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 
 # WINDOWS
@@ -1535,8 +1538,8 @@ def preparetimetable():
     for timeslot in timeslots:
         DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
     print("Everything ready")
-    print(runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                       TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms))
+    executor.submit(runtimetable,STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                       TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
     return render_template("viewtimetable.html")
 
 
