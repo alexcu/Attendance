@@ -18,9 +18,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database48.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database50.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -107,7 +107,7 @@ subtutmap = db.Table('subtutmap',
 
 stuattendance = db.Table('stuattendance',
                          db.Column('id', db.Integer, primary_key=True),
-                         db.Column('class_id', db.Integer, db.ForeignKey('classes.id')),
+                         db.Column('class_id', db.Integer, db.ForeignKey('tutorials.id')),
                          db.Column('student_id', db.Integer, db.ForeignKey('students.id'))
                          )
 
@@ -136,7 +136,7 @@ class Subject(db.Model):
     subname = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
-    classes = db.relationship("Class", backref=db.backref('subject'), single_parent=True, cascade='all,delete-orphan')
+    classes = db.relationship("Tutorial", backref=db.backref('subject'), single_parent=True, cascade='all,delete-orphan')
     repeats = db.Column(db.Integer,default = 1)
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True, cascade = 'all,delete-orphan')
     def __init__(self, subcode, subname, year, studyperiod,repeats = 1):
@@ -193,8 +193,8 @@ class Tutor(db.Model):
                                backref=db.backref('tutor', uselist=False,lazy='joined'))
     availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap,
                                      backref=db.backref('availabiletutors'))
-    timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('teacher'))
-    classes = db.relationship("Class", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
+    timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('tutor'))
+    classes = db.relationship("Tutorial", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
     def __init__(self, name, year, studyperiod):
         self.name = name
         self.year = year
@@ -216,15 +216,15 @@ class TimetabledClass(db.Model):
     subject = db.relationship("Subject")
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
-    tutor = db.Column(db.Integer, db.ForeignKey('tutors.id'))
+    tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
 
-    def __init__(self, studyperiod, year, subjectid, timetable, time, tutor):
+    def __init__(self, studyperiod, year, subjectid, timetable, time, tutorid):
         self.studyperiod = studyperiod
         self.year = year
         self.subjectid = subjectid
         self.timetable = timetable
         self.time = time
-        self.tutor = tutor
+        self.tutorid = tutorid
 
 
 class Timeslot(db.Model):
@@ -246,20 +246,20 @@ class Timeslot(db.Model):
         self.time = time
 
 
-class Class(db.Model):
-    __tablename__ = 'classes'
+class Tutorial(db.Model):
+    __tablename__ = 'tutorials'
     id = db.Column(db.Integer, primary_key=True)
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-    classtime = db.Column(db.DateTime, nullable=False)
+    week = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     attendees = db.relationship("Student", secondary=stuattendance)
 
-    def __init__(self, subjectid, tutorid, classtime, year, studyperiod):
+    def __init__(self, subjectid, tutorid, week, year, studyperiod):
         self.subjectid = subjectid
         self.tutorid = tutorid
-        self.classtime = classtime
+        self.week = week
         self.year = year
         self.studyperiod = studyperiod
 
@@ -406,7 +406,7 @@ def view_timeslots():
 
 @app.route('/removeclass?classid=<classid>')
 def remove_class(classid):
-    specificclass = Class.query.get(classid)
+    specificclass = Tutorial.query.get(classid)
     sub = Subject.query.get(specificclass.subjectid)
     db.session.delete(specificclass)
     db.session.commit()
@@ -473,7 +473,7 @@ def update_student_scheduled_class_ajax():
 def update_student_class_attendance_ajax():
     classid = int(request.form['classid'])
     studentid = int(request.form['studentid'])
-    tutorial = Class.query.get(classid)
+    tutorial = Tutorial.query.get(classid)
     student = Student.query.get(studentid)
     if student not in tutorial.attendees:
         tutorial.attendees.append(student)
@@ -515,10 +515,10 @@ def add_timetabledclass_to_subject(subcode):
     timetable = get_current_timetable()
     if TimetabledClass.query.filter_by(studyperiod=get_current_studyperiod(), year=get_current_year(),
                                        subjectid=subject.id, timetable=timetable, time=timeslot.id,
-                                       tutor=subject.tutor.id).first() is None:
+                                       tutorid=subject.tutor.id).first() is None:
         timetabledclass = TimetabledClass(studyperiod=get_current_studyperiod(), year=get_current_year(),
                                           subjectid=subject.id, timetable=timetable, time=timeslot.id,
-                                          tutor=subject.tutor.id)
+                                          tutorid=subject.tutor.id)
         db.session.add(timetabledclass)
         db.session.commit()
         timetabledclass.students = subject.students
@@ -660,24 +660,22 @@ def viewsubjects_ajax():
 @app.route('/updateclasstimeajax', methods=['POST'])
 def update_class_time_ajax():
     classid = int(request.form['classid'])
-    classtime = request.form['datetime']
-    tutorial = Class.query.get(classid)
-    tutorial.classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M:%S')
+    week = int(request.form['week'])
+    tutorial = Tutorial.query.get(classid)
+    tutorial.week = week
     db.session.commit()
-    print(tutorial.classtime)
+    print(tutorial.week)
     return json.dumps("Done")
 
 
 @app.route('/createnewclassajax', methods=['POST'])
 def create_new_class_ajax():
     subjectid = int(request.form['subjectid'])
-    print(subjectid)
     subject = Subject.query.get(subjectid)
-    tutorial = Class(year=get_current_year(), studyperiod=get_current_studyperiod(), subjectid=subjectid,
-                     classtime=datetime.now(), tutorid=subject.tutor.id)
+    tutorial = Tutorial(year=get_current_year(), studyperiod=get_current_studyperiod(), subjectid=subjectid,
+                     week = 3, tutorid=subject.tutor.id)
     db.session.add(tutorial)
     db.session.commit()
-    print(json.dumps(tutorial.id))
     return json.dumps(tutorial.id)
 
 @app.route('/viewcurrentmappedsubjectsajax')
@@ -713,46 +711,59 @@ def vieweligiblesubjects_ajax():
     data = json.dumps(data3)
     return '{ "data" : ' + data + '}'
 
+@app.route('/getrollmarkingajax')
+def get_roll_marking_ajax():
+    weeks = get_min_max_week()
+    minweek = weeks[0]
+    maxweek = weeks[1]
+    alltutorials = Subject.query.filter(Subject.year == get_current_year(), Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
+    data = {}
+    for i in range(minweek, maxweek+1):
+        week = i
+        tutorials = Tutorial.query.filter(Tutorial.year == get_current_year(), Tutorial.studyperiod == get_current_studyperiod(),Tutorial.week == week).all()
+        key = "Week " + str(week)
+        data[key] = {}
+        if len(tutorials) == 0:
+            data[key]['Roll Marking'] =0
+        else:
+            data[key]['Roll Marking'] = 100*round(len(tutorials)/len(alltutorials),2)
+    return json.dumps(data)
+
+
+
+def get_min_max_week():
+    classes = get_classes()
+    minweek = 13
+    maxweek = 0
+    for tutorial in classes:
+        if tutorial.week < minweek:
+            minweek = tutorial.week
+        elif tutorial.week > maxweek:
+            maxweek = tutorial.week
+    return [minweek, maxweek]
+
+
 
 @app.route('/getattendanceajax')
 def get_attendance_ajax():
-    classes = get_classes()
-    mindate = ""
-    maxdate = ""
-    for tutorial in classes:
-        if mindate == "":
-            mindate = tutorial.classtime
-            maxdate = tutorial.classtime
-        elif tutorial.classtime < mindate:
-            mindate = tutorial.classtime
-        elif tutorial.classtime > maxdate:
-            maxdate = tutorial.classtime
-    diff = maxdate - mindate
-    diff = int(ceil((diff.days) / 7)) + 1
+    weeks = get_min_max_week()
+    minweek = weeks[0]
+    maxweek = weeks[1]
     data = {}
-    for i in range(diff):
-        date1 = mindate + timedelta(days=7 * i)
-        date2 = mindate + timedelta(days=7 * (i + 1))
-        tutorials = Class.query.filter(Class.classtime.between(date1, date2)).all()
-        key = "Week " + str(i + 1)
+    for i in range(minweek, maxweek+1):
+        week = i
+        tutorials = Tutorial.query.filter(Tutorial.year == get_current_year(), Tutorial.studyperiod == get_current_studyperiod(),Tutorial.week==week).all()
+        key = "Week " + str(week)
         numstudents = 0
         numattended = 0
         for tutorial in tutorials:
             numstudents += len(tutorial.subject.students)
             numattended += len(tutorial.attendees)
         data[key] = {}
-
-        data[key]['numstudents'] = numstudents
-        data[key]['numattended'] = numattended
         if numstudents > 0:
-            data[key]['percentage'] = numattended / numstudents
+            data[key]['Attendance Rate'] = 100*round(numattended / numstudents,2)
         else:
-            data[key]['percentage'] = 0
-        print(len(tutorials))
-
-    data['mindate'] = str(mindate.strftime("%d-%m-%YT%H:%M:%S"))
-    data['maxdate'] = str(maxdate.strftime("%d-%m-%YT%H:%M:%S"))
-    data['diff'] = diff
+            data[key]['Attendance Rate'] = 0
 
     return json.dumps(data)
 
@@ -975,7 +986,7 @@ def update_student_attendance(subcode):
                 v = v.split('/')
                 classid = int(v[0])
                 studentid = int(v[1])
-                specificclass = Class.query.get(classid)
+                specificclass = Tutorial.query.get(classid)
                 specificclass.attendees.append(Student.query.get(studentid))
             else:
                 k = k.split('/')
@@ -990,7 +1001,7 @@ def update_student_attendance(subcode):
         classtime = dates[key] + times[key]
         classtime = classtime[0] + "T" + classtime[1]
         classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M')
-        specificclass = Class.query.get(key)
+        specificclass = Tutorial.query.get(key)
         specificclass.classtime = classtime
         db.session.commit()
     return view_subject_template(subcode)
@@ -1007,7 +1018,7 @@ def get_student(studentcode):
 
 
 def get_classes():
-    return Class.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    return Tutorial.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
 
 def get_subjects():
     return Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
@@ -1060,9 +1071,9 @@ def view_subject_template(subcode, msg=""):
 
 def get_classes_for_subject(subcode):
     sub = get_subject(subcode)
-    results = Class.query.filter_by(subjectid=sub.id, year=get_current_year(),
+    results = Tutorial.query.filter_by(subjectid=sub.id, year=get_current_year(),
                                     studyperiod=get_current_studyperiod()).all()
-    return sorted(results, key=attrgetter('classtime'))
+    return sorted(results, key=attrgetter('week'))
 
 
 def get_timetabled_classes(subcode):
@@ -1219,7 +1230,7 @@ def populate_timetabledata(filename):
         if TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=timeslot.id, subjectid=subject.id,
                                            timetable=timetable.id).first() is None:
             timetabledclass = TimetabledClass(studyperiod=studyperiod, year=year, subjectid=subject.id,
-                                              timetable=timetable.id, time=timeslot.id, tutor=tutor.id)
+                                              timetable=timetable.id, time=timeslot.id, tutorid=tutor.id)
             db.session.add(timetabledclass)
             db.session.commit()
         timetabledclass = TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=timeslot.id,
@@ -1335,7 +1346,7 @@ def upload(file):
 
 
 def get_attendees(classid):
-    classdata = Class.query.filter_by(id=classid).first()
+    classdata = Tutorial.query.filter_by(id=classid).first()
     rows = classdata.attendees
     returns = []
     for row in rows:
@@ -1345,16 +1356,15 @@ def get_attendees(classid):
 
 
 def get_class(classid):
-    return Class.query.filter_by(id=classid).first()
+    return Tutorial.query.filter_by(id=classid).first()
 
 
-def add_class_to_db(classtime, subcode, attendees):
+def add_class_to_db(week, subcode, attendees):
     tutor = get_subject_and_tutor(subcode)
     subject = get_subject(subcode)
-    classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M:%S')
-    if Class.query.filter_by(classtime=classtime, subjectid=subject.id, year=get_current_year(),
+    if Tutorial.query.filter_by(week = week, subjectid=subject.id, year=get_current_year(),
                              studyperiod=get_current_studyperiod(), tutorid=tutor.id).first() == None:
-        specificclass = Class(classtime=classtime, subjectid=subject.id, year=get_current_year(),
+        specificclass = Tutorial(week = week, subjectid=subject.id, year=get_current_year(),
                               studyperiod=get_current_studyperiod(), tutorid=tutor.id)
         db.session.add(specificclass)
         db.session.commit()
@@ -1376,7 +1386,7 @@ def add_students_to_class(specificclass, attendees):
 
 def get_attendees_for_subject(subcode):
     subject = get_subject(subcode)
-    classes = Class.query.filter_by(subjectid=subject.id).all()
+    classes = Tutorial.query.filter_by(subjectid=subject.id).all()
     data = {}
     for row in classes:
         data[row.id] = row.attendees
@@ -1543,7 +1553,7 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
 
                     timetabledclass = TimetabledClass(year=get_current_year(), studyperiod=get_current_studyperiod(),
                                                       subjectid=subject.id, timetable=get_current_timetable(),
-                                                      time=timeslot.id, tutor=tutor.id)
+                                                      time=timeslot.id, tutorid=tutor.id)
                     db.session.add(timetabledclass)
                     db.session.commit()
 

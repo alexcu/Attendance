@@ -4,26 +4,18 @@
     <main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
         <section class="row text-center placeholders">
             <div class="col-6 col-sm-3 placeholder">
-                <canvas id="PercentageSubjectsMapped" width="400" height="400"></canvas>
+                <canvas id="PercentageSubjectsMapped" width="400" height="800"></canvas>
                 <h4>Mapped Subjects</h4>
                 <div class="text-muted"></div>
             </div>
-            <div class="col-6 col-sm-3 placeholder">
-                <img src="data:image/gif;base64,R0lGODlhAQABAIABAADcgwAAACwAAAAAAQABAAACAkQBADs=" width="200"
-                     height="200" class="img-fluid rounded-circle" alt="Generic placeholder thumbnail">
-                <h4>Label</h4>
-                <span class="text-muted">Something else</span>
+            <div class="col-6 col-sm-6 placeholder">
+                <canvas id="Attendance" width="800" height="800"></canvas>
+                <h4>Student Attendance (%)</h4>
+                <span class="text-muted"></span>
             </div>
             <div class="col-6 col-sm-3 placeholder">
-                <img src="data:image/gif;base64,R0lGODlhAQABAIABAAJ12AAAACwAAAAAAQABAAACAkQBADs=" width="200"
-                     height="200" class="img-fluid rounded-circle" alt="Generic placeholder thumbnail">
-                <h4>Label</h4>
-                <span class="text-muted">Something else</span>
-            </div>
-            <div class="col-6 col-sm-3 placeholder">
-                <img src="data:image/gif;base64,R0lGODlhAQABAIABAADcgwAAACwAAAAAAQABAAACAkQBADs=" width="200"
-                     height="200" class="img-fluid rounded-circle" alt="Generic placeholder thumbnail">
-                <h4>Label</h4>
+                <canvas id="tutorrollmarking" width="800" height="800"></canvas>
+                <h4>Tutor Roll Marking (%)</h4>
                 <span class="text-muted">Something else</span>
             </div>
         </section>
@@ -33,8 +25,14 @@
     <script>
         var labels = [];
         var data2 = [];
+        var dataline = [];
+        var labelsline = [];
+        var dataroll = [];
+        var labelsroll = [];
         var ctx = document.getElementById("PercentageSubjectsMapped");
-        function getChartData() {
+        var ctx2 = document.getElementById("Attendance");
+        var ctx3 = document.getElementById("tutorrollmarking");
+        function getPieChartData() {
             $.ajax({
                 type: 'GET',
                 url: '/numbereligiblesubjectsmappedajax',
@@ -49,6 +47,37 @@
             });
         }
 
+         function getAttendanceChartData() {
+            $.ajax({
+                type: 'GET',
+                url: '/getattendanceajax',
+                dataType: 'json',
+                success: function (data) {
+                    for (var k =0; k < Object.keys(data).length;k++) {
+                        var key = "Week " + (k+1)
+                        labelsline.push(key);
+                        dataline.push(Math.round(data[key]['Attendance Rate']));
+                    };
+                    drawAttendanceChart();
+                }
+            });
+        }
+
+         function getRollMarkingData() {
+            $.ajax({
+                type: 'GET',
+                url: '/getrollmarkingajax',
+                dataType: 'json',
+                success: function (data) {
+                    for (var k =0; k < Object.keys(data).length;k++) {
+                        var key = "Week " + (k+1)
+                        labelsroll.push(key);
+                        dataroll.push(Math.round(data[key]['Attendance Rate']));
+                    };
+                    drawRollMarkingChart();
+                }
+            });
+        }
 
         function drawPieChart() {
             var myPieChart = new Chart(ctx, {
@@ -61,7 +90,32 @@
             })
         }
 
-        getChartData()
+
+        function drawAttendanceChart() {
+
+            var myAttendanceChart = new Chart(ctx2, {
+                type: 'line',
+                data: { datasets: [{data: dataline, label: "Attendance Rate", fill: false, backgroundColor:["#3e95cd"],  borderColor: ["#3e95cd"]}],
+                labels: labelsline},
+                options: {}
+            })
+        }
+
+        function drawRollMarkingChart() {
+
+            var myRollMarkingChart = new Chart(ctx3, {
+                type: 'line',
+                data: { datasets: [{data: dataroll, label: "Roll Marking (%)", fill: false, backgroundColor:["#3e95cd"],  borderColor: ["#3e95cd"]}],
+                labels: labelsroll},
+                options: {}
+            })
+        }
+
+
+
+        getPieChartData();
+    getAttendanceChartData();
+    getRollMarkingData();
 
     </script>
 {% endblock %}

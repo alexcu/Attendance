@@ -76,10 +76,7 @@
                 <td>Scheduled Class</td>
                 <td/>
                 {% for class in classes %}
-                    <td id="{{ class.id }}/date" class="classdate"><input type="datetime-local"
-                                                                          value="{{ class["classtime"].strftime('%Y-%m-%d')+"T"+class["classtime"].strftime('%H:%M:%S') }}"
-                                                                          id="classdatetime/{{ class.id }}"
-                                                                          onchange="changeClassTime({{ class.id }})"/>
+                    <td id="{{ class.id }}/date" class="week">Week <input type="number" value = "{{ class.week }}" id = "classweek/{{ class.id }}" style="width: 45px" onchange="changeClassTime({{ class.id }})"/>
                     </td>
                 {% endfor %}
                 </thead>
@@ -313,10 +310,10 @@
         }
 
         function changeClassTime(classid) {
-            var x = document.getElementById("classdatetime/" + classid);
+            var x = document.getElementById("classweek/" + classid);
             $.ajax({
                 url: "/updateclasstimeajax",
-                data: {classid: classid, datetime: x.value},
+                data: {classid: classid, week: x.value},
                 type: "POST",
                 dataType: "json",
                 success: function (data) {
@@ -341,13 +338,8 @@
                         var trow = tbl.rows[i];
                         if (i == 0) {
                             var y = document.createElement('td');
-                            var z = document.createElement('input');
-                            z.setAttribute('value',)
-                            z.setAttribute('type', 'datetime-local');
-                            z.setAttribute('id', "classdatetime/" + data);
-                            z.setAttribute('onchange', "changeClassTime(" + data + ")");
+                            y.innerHTML = "Week:<input type='number' id='classweek/"+data+"' value='3' onchange ='changeClassTime("+data+")' style = 'width: 45px' />"
                             trow.appendChild(y);
-                            y.appendChild(z);
                         } else {
                             var studentid;
                             for (var j = 0; j < trow.cells.length; j++) {

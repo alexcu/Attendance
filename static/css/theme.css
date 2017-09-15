@@ -41,3 +41,7 @@ td.occupied {
     background-color: orangered;
     color: white;
 }
+
+input[type="number"]{
+    width: 120px;
+}
