@@ -1,5 +1,6 @@
 import json
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from operator import attrgetter
 
 import pandas
@@ -9,7 +10,6 @@ from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
 from pulp import *
 from sqlalchemy.orm import joinedload
-from concurrent.futures import ThreadPoolExecutor
 
 # DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
@@ -18,9 +18,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database43.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database48.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -136,7 +136,7 @@ class Subject(db.Model):
     subname = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
-    classes = db.relationship("Class")
+    classes = db.relationship("Class", backref=db.backref('subject'), single_parent=True, cascade='all,delete-orphan')
     repeats = db.Column(db.Integer,default = 1)
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True, cascade = 'all,delete-orphan')
     def __init__(self, subcode, subname, year, studyperiod,repeats = 1):
@@ -194,6 +194,7 @@ class Tutor(db.Model):
     availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap,
                                      backref=db.backref('availabiletutors'))
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('teacher'))
+    classes = db.relationship("Class", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
     def __init__(self, name, year, studyperiod):
         self.name = name
         self.year = year
@@ -253,43 +254,16 @@ class Class(db.Model):
     classtime = db.Column(db.DateTime, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
-    repeat = db.Column(db.Integer, default=1)
     attendees = db.relationship("Student", secondary=stuattendance)
 
-    def __init__(self, subjectid, tutorid, classtime, year, studyperiod, repeat):
+    def __init__(self, subjectid, tutorid, classtime, year, studyperiod):
         self.subjectid = subjectid
         self.tutorid = tutorid
         self.classtime = classtime
         self.year = year
         self.studyperiod = studyperiod
-        self.repeat = repeat
 
 
-# class TutorAvailability(db.Model):
-#    __tablename__ = 'tutoravailability'
-#    id = db.Column(db.Integer, primary_key=True)
-#    tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-#    time1 = db.Column(db.Integer, default=1)
-#    time2 = db.Column(db.Integer, default=1)
-#    time3 = db.Column(db.Integer, default=1)
-#    time4 = db.Column(db.Integer, default=1)
-#    time5 = db.Column(db.Integer, default=1)
-#    time6 = db.Column(db.Integer, default=1)
-#    time7 = db.Column(db.Integer, default=1)
-#    time8 = db.Column(db.Integer, default=1)
-#    time9 = db.Column(db.Integer, default=1)
-#
-#    def __init__(self, tutorid, time1, time2, time3, time4, time5, time6, time7, time8, time9):
-#        self.tutorid = tutorid
-#        self.time1 = time1
-#        self.time2 = time2
-#        self.time3 = time3
-#        self.time4 = time4
-#        self.time5 = time5
-#        self.time6 = time6
-#        self.time7 = time7
-#        self.time8 = time8
-#        self.time9 = time9
 
 
 # DATABASE METHODS
@@ -331,6 +305,29 @@ def uploadtimetableclasslists():
 @app.route('/viewclashreport')
 def viewclashreport():
     return render_template("viewclashreport.html")
+
+
+@app.route('/tutoravailability')
+def managetutoravailability():
+    return render_template("tutoravailability.html", timeslots=get_timeslots(), tutors=get_tutors())
+
+
+@app.route('/numbereligiblesubjectsmappedajax')
+def num_eligible_subjects_mapped():
+    subjects = Subject.query.filter(Subject.tutor != None, Subject.year == get_current_year(),
+                                    Subject.studyperiod == get_current_studyperiod()).all()
+    eligiblesubjects = []
+    allsubjects = Subject.query.filter(Subject.tutor == None, Subject.year == get_current_year(),
+                                       Subject.studyperiod == get_current_studyperiod()).all()
+    for subject in allsubjects:
+        if len(subject.students) >= 3:
+            eligiblesubjects.append(subject)
+
+    data = {}
+    data['Eligible Subjects'] = len(eligiblesubjects)
+    data['Mapped Subjects'] = len(subjects)
+    data = json.dumps(data)
+    return data
 
 
 @app.route('/viewclashesajax')
@@ -377,7 +374,6 @@ def updateadminsettings():
 
 @app.route('/uploadtutordata', methods=['POST'])
 def uploadtutordata():
-
     filename2 = upload(request.files['file'])
     print("Uploaded Successfully")
     populate_tutors(filename2)
@@ -473,6 +469,21 @@ def update_student_scheduled_class_ajax():
     return json.dumps("Done")
 
 
+@app.route('/updatestudentclassattendanceajax', methods=['POST'])
+def update_student_class_attendance_ajax():
+    classid = int(request.form['classid'])
+    studentid = int(request.form['studentid'])
+    tutorial = Class.query.get(classid)
+    student = Student.query.get(studentid)
+    if student not in tutorial.attendees:
+        tutorial.attendees.append(student)
+        db.session.commit()
+    else:
+        tutorial.attendees.remove(student)
+        db.session.commit()
+    return json.dumps("Done")
+
+
 @app.route('/addsubjecttotutor?tutorid=<tutorid>', methods=['GET', 'POST'])
 def add_subject_to_tutor(tutorid):
     if request.method == 'POST':
@@ -488,15 +499,12 @@ def add_class(subcode):
                                students=get_subject_and_students(subcode))
     elif request.method == 'POST':
         classtime = request.form["date"]
-        print(classtime)
-        repeat = request.form["repeat"]
         students = get_subject_and_students(subcode)
         attendees = []
         for student in students:
-            print(student.studentcode)
             if checkboxvalue(request.form.get(student.studentcode)) == 1:
                 attendees.append(student.studentcode)
-        add_class_to_db(classtime, subcode, attendees, repeat)
+        add_class_to_db(classtime, subcode, attendees)
         return view_subject_template(subcode)
 
 
@@ -615,14 +623,12 @@ def view_rolls():
 def delete_all_classes():
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
                                                         timetable=get_current_timetable()).all()
-    print(timetabledclasses)
     for timeclass in timetabledclasses:
         db.session.delete(timeclass)
         db.session.commit()
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(),
                                                         studyperiod=get_current_studyperiod(),
                                                         timetable=get_current_timetable()).all()
-    print(timetabledclasses)
     return "Done"
 
 @app.route('/subjects')
@@ -647,9 +653,32 @@ def viewsubjects_ajax():
         row['_sa_instance_state'] = ""
         row['students'] = []
         row['tutor'] = []
-    print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
+
+
+@app.route('/updateclasstimeajax', methods=['POST'])
+def update_class_time_ajax():
+    classid = int(request.form['classid'])
+    classtime = request.form['datetime']
+    tutorial = Class.query.get(classid)
+    tutorial.classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M:%S')
+    db.session.commit()
+    print(tutorial.classtime)
+    return json.dumps("Done")
+
+
+@app.route('/createnewclassajax', methods=['POST'])
+def create_new_class_ajax():
+    subjectid = int(request.form['subjectid'])
+    print(subjectid)
+    subject = Subject.query.get(subjectid)
+    tutorial = Class(year=get_current_year(), studyperiod=get_current_studyperiod(), subjectid=subjectid,
+                     classtime=datetime.now(), tutorid=subject.tutor.id)
+    db.session.add(tutorial)
+    db.session.commit()
+    print(json.dumps(tutorial.id))
+    return json.dumps(tutorial.id)
 
 @app.route('/viewcurrentmappedsubjectsajax')
 def viewcurrentmappedsubjects_ajax():
@@ -662,7 +691,6 @@ def viewcurrentmappedsubjects_ajax():
         row['students'] = []
         row['tutor'] = row['tutor'].__dict__
         row['tutor']['_sa_instance_state']=""
-    print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
@@ -682,10 +710,51 @@ def vieweligiblesubjects_ajax():
     for row in data3:
         row['_sa_instance_state'] = ""
         row['students'] = len(row['students'])
-    print(data3)
     data = json.dumps(data3)
     return '{ "data" : ' + data + '}'
 
+
+@app.route('/getattendanceajax')
+def get_attendance_ajax():
+    classes = get_classes()
+    mindate = ""
+    maxdate = ""
+    for tutorial in classes:
+        if mindate == "":
+            mindate = tutorial.classtime
+            maxdate = tutorial.classtime
+        elif tutorial.classtime < mindate:
+            mindate = tutorial.classtime
+        elif tutorial.classtime > maxdate:
+            maxdate = tutorial.classtime
+    diff = maxdate - mindate
+    diff = int(ceil((diff.days) / 7)) + 1
+    data = {}
+    for i in range(diff):
+        date1 = mindate + timedelta(days=7 * i)
+        date2 = mindate + timedelta(days=7 * (i + 1))
+        tutorials = Class.query.filter(Class.classtime.between(date1, date2)).all()
+        key = "Week " + str(i + 1)
+        numstudents = 0
+        numattended = 0
+        for tutorial in tutorials:
+            numstudents += len(tutorial.subject.students)
+            numattended += len(tutorial.attendees)
+        data[key] = {}
+
+        data[key]['numstudents'] = numstudents
+        data[key]['numattended'] = numattended
+        if numstudents > 0:
+            data[key]['percentage'] = numattended / numstudents
+        else:
+            data[key]['percentage'] = 0
+        print(len(tutorials))
+
+    data['mindate'] = str(mindate.strftime("%d-%m-%YT%H:%M:%S"))
+    data['maxdate'] = str(maxdate.strftime("%d-%m-%YT%H:%M:%S"))
+    data['diff'] = diff
+
+    return json.dumps(data)
 
 
 @app.route('/viewtimeslotsajax')
@@ -729,7 +798,6 @@ def viewtimetable_ajax():
         data2[i]['timeslot']['availabiletutors'] = []
         data2[i]['timeslot']['timetabledclasses'] = []
         data2[i]['timetabledclasses'] = []
-    print(data2)
     data = json.dumps(data2)
 
     return '{ "data" : ' + data + '}'
@@ -786,7 +854,6 @@ def add_timeslot():
     else:
         day = request.form['day']
         time = request.form['time']
-        print(time)
         if Timeslot.query.filter_by(year=get_current_year(), timetable=get_current_timetable(),
                                     studyperiod=get_current_studyperiod(), day=day, time=time).first() is None:
             timeslot = Timeslot(studyperiod=get_current_studyperiod(), year=get_current_year(),
@@ -832,7 +899,6 @@ def remove_tutor(tutorid):
 @app.route('/removetimeslot?timeslotid=<timeslotid>')
 def remove_timeslot(timeslotid):
     timeslot = Timeslot.query.get(timeslotid)
-    print(timeslot.day)
     db.session.delete(timeslot)
     db.session.commit()
     return render_template("viewtimeslots.html")
@@ -852,8 +918,10 @@ def view_student(studentcode):
     return view_student_template(studentcode)
 
 
-@app.route('/runtimetableprogram')
+@app.route('/runtimetableprogram', methods=['GET', 'POST'])
 def run_timetable_program():
+    # addnewtimetable = request.form['addtonewtimetable']
+    # print(addnewtimetable == "true")
     preparetimetable()
     return "Done"
 
@@ -937,6 +1005,9 @@ def get_student(studentcode):
     return Student.query.filter_by(studentcode=studentcode, year=get_current_year(),
                                    studyperiod=get_current_studyperiod()).first()
 
+
+def get_classes():
+    return Class.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
 
 def get_subjects():
     return Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
@@ -1137,15 +1208,14 @@ def populate_timetabledata(filename):
         day = time2[0]
         time2 = time2[1]
         time2 = check_time(time2)
-        print(day)
-        print(time2)
+
         if Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first() is None:
             timeslot = Timeslot(year = get_current_year(), studyperiod = get_current_studyperiod(),day = day,time = time2,timetable=get_current_timetable())
             db.session.add(timeslot)
             db.session.commit()
         timeslot = Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first()
         timetable = Timetable.query.get(get_current_timetable())
-        print(timeslot)
+
         if TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=timeslot.id, subjectid=subject.id,
                                            timetable=timetable.id).first() is None:
             timetabledclass = TimetabledClass(studyperiod=studyperiod, year=year, subjectid=subject.id,
@@ -1156,7 +1226,7 @@ def populate_timetabledata(filename):
                                                           subjectid=subject.id, timetable=timetable.id).first()
         for i in range(5, len(row)):
             if not pandas.isnull(row[i]):
-                print(row[i])
+
                 student = Student.query.filter_by(year=year, studyperiod=studyperiod, name=row[i]).first()
                 if db.session.query(stutimetable).filter(stutimetable.c.student_id == student.id,
                                                          stutimetable.c.timetabledclass_id == timetabledclass.id).first() is None:
@@ -1270,7 +1340,7 @@ def get_attendees(classid):
     returns = []
     for row in rows:
         returns.append(row.studentcode)
-    print(returns)
+
     return returns
 
 
@@ -1278,14 +1348,14 @@ def get_class(classid):
     return Class.query.filter_by(id=classid).first()
 
 
-def add_class_to_db(classtime, subcode, attendees, repeat=1):
+def add_class_to_db(classtime, subcode, attendees):
     tutor = get_subject_and_tutor(subcode)
     subject = get_subject(subcode)
-    classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M')
+    classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M:%S')
     if Class.query.filter_by(classtime=classtime, subjectid=subject.id, year=get_current_year(),
-                             studyperiod=get_current_studyperiod(), tutorid=tutor.id, repeat=repeat).first() == None:
+                             studyperiod=get_current_studyperiod(), tutorid=tutor.id).first() == None:
         specificclass = Class(classtime=classtime, subjectid=subject.id, year=get_current_year(),
-                              studyperiod=get_current_studyperiod(), tutorid=tutor.id, repeat=repeat)
+                              studyperiod=get_current_studyperiod(), tutorid=tutor.id)
         db.session.add(specificclass)
         db.session.commit()
         add_students_to_class(specificclass, attendees)
@@ -1476,7 +1546,7 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                                                       time=timeslot.id, tutor=tutor.id)
                     db.session.add(timetabledclass)
                     db.session.commit()
-                    print(timetabledclass.subject.subname)
+
                     for i in STUDENTS:
 
                         if assign_vars[(i, j, k, m)].varValue == 1:
@@ -1488,7 +1558,14 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
     return model.objective.value()
 
 
-def preparetimetable():
+def preparetimetable(addtonewtimetable):
+    # if addtonewtimetable == "true":
+    #    timetable = Timetable(get_current_year(),get_current_studyperiod())
+    #    db.session.add(timetable)
+    #    db.session.commit()
+    #    admin = Admin.query.filter_by(key="timetable").first()
+    #    admin.value = timetable.id
+    #    db.session.commit()
     print("Preparing Timetable")
     SUBJECTS = []
     SUBJECTMAPPING = {}
@@ -1519,7 +1596,6 @@ def preparetimetable():
             TUTORAVAILABILITY[tutor.name].append(timeslot.day + " " + timeslot.time)
         for subject in tutor.subjects:
             TEACHERMAPPING[tutor.name].append(subject.subcode)
-    print(TEACHERS)
 
     maxclasssize = 400
     minclasssize = 1

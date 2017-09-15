@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
+
     <h1>Subjects</h1>
     {{ msg }}
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <table class="table" , id="subjects">
                 <thead>
                 <td>Subject Code</td>
@@ -23,10 +24,12 @@
             </table>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-2"><a href="addsubject">
+            <button type="button" class="button">Add Subject</button>
+        </a></div>
+    </div>
 
-    <a href="addsubject">
-        <button type="button" class="btn btn-lg btn-default">Add Subject</button>
-    </a>
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
 

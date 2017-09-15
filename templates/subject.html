@@ -2,20 +2,22 @@
 {% block content2 %}
 
     <div class="row">
-        <div class="col-md-6">
-            <h1>Subject Information</h1>
+        <div class="col-md-12">
+            <h1>{{ rows.subname }}</h1>
             {{ msg }}
             <table class="table">
                 <thead>
                 <td>Subject Code</td>
                 <td>Subject Name</td>
                 <td>Study Period</td>
+                <td>Tutor</td>
                 <td>Repeats</td>
                 </thead>
                 <tr>
                     <td>{{ rows["subcode"] }}</td>
                     <td>{{ rows["subname"] }}</td>
                     <td> {{ rows["studyperiod"] }}</td>
+                    <td><a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["name"] }}</a></td>
                     <td><select id="repeats" onchange="changedvalue()">
                         {% for i in range(1,5) %}
                             {% if i == rows["repeats"] %}
@@ -29,26 +31,14 @@
                 </tr>
             </table>
             <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
-        </div>
-        <div class="col-md-6">
-            <h1>Tutor</h1>
-            <table class="table">
-                <thead>
-                <td>Tutor Name</td>
-
-                <td/>
-                </thead>
-                <tr>
-                    <td>
-                        <a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["name"] }}</a>
-                    </td>
-
-                    <td>{% if tutor != None %}
+            {% if tutor != None %}
                         <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
-                            <button type="button" class="btn btn-default">Remove</button>
-                        </a>{% endif %}</td>
-                </tr>
-            </table>
+                            <button type="button" class="button-delete">Remove Tutor From Subject</button>
+                        </a>{% endif %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
             {% if tutor == None %}
                 <h3>Add Tutor to Subject</h3>
                 <form action="{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method="POST">
@@ -76,28 +66,23 @@
 
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12" style="overflow: scroll">
             <h1>Students Enrolled in this subject</h1>
-            <form action="{{ url_for('update_student_attendance', subcode = rows["subcode"]) }}" method="post">
-            <table class="table">
+
+            <table class="table" id="rolltable">
                 <thead>
                 <td>Student Number</td>
                 <td>Name</td>
                 <td>Scheduled Class</td>
                 <td/>
                 {% for class in classes %}
-                    <td id="{{ class.id }}/date" class="classdate">{{ class["classtime"].strftime('%Y-%m-%d') }}</td>
+                    <td id="{{ class.id }}/date" class="classdate"><input type="datetime-local"
+                                                                          value="{{ class["classtime"].strftime('%Y-%m-%d')+"T"+class["classtime"].strftime('%H:%M:%S') }}"
+                                                                          id="classdatetime/{{ class.id }}"
+                                                                          onchange="changeClassTime({{ class.id }})"/>
+                    </td>
                 {% endfor %}
                 </thead>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    {% for class in classes %}
-                        <td id="{{ class.id }}/time" class="classtime">{{ class["classtime"].strftime('%H:%M') }}</td>
-                    {% endfor %}
-                </tr>
 
                 {% for student in students %}
                     <tr>
@@ -119,30 +104,28 @@
                         </td>
                         {% for class in classes %}
                             {% if student in attendees[class.id] %}
-                                <td class="attended" id="{{ class.id }}/{{ student.id }}"></td>
+                                <td class="attended" id="{{ class.id }}/{{ student.id }}"
+                                    onclick="updateStudentClassAttendance({{ class.id }},{{ student.id }},'{{ class.id }}/{{ student.id }}')"></td>
                             {% else %}
-                                <td class="notattended" id="{{ class.id }}/{{ student.id }}"></td>
+                                <td class="notattended" id="{{ class.id }}/{{ student.id }}"
+                                    onclick="updateStudentClassAttendance({{ class.id }},{{ student.id }},'{{ class.id }}/{{ student.id }}')"></td>
                             {% endif %}
                         {% endfor %}
                     </tr>
                 {% endfor %}
             </table>
-                <button type="button" onclick="makeEditable()" name="editbutton">Edit Attendance</button>
-                <button type="submit" name="submitbutton" hidden="true">Save Attendance</button>
-            </form>
+
         </div>
+        <button type="button" class="btn btn-lg btn-default" onclick="addNewClass()">Add a Class</button>
     </div>
 
 
     {% if tutor != None %}
 
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-12">
 
 
-                <a href="{{ url_for('add_class',subcode = rows["subcode"]) }}">
-                    <button type="button" class="btn btn-lg btn-default">Add a Class</button>
-                </a>
                 {% if subject.timetabledclasses == [] %}
                     <h1>Timetable Explorer</h1>
                     <h2>Student Availability</h2>
@@ -258,36 +241,7 @@
     {% endif %}
 
     <script>
-        function makeEditable() {
 
-            var z = document.getElementsByName("editbutton")
-            z[0].hidden = true
-            var z = document.getElementsByName("submitbutton")
-            z[0].hidden = false
-            var x = document.getElementsByClassName("attended")
-            var y = document.getElementsByClassName("notattended")
-            var q = document.getElementsByClassName("classdate")
-            var w = document.getElementsByClassName("classtime")
-            for (i = 0; i < y.length; i++) {
-                y[i].innerHTML = "<input type = 'checkbox' name = 'checkbox" + y[i].id + "' value = '" + y[i].id + "' />";
-                y[i].style.backgroundColor = "transparent";
-            }
-            for (i = 0; i < x.length; i++) {
-                x[i].innerHTML = "<input type = 'checkbox' name = 'checkbox" + x[i].id + "' value = '" + x[i].id + "' checked />";
-                x[i].style.backgroundColor = "transparent";
-            }
-
-            for (i = 0; i < q.length; i++) {
-                var date = q[i].innerHTML;
-                q[i].innerHTML = "<input type = 'date' name = 'classdate" + q[i].id + "' value = '" + date + "'>";
-            }
-
-            for (i = 0; i < w.length; i++) {
-                var time = w[i].innerHTML;
-                w[i].innerHTML = "<input type = 'time' name = 'classdate" + w[i].id + "' value = '" + time + "'>";
-            }
-
-        }
         function changedvalue() {
             var x = document.getElementById("repeats");
             var y = x.options[x.selectedIndex].text;
@@ -310,7 +264,7 @@
 
     function updateStudentScheduledClass(timeclassid, studentid, id) {
 
-$.ajax({
+        $.ajax({
                 url: "/updatestudentscheduledclassajax",
                 data: {timeclassid: timeclassid, studentid: studentid},
                 type: "POST",
@@ -332,6 +286,92 @@ $.ajax({
                 }
             });
 
+
+        }
+
+        function updateStudentClassAttendance(classid, studentid, id) {
+
+            $.ajax({
+                url: "/updatestudentclassattendanceajax",
+                data: {classid: classid, studentid: studentid},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+                    var x = document.getElementById(id);
+                    if (x.className == "attended") {
+                        x.className = "notattended";
+                    } else if (x.className == "notattended") {
+                        x.className = "attended";
+                    }
+
+                },
+                error: function () {
+
+                }
+            });
+
+        }
+
+        function changeClassTime(classid) {
+            var x = document.getElementById("classdatetime/" + classid);
+            $.ajax({
+                url: "/updateclasstimeajax",
+                data: {classid: classid, datetime: x.value},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+                },
+                error: function () {
+
+                }
+            });
+
+        }
+
+
+        function addNewClass() {
+            $.ajax({
+                url: "/createnewclassajax",
+                data: {subjectid: {{rows.id}}},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+                    var tbl = document.getElementById('rolltable'), i;
+                    for (i = 0; i < tbl.rows.length; i++) {
+                        var trow = tbl.rows[i];
+                        if (i == 0) {
+                            var y = document.createElement('td');
+                            var z = document.createElement('input');
+                            z.setAttribute('value',)
+                            z.setAttribute('type', 'datetime-local');
+                            z.setAttribute('id', "classdatetime/" + data);
+                            z.setAttribute('onchange', "changeClassTime(" + data + ")");
+                            trow.appendChild(y);
+                            y.appendChild(z);
+                        } else {
+                            var studentid;
+                            for (var j = 0; j < trow.cells.length; j++) {
+                                if (trow.cells[j].getAttribute('id')) {
+                                    studentid = trow.cells[j].getAttribute('id').split("/")[1];
+                                    break;
+                                }
+                            }
+                            ;
+                            var x = document.createElement('td')
+                            x.setAttribute('class', "notattended")
+                            x.setAttribute('id', data + '/' + studentid)
+                            x.setAttribute('onclick', "updateStudentClassAttendance(" + data + "," + studentid + ",'" + data + "/" + studentid + "')")
+                            console.log(x.getAttribute('onclick'))
+                            trow.appendChild(x)
+                        }
+
+
+                    }
+                },
+                error: function () {
+
+                }
+            });
 
         }
     </script>

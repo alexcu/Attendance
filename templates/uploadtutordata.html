@@ -1,18 +1,23 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Upload Excel Tutor File</h1>
-    {{ msg }}
-    <form action="uploadtutordata" method="post" enctype="multipart/form-data">
-        <input type="file" name="file"><br/><br/>
-        <input type="submit" value="Upload">
-    </form>
+    <div class="row">
+        <div class="col-md-6">
+            <h1>Upload Excel Tutor File</h1>
+            {{ msg }}
+            <form action="uploadtutordata" method="post" enctype="multipart/form-data">
+                <input type="file" name="file"><br/><br/>
+                <input type="submit" value="Upload">
+            </form>
+        </div>
 
-
+        <div class="col-md-6">
     <h1>Upload Availabilities</h1>
     {{ msg2 }}
     <form action="uploadtutoravailabilities" method="post" enctype="multipart/form-data">
         <input type="file" name="file"><br/><br/>
         <input type="submit" value="Upload">
     </form>
+        </div>
+    </div>
 
 {% endblock %}

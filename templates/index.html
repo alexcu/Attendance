@@ -1,12 +1,69 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h1 class="w3-text-teal">Welcome to IH Tutorial Management</h1>
-    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore
-        magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-        consequat. Lorem ipsum
-        dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    <main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
+        <section class="row text-center placeholders">
+            <div class="col-6 col-sm-3 placeholder">
+                <canvas id="PercentageSubjectsMapped" width="400" height="400"></canvas>
+                <h4>Mapped Subjects</h4>
+                <div class="text-muted"></div>
+            </div>
+            <div class="col-6 col-sm-3 placeholder">
+                <img src="data:image/gif;base64,R0lGODlhAQABAIABAADcgwAAACwAAAAAAQABAAACAkQBADs=" width="200"
+                     height="200" class="img-fluid rounded-circle" alt="Generic placeholder thumbnail">
+                <h4>Label</h4>
+                <span class="text-muted">Something else</span>
+            </div>
+            <div class="col-6 col-sm-3 placeholder">
+                <img src="data:image/gif;base64,R0lGODlhAQABAIABAAJ12AAAACwAAAAAAQABAAACAkQBADs=" width="200"
+                     height="200" class="img-fluid rounded-circle" alt="Generic placeholder thumbnail">
+                <h4>Label</h4>
+                <span class="text-muted">Something else</span>
+            </div>
+            <div class="col-6 col-sm-3 placeholder">
+                <img src="data:image/gif;base64,R0lGODlhAQABAIABAADcgwAAACwAAAAAAQABAAACAkQBADs=" width="200"
+                     height="200" class="img-fluid rounded-circle" alt="Generic placeholder thumbnail">
+                <h4>Label</h4>
+                <span class="text-muted">Something else</span>
+            </div>
+        </section>
+    </main>
+    <script src="../static/js/Chart.bundle.js"></script>
+
+    <script>
+        var labels = [];
+        var data2 = [];
+        var ctx = document.getElementById("PercentageSubjectsMapped");
+        function getChartData() {
+            $.ajax({
+                type: 'GET',
+                url: '/numbereligiblesubjectsmappedajax',
+                dataType: 'json',
+                success: function (data) {
+                    Object.keys(data).forEach(function (k) {
+                        labels.push(k);
+                        data2.push(data[k]);
+                    });
+                    drawPieChart();
+                }
+            });
+        }
+
+
+        function drawPieChart() {
+            var myPieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{backgroundColor: ["#3e95cd", "#fffb51"], data: data2}],
+                    labels: labels
+                },
+                options: {}
+            })
+        }
+
+        getChartData()
+
+    </script>
 {% endblock %}
 
 

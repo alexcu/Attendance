@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
 {% block content %}
 
-
+    <button onclick="runtimetable()">Run Timetable</button>
 <div class="row">
-        <div class="col-md-6">
+    <div class="col-md-12">
             <h1>Current Subject Mappings</h1>
             <table class="table" id="currentmappedsubjects">
                 <thead>
@@ -15,7 +15,9 @@
                 </thead>
             </table>
         </div>
-    <div class="col-md-6">
+</div>
+    <div class="row">
+        <div class="col-md-12">
         <h1>Eligible Subject Mappings</h1>
         <table class="table" id="eligiblesubjects">
             <thead>
@@ -57,7 +59,9 @@
             </table>
         </div>
     </div>
+
     <button onclick="runtimetable()">Run Timetable</button>
+    <input type="checkbox" id="addnewtimetable"> Add to new timetable
 <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 <script>
 
@@ -125,10 +129,11 @@
         }
 
         function runtimetable() {
+            var x = document.getElementById('addnewtimetable');
             $.ajax({
                 url: "/runtimetableprogram",
-                data: {},
-                type: "GET",
+                data: {addtonewtimetable: x.checked},
+                type: "POST",
                 dataType: "json",
                 success: function (data) {
 

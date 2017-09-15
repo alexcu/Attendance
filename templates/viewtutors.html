@@ -3,7 +3,7 @@
     <h1>Tutors</h1>
     {{ msg }}
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <table class="table" id="tutors">
                 <thead>
                 <td>Name</td>
@@ -12,10 +12,20 @@
         </div>
     </div>
 
-
+    <div class="row">
+        <div class="col-md-12">
     <a href="addtutor">
-        <button type="button" class="btn btn-lg btn-default">Add Tutor</button>
+        <button type="button" class="button">Add Tutor</button>
     </a>
+            <form action="{{ url_for('add_tutor') }}" method="POST">
+                <h3>Add New Tutor</h3>
+                Name<br>
+                <input type="text" name="name"/></br>
+                <input type="submit" value="submit"/><br>
+
+            </form>
+        </div>
+    </div>
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
     <script>
 
