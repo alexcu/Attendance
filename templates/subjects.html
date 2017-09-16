@@ -9,14 +9,14 @@
                 <thead>
                 <td>Subject Code</td>
                 <td>Subject Name</td>
-                <td>Study Period</td>
+                <td>Number of Students</td>
                 </thead>
 
                 <tfoot>
                 <tr>
                     <td>Subject Code</td>
                     <td>Subject Name</td>
-                    <td>Study Period</td>
+                    <td>Number of Students</td>
                 </tr>
 
 
@@ -42,6 +42,7 @@
                     "url": '/viewsubjectsajax',
                     "type": 'GET'
                 },
+                "pageLength": 100,
                 "columns": [{
                     "data": "subcode", "render": function (data, type, row, meta) {
                         return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + data + "</a>";
@@ -50,7 +51,7 @@
                     "data": "subname", "render": function (data, type, row, meta) {
                         return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + data + "</a>";
                     }
-                }, {"data": "studyperiod"}]
+                }, {"data": "students"}]
             });
         });
     </script>

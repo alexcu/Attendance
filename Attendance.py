@@ -1,11 +1,10 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
 from operator import attrgetter
 
 import pandas
 from flask import Flask
-from flask import render_template
+from flask import render_template, redirect, url_for
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import *
 from pulp import *
@@ -18,9 +17,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database50.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database50.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -330,6 +329,10 @@ def num_eligible_subjects_mapped():
     return data
 
 
+@app.route('/googlechartsindex')
+def google_charts_index():
+    return render_template("googlechartsindex.html")
+
 @app.route('/viewclashesajax')
 def viewclashreportajax():
     timeslots = get_timeslots()
@@ -404,40 +407,13 @@ def view_timeslots():
     return render_template('viewtimeslots.html')
 
 
-@app.route('/removeclass?classid=<classid>')
-def remove_class(classid):
-    specificclass = Tutorial.query.get(classid)
+@app.route('/deletetutorial?tutorialid=<tutorialid>')
+def delete_tutorial(tutorialid):
+    specificclass = Tutorial.query.get(tutorialid)
     sub = Subject.query.get(specificclass.subjectid)
     db.session.delete(specificclass)
     db.session.commit()
-    return view_subject_template(sub.subcode)
-
-
-@app.route('/updatetutoravailability?tutorid=<tutorid>', methods=['GET', 'POST'])
-def update_tutor_availability(tutorid):
-    tutor = Tutor.query.get(tutorid)
-    tutor.availabletimes = []
-    for (k, v) in request.form.items():
-
-        if k.find('time') != -1:
-            id = int(k.split('/')[1])
-            timeslot = Timeslot.query.get(id)
-            tutor.availabletimes.append(timeslot)
-    db.session.commit()
-    msg = ""
-    # time1 = checkboxvalue(request.form.get('time1'))
-    # time2 = checkboxvalue(request.form.get('time2'))
-    # time3 = checkboxvalue(request.form.get('time3'))
-    # time4 = checkboxvalue(request.form.get('time4'))
-    # time5 = checkboxvalue(request.form.get('time5'))
-    # time6 = checkboxvalue(request.form.get('time6'))
-    # time7 = checkboxvalue(request.form.get('time7'))
-    # time8 = checkboxvalue(request.form.get('time8'))
-    # time9 = checkboxvalue(request.form.get('time9'))
-    # availability = [time1, time2, time3, time4, time5, time6, time7, time8, time9]
-    #msg = set_tutor_availability(tutorid, availability)
-    return view_tutor_template(tutorid, msg3=msg)
-
+    return redirect(url_for('view_subject', subcode=sub.subcode))
 
 @app.route('/updatetutoravailabilityajax', methods=['POST'])
 def update_tutor_availability_ajax():
@@ -489,7 +465,7 @@ def add_subject_to_tutor(tutorid):
     if request.method == 'POST':
         subcode = request.form['subject']
         msg = linksubjecttutor(tutorid, subcode)
-        return view_tutor_template(tutorid, msg)
+        return redirect(url_for('view_tutor', tutorid=tutorid))
 
 
 @app.route('/addclass?subcode=<subcode>', methods=['GET', 'POST'])
@@ -505,7 +481,7 @@ def add_class(subcode):
             if checkboxvalue(request.form.get(student.studentcode)) == 1:
                 attendees.append(student.studentcode)
         add_class_to_db(classtime, subcode, attendees)
-        return view_subject_template(subcode)
+        return redirect(url_for('view_subject', subcode=subcode))
 
 
 @app.route('/addtimetabledclasstosubject?subcode=<subcode>', methods=['POST'])
@@ -523,7 +499,7 @@ def add_timetabledclass_to_subject(subcode):
         db.session.commit()
         timetabledclass.students = subject.students
         db.session.commit()
-    return view_subject_template(subcode)
+    return redirect(url_for('view_subject', subcode=subcode))
 
 
 @app.route('/viewclass?classid=<classid>')
@@ -545,7 +521,7 @@ def add_tutor_to_subject(subcode):
     if request.method == 'POST':
         tutorid = request.form['tutor']
         msg = linksubjecttutor(tutorid, subcode)
-        return view_subject_template(subcode, msg)
+        return redirect(url_for('view_subject', subcode=subcode))
 
 
 @app.route('/addtutortosubjecttimetabler?subcode=<subcode>', methods=['GET', 'POST'])
@@ -553,31 +529,31 @@ def add_tutor_to_subject_timetabler(subcode):
     if request.method == 'POST':
         tutorid = request.form['tutor']
         msg = linksubjecttutor(tutorid, subcode)
-    return render_template("runtimetabler.html", tutors=get_tutors(), timeslots=get_timeslots())
+    return redirect("/runtimetabler")
 
 
 @app.route('/removesubjectfromtutor?tutorid=<tutorid>&subcode=<subcode>')
 def remove_subject_from_tutor(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
-    return view_tutor_template(tutorid, msg2=msg)
+    return redirect(url_for('view_tutor', tutorid=tutorid))
 
 
 @app.route('/removesubjectfromtutortimetabler?tutorid=<tutorid>&subcode=<subcode>')
 def remove_subject_from_tutor_timetabler(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
-    return render_template("runtimetabler.html", timeslots=get_timeslots(), tutors=get_tutors())
+    return redirect("/runtimetabler")
 
 
 @app.route('/removetutorfromsubject?tutorid=<tutorid>&subcode=<subcode>')
 def remove_tutor_from_subject(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
-    return view_subject_template(subcode, msg)
+    return redirect(url_for('view_subject', subcode=subcode))
 
 
 @app.route('/removesubjectfromstudent?studentcode=<studentcode>&subcode=<subcode>')
 def remove_subject_from_student(studentcode, subcode):
     msg = unlinksubjectstudent(studentcode, subcode)
-    return view_student_template(studentcode, msg)
+    return redirect(url_for('view_student', studentcode=studentcode))
 
 
 @app.route('/removetimetabledclass?timetabledclassid=<timetabledclassid>')
@@ -585,7 +561,7 @@ def remove_timetabled_class(timetabledclassid):
     timetabledclass = TimetabledClass.query.get(timetabledclassid)
     db.session.delete(timetabledclass)
     db.session.commit()
-    return render_template("viewtimetable.html")
+    return redirect("/timetable")
 
 
 @app.route('/removetimetabledclasssubject?timetabledclassid=<timetabledclassid>')
@@ -594,19 +570,19 @@ def remove_timetabled_class_subject(timetabledclassid):
     subject = timetabledclass.subject
     db.session.delete(timetabledclass)
     db.session.commit()
-    return view_subject_template(subject.subcode)
+    return redirect(url_for('view_subject', subcode=subject.subcode))
 
 @app.route('/removestudentfromsubject?studentcode=<studentcode>&subcode=<subcode>')
 def remove_student_from_subject(studentcode, subcode):
     msg = unlinksubjectstudent(studentcode, subcode)
-    return view_subject_template(subcode, msg)
+    return redirect(url_for('view_subject', subcode=subcode))
 
 
 @app.route('/addsubjecttostudent?studentcode=<studentcode>', methods=['POST'])
 def add_subject_to_student(studentcode):
     subcode = request.form['subject']
     msg = linksubjectstudent(studentcode, subcode)
-    return view_student_template(studentcode, msg=msg)
+    return redirect(url_for('view_student', studentcode=studentcode))
 
 
 @app.route('/')
@@ -645,13 +621,14 @@ def update_subject_repeats():
 
 @app.route('/viewsubjectsajax')
 def viewsubjects_ajax():
-    data = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    data = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
+        joinedload('students')).all()
     data2 = []
     for row in data:
         data2.append(row.__dict__)
     for row in data2:
         row['_sa_instance_state'] = ""
-        row['students'] = []
+        row['students'] = len(row['students'])
         row['tutor'] = []
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
@@ -680,13 +657,14 @@ def create_new_class_ajax():
 
 @app.route('/viewcurrentmappedsubjectsajax')
 def viewcurrentmappedsubjects_ajax():
-    data = Subject.query.filter(Subject.year==get_current_year(), Subject.studyperiod==get_current_studyperiod(), Subject.tutor!= None).all()
+    data = Subject.query.filter(Subject.year == get_current_year(), Subject.studyperiod == get_current_studyperiod(),
+                                Subject.tutor != None).options(joinedload('students')).all()
     data2 = []
     for row in data:
         data2.append(row.__dict__)
     for row in data2:
         row['_sa_instance_state'] = ""
-        row['students'] = []
+        row['students'] = len(row['students'])
         row['tutor'] = row['tutor'].__dict__
         row['tutor']['_sa_instance_state']=""
     data = json.dumps(data2)
@@ -730,18 +708,39 @@ def get_roll_marking_ajax():
     return json.dumps(data)
 
 
-
-def get_min_max_week():
-    classes = get_classes()
-    minweek = 13
-    maxweek = 0
-    for tutorial in classes:
-        if tutorial.week < minweek:
-            minweek = tutorial.week
-        elif tutorial.week > maxweek:
-            maxweek = tutorial.week
-    return [minweek, maxweek]
-
+@app.route('/getstudentattendancerate?studentid=<studentid>')
+def get_student_attendance_rate_ajax(studentid):
+    student = Student.query.get(studentid)
+    subjects = [subject for subject in student.subjects if subject.tutor is not None]
+    weeks = get_min_max_week()
+    minweek = weeks[0]
+    maxweek = weeks[1]
+    data = {}
+    cumtotalclasses = 0
+    cumattendedclasses = 0
+    for i in range(minweek, maxweek + 1):
+        week = i
+        key = "Week " + str(week)
+        data[key] = {}
+        totalclasses = 0
+        attendedclasses = 0
+        for subject in subjects:
+            for tutorial in subject.classes:
+                if tutorial.week == i:
+                    totalclasses += 1
+                    cumtotalclasses += 1
+                    if student in tutorial.attendees:
+                        attendedclasses += 1
+                        cumattendedclasses += 1
+        if totalclasses == 0:
+            data[key]["Attendance Rate"] = 0
+        else:
+            data[key]["Attendance Rate"] = 100 * round(attendedclasses / totalclasses, 2)
+        if cumtotalclasses == 0:
+            data[key]["Cum. Attendance Rate"] = 0
+        else:
+            data[key]["Cum. Attendance Rate"] = 100 * round(cumattendedclasses / cumtotalclasses, 2)
+    return json.dumps(data)
 
 
 @app.route('/getattendanceajax')
@@ -786,14 +785,15 @@ def viewtimeslots_ajax():
 
 @app.route('/viewtimetableajax')
 def viewtimetable_ajax():
-    data = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    data = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
+        joinedload('tutor')).all()
     data2 = []
 
     for row3 in data:
         data2.append(row3.__dict__)
     for i in range(len(data2)):
         data2[i]['timeslot'] = Timeslot.query.get(data2[i]['time'])
-        data2[i]['tutor'] = Tutor.query.filter_by(id=data2[i]['tutor']).first()
+        data2[i]['tutor'] = Tutor.query.filter_by(id=data2[i]['tutorid']).first()
         data2[i]['subject'] = Subject.query.filter_by(id=data2[i]['subjectid']).first()
     for i in range(len(data2)):
         data2[i]['tutor'] = data2[i]['tutor'].__dict__
@@ -815,12 +815,25 @@ def viewtimetable_ajax():
 
 @app.route('/viewtutorsajax')
 def viewtutors_ajax():
-    data = Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).all()
+    data = Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
+        joinedload('subjects'), joinedload('availabletimes')).all()
     data2 = []
     for row in data:
         data2.append(row.__dict__)
     for row in data2:
+        data3 = []
+        data4 = []
         row['_sa_instance_state'] = ""
+        for sub in row['subjects']:
+            q = sub.__dict__
+            q['_sa_instance_state'] = ""
+            data3.append(q)
+        for time in row['availabletimes']:
+            q = time.__dict__
+            q['_sa_instance_state'] = ""
+            data4.append(q)
+        row['subjects'] = data3
+        row['availabletimes'] = data4
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
@@ -842,20 +855,16 @@ def add_subject():
     if request.method == 'GET':
         return render_template('addsubject.html')
     elif request.method == 'POST':
-        try:
-            subcode = request.form['subcode']
-            subname = request.form['subname']
-            if Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                       studyperiod=get_current_studyperiod()).first() == None:
-                sub = Subject(subcode=subcode, subname=subname, studyperiod=get_current_studyperiod(),
-                              year=get_current_studyperiod())
-                db.session.add(sub)
-                db.session.commit()
-            msg = "Record successfully added"
-        except:
-            msg = "Error"
-        finally:
-            return render_template("subjects.html", msg=msg, rows=get_subjects())
+        subname = request.form['subname']
+        subcode = request.form['subcode']
+        if Subject.query.filter_by(subcode=subcode, year=get_current_year(),
+                                   studyperiod=get_current_studyperiod()).first() is None:
+            sub = Subject(subcode=subcode, subname=subname, studyperiod=get_current_studyperiod(),
+                          year=get_current_year())
+            db.session.add(sub)
+            db.session.commit()
+        msg = "Record successfully added"
+        return redirect("/subjects")
 
 
 @app.route('/addtimeslot', methods=['GET', 'POST'])
@@ -872,7 +881,7 @@ def add_timeslot():
             db.session.add(timeslot)
             db.session.commit()
 
-        return render_template("viewtimeslots.html")
+        return redirect("/timeslots")
 
 
 @app.route('/subject?subcode=<subcode>')
@@ -882,29 +891,22 @@ def view_subject(subcode):
 
 @app.route('/removesubject?subcode=<subcode>')
 def remove_subject(subcode):
-    try:
-        sub = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                      studyperiod=get_current_studyperiod()).first()
-        db.session.delete(sub)
-        db.session.commit()
-        msg = "Completed Successfully"
-        return render_template("subjects.html", rows=get_subjects(), msg=msg)
-    except:
-        msg = "Error"
-        return render_template("subjects.html", rows=get_subjects(), msg=msg)
+    sub = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
+                                  studyperiod=get_current_studyperiod()).first()
+    db.session.delete(sub)
+    db.session.commit()
+    msg = "Completed Successfully"
+    return redirect("/subjects")
 
 
 @app.route('/removetutor?tutorid=<tutorid>')
 def remove_tutor(tutorid):
-    try:
-        tut = Tutor.query.get(tutorid)
-        db.session.delete(tut)
-        db.session.commit()
-        msg = "Completed Successfully"
-        return render_template("viewtutors.html", rows=get_tutors(), msg=msg)
-    except:
-        msg = "Error"
-        return render_template("viewtutors.html", rows=get_tutors(), msg=msg)
+    tut = Tutor.query.get(tutorid)
+    db.session.delete(tut)
+    db.session.commit()
+    msg = "Completed Successfully"
+    return redirect("/viewtutors")
+
 
 
 @app.route('/removetimeslot?timeslotid=<timeslotid>')
@@ -912,7 +914,7 @@ def remove_timeslot(timeslotid):
     timeslot = Timeslot.query.get(timeslotid)
     db.session.delete(timeslot)
     db.session.commit()
-    return render_template("viewtimeslots.html")
+    return redirect("/viewtimeslots")
 
 @app.route('/viewtutors')
 def view_tutors():
@@ -946,21 +948,18 @@ def add_tutor():
     if request.method == 'GET':
         return render_template('addtutor.html')
     elif request.method == 'POST':
-        try:
-            name = request.form['name'].strip()
-            year = get_current_year()
-            studyperiod = get_current_studyperiod()
-            if Tutor.query.filter_by(name=name, year=year,
-                                     studyperiod=studyperiod).first() is None:
-                tut = Tutor(name=name, year=year,
-                            studyperiod=studyperiod)
-                db.session.add(tut)
-                db.session.commit()
-            msg = "Record successfully added"
-        except:
-            msg = "error in insert operation"
-        finally:
-            return render_template("viewtutors.html", msg=msg, rows=get_tutors())
+
+        name = request.form['name'].strip()
+        year = get_current_year()
+        studyperiod = get_current_studyperiod()
+        if Tutor.query.filter_by(name=name, year=year,
+                                 studyperiod=studyperiod).first() is None:
+            tut = Tutor(name=name, year=year,
+                        studyperiod=studyperiod)
+            db.session.add(tut)
+            db.session.commit()
+        msg = "Record successfully added"
+        return redirect("/viewtutors")
 
 
 @app.route('/uploadstudentdata')
@@ -972,45 +971,9 @@ def upload_student_data():
 def upload_tutor_data():
     return render_template('uploadtutordata.html')
 
-
-@app.route('/updatestudentattendance?subcode=<subcode>', methods=['POST'])
-def update_student_attendance(subcode):
-    subject = get_subject(subcode)
-    for specificclass in subject.classes:
-        specificclass.attendees = []
-    dates = {}
-    times = {}
-    for (k, v) in request.form.items():
-        if v != '':
-            if "classdate" not in k:
-                v = v.split('/')
-                classid = int(v[0])
-                studentid = int(v[1])
-                specificclass = Tutorial.query.get(classid)
-                specificclass.attendees.append(Student.query.get(studentid))
-            else:
-                k = k.split('/')
-                v = v.split('/')
-                if (k[1] == 'date'):
-                    dates[int(k[0].split('classdate')[1])] = v
-                else:
-                    times[int(k[0].split('classdate')[1])] = v
-
-        db.session.commit()
-    for key, value in dates.items():
-        classtime = dates[key] + times[key]
-        classtime = classtime[0] + "T" + classtime[1]
-        classtime = datetime.strptime(classtime, '%Y-%m-%dT%H:%M')
-        specificclass = Tutorial.query.get(key)
-        specificclass.classtime = classtime
-        db.session.commit()
-    return view_subject_template(subcode)
-
-
 # HELPER METHODS
 def get_tutor(tutorid):
     return Tutor.query.get(tutorid)
-
 
 def get_student(studentcode):
     return Student.query.filter_by(studentcode=studentcode, year=get_current_year(),
@@ -1068,6 +1031,17 @@ def view_subject_template(subcode, msg=""):
                            timeslots=get_timeslots(),
                            timetabledclasses=get_timetabled_classes(subcode))
 
+
+def get_min_max_week():
+    classes = get_classes()
+    minweek = 13
+    maxweek = 0
+    for tutorial in classes:
+        if tutorial.week < minweek:
+            minweek = tutorial.week
+        elif tutorial.week > maxweek:
+            maxweek = tutorial.week
+    return [minweek, maxweek]
 
 def get_classes_for_subject(subcode):
     sub = get_subject(subcode)
@@ -1568,7 +1542,7 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
     return model.objective.value()
 
 
-def preparetimetable(addtonewtimetable):
+def preparetimetable(addtonewtimetable=False):
     # if addtonewtimetable == "true":
     #    timetable = Timetable(get_current_year(),get_current_studyperiod())
     #    db.session.add(timetable)

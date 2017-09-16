@@ -6,3 +6,4 @@ xlrd
 pulp
 flask_wtf
 wtforms
+gviz_api

@@ -30,7 +30,9 @@
 
                 </tr>
             </table>
-            <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">Delete Subject</a>
+            <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">
+                <button class="button-delete">Delete {{ rows["subname"] }}</button>
+            </a>
             {% if tutor != None %}
                         <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
                             <button type="button" class="button-delete">Remove Tutor From Subject</button>
@@ -51,7 +53,7 @@
 
                     </select>
 
-                    <input type="submit" value="Add Tutor to Subject"/>
+                    <input type="submit" class="button" value="Add Tutor to Subject"/>
                 </form>
                 {{ msg2 }}
             {% endif %}
@@ -66,7 +68,7 @@
 
 
     <div class="row">
-        <div class="col-md-12" style="overflow: scroll">
+        <div class="col-md-12">
             <h1>Students Enrolled in this subject</h1>
 
             <table class="table" id="rolltable">
@@ -76,7 +78,12 @@
                 <td>Scheduled Class</td>
                 <td/>
                 {% for class in classes %}
-                    <td id="{{ class.id }}/date" class="week">Week <input type="number" value = "{{ class.week }}" id = "classweek/{{ class.id }}" style="width: 45px" onchange="changeClassTime({{ class.id }})"/>
+                    <td id="{{ class.id }}/date" class="week">Week <input type="number" value="{{ class.week }}"
+                                                                          id="classweek/{{ class.id }}"
+                                                                          style="width: 35px"
+                                                                          onchange="changeClassTime({{ class.id }})"/><a
+                            href='{{ url_for('delete_tutorial',tutorialid=class.id) }}'><img
+                            src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
                     </td>
                 {% endfor %}
                 </thead>
@@ -84,10 +91,10 @@
                 {% for student in students %}
                     <tr>
 
-                        <td>
+                        <td id="studentid/{{ student.id }}">
                             <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["studentcode"] }}</a>
                         </td>
-                        <td>
+                        <td id="studentid/{{ student.id }}">
                             <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["firstname"] }} {{ student["lastname"] }}</a>
                         </td>
                         <td>{% for timeclass in rows.timetabledclasses %}
@@ -97,7 +104,8 @@
                             {% endfor %}
                             </td>
                         <td>
-                            <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}">Remove</a></a>
+                            <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}"><img
+                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a></a>
                         </td>
                         {% for class in classes %}
                             {% if student in attendees[class.id] %}
@@ -113,7 +121,7 @@
             </table>
 
         </div>
-        <button type="button" class="btn btn-lg btn-default" onclick="addNewClass()">Add a Class</button>
+        <button type="button" class="button" onclick="addNewClass()">Add a Class</button>
     </div>
 
 
@@ -338,7 +346,7 @@
                         var trow = tbl.rows[i];
                         if (i == 0) {
                             var y = document.createElement('td');
-                            y.innerHTML = "Week:<input type='number' id='classweek/"+data+"' value='3' onchange ='changeClassTime("+data+")' style = 'width: 45px' />"
+                            y.innerHTML = "Week <input type='number' id='classweek/" + data + "' value='3' onchange ='changeClassTime(" + data + ")' style = 'width: 35px' /><a href='deletetutorial%3Ftutorialid%3D" + data + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>"
                             trow.appendChild(y);
                         } else {
                             var studentid;

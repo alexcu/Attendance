@@ -45,3 +45,15 @@ td.occupied {
 input[type="number"]{
     width: 120px;
 }
+
+img.deleteIcon {
+    width: 25px;
+}
+
+thead {
+    font-weight: bold;
+}
+
+tfoot {
+    font-weight: bold;
+}

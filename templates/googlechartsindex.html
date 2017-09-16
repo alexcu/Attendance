@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
+        <section class="row text-center placeholders">
+            <div class="col-6 col-sm-4 placeholder">
+                <canvas id="PercentageSubjectsMapped" width="600" height="800"></canvas>
+                <h4>Mapped Subjects</h4>
+                <div class="text-muted"></div>
+            </div>
+            <div class="col-6 col-sm-4 placeholder">
+                <canvas id="Attendance" width="600" height="800"></canvas>
+                <h4>Student Attendance (%)</h4>
+                <span class="text-muted"></span>
+            </div>
+            <div class="col-6 col-sm-4 placeholder">
+                <canvas id="tutorrollmarking" width="600" height="800"></canvas>
+                <h4>Tutor Roll Marking (%)</h4>
+                <span class="text-muted">Something else</span>
+            </div>
+        </section>
+    </main>
+
+
+
+{% endblock %}

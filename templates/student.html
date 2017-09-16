@@ -14,14 +14,7 @@
                     <td>{{ rows["firstname"] }} {{ rows["lastname"] }}</td>
                 </tr>
             </table>
-        </div>
-    </div>
-
-
-
-    <h1>Subjects this student takes:</h1>
-    <div class="row">
-        <div class="col-md-6">
+            <h1>Subjects this student takes:</h1>
             <table class="table">
                 <thead>
                 <td>Subject Code</td>
@@ -39,28 +32,41 @@
                         </td>
                         <td> {{ subject["studyperiod"] }}</td>
                         <td>
-                            <a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}">Remove</a>
+                            <a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}"><img
+                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
                         </td>
                     </tr>
                 {% endfor %}
             </table>
+            <form action="{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method="POST">
+                <select name="subject">
+                    {% for subject in eligiblesubjects %}
+
+                        <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
+
+                    {% endfor %}
+
+                </select>
+                <input type="submit" class="button" value="Add Subject to Student"/>
+            </form>
         </div>
+        {% if rows.timetabledclasses|length !=0 %}
+            <div class="col-md-6">
+                <canvas id="StudentAttendanceRate" height="250"></canvas>
+            </div>
+        {% endif %}
+
     </div>
-    <form action="{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method="POST">
-        <select name="subject">
-            {% for subject in eligiblesubjects %}
 
-                <option value={{ subject["subcode"] }}>{{ subject["subname"] }}</option>
 
-            {% endfor %}
 
-        </select>
-        <input type="submit" value="Add Subject to Student"/>
-    </form>
+
+
+
     {{ msg }}
     <h1>Student Timetable</h1>
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <table class="table">
                 <thead>
                 <td>Subject Code</td>
@@ -78,11 +84,65 @@
                         </td>
                         <td> {{ timetabledclass.timeslot.day + " " + timetabledclass.timeslot.time }}</td>
                         <td>
-                            <a href="{{ url_for('remove_timetabled_class', timetabledclassid = timetabledclass.id) }}">Remove</a>
+                            <a href="{{ url_for('remove_timetabled_class', timetabledclassid = timetabledclass.id) }}"><img
+                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
                         </td>
                     </tr>
                 {% endfor %}
             </table>
         </div>
     </div>
+
+    <script src="../static/js/Chart.bundle.js"></script>
+    <script>
+        var ctx = document.getElementById("StudentAttendanceRate");
+        var attendancedata = [];
+        var cumattendancedata = [];
+        var attendancelabels = [];
+        function getStudentAttendanceData() {
+            $.ajax({
+                type: 'GET',
+                url: '{{ url_for('get_student_attendance_rate_ajax',studentid = rows.id) }}',
+                dataType: 'json',
+                success: function (data) {
+                    Object.keys(data).forEach(function (k) {
+                        attendancelabels.push(k);
+                        attendancedata.push(data[k]["Attendance Rate"]);
+                        cumattendancedata.push(data[k]["Cum. Attendance Rate"]);
+                    });
+                    drawStudentAttendanceChart();
+                }
+            });
+        }
+
+        function drawStudentAttendanceChart() {
+            console.log(attendancedata)
+            console.log(cumattendancedata)
+            console.log(attendancelabels)
+            var myStudentAttendanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        data: attendancedata,
+                        label: "Attendance Rate",
+                        fill: false,
+                        backgroundColor: ["#3e95cd"],
+                        borderColor: ["#3e95cd"]
+                    }, {
+                        data: cumattendancedata,
+                        label: "Cum. Attendance Rate",
+                        fill: false,
+                        backgroundColor: ["#fffb51"],
+                        borderColor: ["#FFFB51"]
+                    }],
+                    labels: attendancelabels
+                },
+                options: {}
+            })
+        }
+
+        getStudentAttendanceData()
+
+
+    </script>
 {% endblock %}

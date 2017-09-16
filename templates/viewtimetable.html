@@ -30,12 +30,12 @@
                 url: "/deleteallclasses",
                 type: "GET",
             });
-            location.reload(forceGet)
+            table.ajax.reload();
         }
 
 
         $(document).ready(function () {
-            $('#timetable').DataTable({
+            var table = $('#timetable').DataTable({
                 "ajax": {
                     "url": '/viewtimetableajax',
                     "type": 'GET'
@@ -64,7 +64,7 @@
                 },
                     {
                         "data": "tutor", "render": function (data, type, row, meta) {
-                        return "<a href='/removetimetabledclass%3Ftimetabledclassid%3D" + row.id + "'>Remove</a>";
+                        return "<a href='/removetimetabledclass%3Ftimetabledclassid%3D" + row.id + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>";
                     }
                     }
                 ]

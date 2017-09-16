@@ -7,6 +7,8 @@
             <table class="table" id="tutors">
                 <thead>
                 <td>Name</td>
+                <td>Assigned Classes</td>
+                <td>Available Times</td>
                 </thead>
             </table>
         </div>
@@ -21,7 +23,7 @@
                 <h3>Add New Tutor</h3>
                 Name<br>
                 <input type="text" name="name"/></br>
-                <input type="submit" value="submit"/><br>
+                <input type="submit" value="Add Tutor" class="button"/><br>
 
             </form>
         </div>
@@ -38,6 +40,21 @@
                 "columns": [{
                     "data": "name", "render": function (data, type, row, meta) {
                         return "<a href='/viewtutor%3Ftutorid%3D" + row.id + "'>" + row.name + "</a>";
+                    }
+                }, {
+                    "data": "assignedtutes", "render": function (data, type, row, meta) {
+                        var sum = 0;
+                        console.log(row)
+                        for (var j = 0; j < row['subjects'].length; j++) {
+                            sub = row['subjects'][j]
+                            sum = sum + sub['repeats']
+                        }
+                        return sum;
+                    }
+                }, {
+                    "data": "availabletimes", "render": function (data, type, row, meta) {
+                        var sum = row['availabletimes'].length
+                        return sum;
                     }
                 }]
             });
