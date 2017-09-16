@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block content2 %}
+{% block content %}
 
     <div class="row">
         <div class="col-md-12">
@@ -189,38 +189,20 @@
 
                         </select>
 
-                        <input type="submit" value="Timetable Class"/>
+                        <input type="submit" class="button" value="Timetable Class"/>
                     </form>
                 </div>
             </div>
         {% else %}
-        <h1>Timetabled Classes</h1>
-        <div class="row">
-            <div class="col-md-6">
-                <table class="table">
-                    <thead>
-                    <td>Day</td>
-                    <td>Time</td>
-                    <td/>
-                    </thead>
-                    {% for row in timetabledclasses %}
-                        <tr>
-                            <td>
-                                {{ row.timeslot.day }}
-                            </td>
-                            <td>{{ row.timeslot.time }}</td>
-                            <td><a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = row.id) }}">Remove</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            </div>
+
+                    <div class="row">
         <div class="col-md-6">
+        <h1>Manage Student Class Allocation</h1>
 <table class="table">
 <thead>
 <td>Student</td>
 {% for timeclass in timetabledclasses %}
-<td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}</td>
+<td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}<a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = timeclass.id) }}"><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a></td>
 {% endfor %}
 </thead>
 {% for student in rows.students %}
@@ -240,12 +222,45 @@
 </tr>
 {% endfor %}
 </table>
+         <form action="{{ url_for('add_timetabledclass_to_subject', subcode = subject.subcode) }}"
+                          method="POST">
+                        <select name="timeslot">
+                            {% for timeslot in timeslots %}
+
+                                <option value={{ timeslot.id }}>{{ timeslot.day }} {{ timeslot.time }}</option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <input type="submit" class="button" value="Timetable Class"/>
+                    </form>
+
+
         </div>
-        </div>
+
         {% endif %}
     {% endif %}
 
+    {% if tutor != None %}
+
+
+    {% endif %}
+
+<div class="col-lg-6">
+<h1>Attendance Rate</h1>
+    <canvas id="SubjectAttendanceRate" height="250"></canvas>
+
+
+</div>
+
+
+</div>
+    <script src="../static/js/Chart.bundle.js"></script>
     <script>
+
+        var ctx = document.getElementById("SubjectAttendanceRate");
+
 
         function changedvalue() {
             var x = document.getElementById("repeats");
@@ -374,6 +389,50 @@
             });
 
         }
+        var attendancedata = [];
+        var attendancelabels = [];
+        function getSubjectAttendanceData() {
+            $.ajax({
+                type: 'GET',
+                url: '{{ url_for('get_subject_attendance_rate_ajax',subjectid = rows.id) }}',
+                dataType: 'json',
+                success: function (data) {
+                    Object.keys(data).forEach(function (k) {
+                        attendancelabels.push(k);
+                    } );
+                    attendancelabels.sort(function(a,b) {
+                        a = parseInt(a.split(' ')[1])
+                        b = parseInt(b.split(' ')[1])
+                        return a-b
+                    });
+                    for(var k=0; k<attendancelabels.length; k++) {
+                        attendancedata.push(data[attendancelabels[k]]["Attendance Rate"]);}
+                    drawSubjectAttendanceChart();
+                }
+            });
+        }
+
+        function drawSubjectAttendanceChart() {
+            var mySubjectAttendanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [ {
+                        data: attendancedata,
+                        label: "Attendance Rate",
+                        fill: false,
+                        backgroundColor: ["#3e95cd"],
+                        borderColor: ["#3e95cd"]
+                    }],
+                    labels: attendancelabels
+                },
+                options: {}
+            })
+        }
+
+        getSubjectAttendanceData()
+
+
+
     </script>
 
 {% endblock %}

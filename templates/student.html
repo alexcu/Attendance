@@ -107,9 +107,15 @@
                 success: function (data) {
                     Object.keys(data).forEach(function (k) {
                         attendancelabels.push(k);
-                        attendancedata.push(data[k]["Attendance Rate"]);
-                        cumattendancedata.push(data[k]["Cum. Attendance Rate"]);
+                    } );
+                    attendancelabels.sort(function(a,b) {
+                        a = parseInt(a.split(' ')[1])
+                        b = parseInt(b.split(' ')[1])
+                        return a-b
                     });
+                    for(var k=0; k<attendancelabels.length; k++) {
+                        attendancedata.push(data[attendancelabels[k]]["Attendance Rate"]);
+                        cumattendancedata.push(data[attendancelabels[k]]["Cum. Attendance Rate"]);}
                     drawStudentAttendanceChart();
                 }
             });
@@ -122,18 +128,12 @@
             var myStudentAttendanceChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: [{
-                        data: attendancedata,
+                    datasets: [ {
+                        data: cumattendancedata,
                         label: "Attendance Rate",
                         fill: false,
                         backgroundColor: ["#3e95cd"],
                         borderColor: ["#3e95cd"]
-                    }, {
-                        data: cumattendancedata,
-                        label: "Cum. Attendance Rate",
-                        fill: false,
-                        backgroundColor: ["#fffb51"],
-                        borderColor: ["#FFFB51"]
                     }],
                     labels: attendancelabels
                 },

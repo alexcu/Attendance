@@ -17,9 +17,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database50.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database50.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -328,11 +328,6 @@ def num_eligible_subjects_mapped():
     data = json.dumps(data)
     return data
 
-
-@app.route('/googlechartsindex')
-def google_charts_index():
-    return render_template("googlechartsindex.html")
-
 @app.route('/viewclashesajax')
 def viewclashreportajax():
     timeslots = get_timeslots()
@@ -468,21 +463,6 @@ def add_subject_to_tutor(tutorid):
         return redirect(url_for('view_tutor', tutorid=tutorid))
 
 
-@app.route('/addclass?subcode=<subcode>', methods=['GET', 'POST'])
-def add_class(subcode):
-    if request.method == 'GET':
-        return render_template('addclass.html', subject=get_subject(subcode),
-                               students=get_subject_and_students(subcode))
-    elif request.method == 'POST':
-        classtime = request.form["date"]
-        students = get_subject_and_students(subcode)
-        attendees = []
-        for student in students:
-            if checkboxvalue(request.form.get(student.studentcode)) == 1:
-                attendees.append(student.studentcode)
-        add_class_to_db(classtime, subcode, attendees)
-        return redirect(url_for('view_subject', subcode=subcode))
-
 
 @app.route('/addtimetabledclasstosubject?subcode=<subcode>', methods=['POST'])
 def add_timetabledclass_to_subject(subcode):
@@ -497,18 +477,10 @@ def add_timetabledclass_to_subject(subcode):
                                           tutorid=subject.tutor.id)
         db.session.add(timetabledclass)
         db.session.commit()
-        timetabledclass.students = subject.students
-        db.session.commit()
+        if len(subject.timetabledclasses) ==1:
+            timetabledclass.students = subject.students
+            db.session.commit()
     return redirect(url_for('view_subject', subcode=subcode))
-
-
-@app.route('/viewclass?classid=<classid>')
-def view_class(classid):
-    classdata = get_class(classid)
-    subject = Subject.query.get(classdata.subjectid)
-    return render_template('class.html', classdata=classdata, subject=get_subject(subject.subcode),
-                           tutor=get_tutor(classdata.tutorid),
-                           students=get_subject_and_students(subject.subcode), attendees=get_attendees(classid))
 
 
 @app.route('/admin')
@@ -559,8 +531,13 @@ def remove_subject_from_student(studentcode, subcode):
 @app.route('/removetimetabledclass?timetabledclassid=<timetabledclassid>')
 def remove_timetabled_class(timetabledclassid):
     timetabledclass = TimetabledClass.query.get(timetabledclassid)
+    subject = TimetabledClass.query.get(timetabledclass.subjectid)
     db.session.delete(timetabledclass)
     db.session.commit()
+    if len(subject.timetabledclasses) == 1:
+        for tutorial in subject.timetabledclasses:
+            tutorial.students = subject.students
+            db.session.commit()
     return redirect("/timetable")
 
 
@@ -570,6 +547,10 @@ def remove_timetabled_class_subject(timetabledclassid):
     subject = timetabledclass.subject
     db.session.delete(timetabledclass)
     db.session.commit()
+    if len(subject.timetabledclasses) == 1:
+        for tutorial in subject.timetabledclasses:
+            tutorial.students = subject.students
+            db.session.commit()
     return redirect(url_for('view_subject', subcode=subject.subcode))
 
 @app.route('/removestudentfromsubject?studentcode=<studentcode>&subcode=<subcode>')
@@ -588,11 +569,6 @@ def add_subject_to_student(studentcode):
 @app.route('/')
 def hello_world():
     return render_template('index.html')
-
-
-@app.route('/rolls')
-def view_rolls():
-    return render_template('rolls.html')
 
 
 @app.route('/deleteallclasses')
@@ -742,6 +718,32 @@ def get_student_attendance_rate_ajax(studentid):
             data[key]["Cum. Attendance Rate"] = 100 * round(cumattendedclasses / cumtotalclasses, 2)
     return json.dumps(data)
 
+@app.route('/getsubjectattendancerate?subjectid=<subjectid>')
+def get_subject_attendance_rate_ajax(subjectid):
+    subject = Subject.query.get(subjectid)
+    weeks = get_min_max_week()
+    minweek = weeks[0]
+    maxweek = weeks[1]
+    data = {}
+    totalstudents = 0
+    attendedstudents = 0
+    for i in range(minweek, maxweek + 1):
+        tutorials = Tutorial.query.filter_by(year = get_current_year(), studyperiod = get_current_studyperiod(), subjectid = subject.id, week = i).options(joinedload('attendees')).all()
+        week = i
+        key = "Week " + str(week)
+        data[key] = {}
+        if len(tutorials) > 0:
+            totalstudents += len(subject.students)
+        for tutorial in tutorials:
+            attendedstudents += len(tutorial.attendees)
+        if totalstudents == 0:
+            data[key]["Attendance Rate"] = 0
+        else:
+            data[key]["Attendance Rate"] = 100 * round(attendedstudents / totalstudents, 2)
+
+    return json.dumps(data)
+
+
 
 @app.route('/getattendanceajax')
 def get_attendance_ajax():
@@ -853,7 +855,7 @@ def viewstudents_ajax():
 @app.route('/addsubject', methods=['GET', 'POST'])
 def add_subject():
     if request.method == 'GET':
-        return render_template('addsubject.html')
+        return redirect('/subjects')
     elif request.method == 'POST':
         subname = request.form['subname']
         subcode = request.form['subcode']
@@ -870,7 +872,7 @@ def add_subject():
 @app.route('/addtimeslot', methods=['GET', 'POST'])
 def add_timeslot():
     if request.method == 'GET':
-        return render_template("addtimeslot.html")
+        return redirect('/timeslots')
     else:
         day = request.form['day']
         time = request.form['time']
@@ -946,7 +948,7 @@ def view_tutor(tutorid):
 @app.route('/addtutor', methods=['GET', 'POST'])
 def add_tutor():
     if request.method == 'GET':
-        return render_template('addtutor.html')
+        return redirect('viewtutors')
     elif request.method == 'POST':
 
         name = request.form['name'].strip()
