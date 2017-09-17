@@ -7,3 +7,5 @@ pulp
 flask_wtf
 wtforms
 gviz_api
+flask_login
+flask_principal

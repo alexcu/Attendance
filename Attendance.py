@@ -6,9 +6,13 @@ import pandas
 from flask import Flask
 from flask import render_template, redirect, url_for
 from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, login_user, current_user, logout_user, login_required
+from flask_principal import Principal, RoleNeed, ActionNeed, Permission, Identity, identity_loaded, identity_changed
 from flask_sqlalchemy import *
 from pulp import *
 from sqlalchemy.orm import joinedload
+
+from forms import LoginForm
 
 # DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
@@ -19,9 +23,94 @@ app = Flask(__name__)
 # LINUX
 app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database50.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database53.db'
+app.config.update(
+    SECRET_KEY='jemimaisababe'
+)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+principals = Principal(app, skip_static=True)
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+'''
+FLASK-LOGIN SET UP AREA
+
+'''
+login_manager.login_view = '/login'
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.filter_by(username=user_id).first()
+
+
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column('id', db.Integer, primary_key=True)
+    username = db.Column('username', db.String(40), unique=True, index=True, nullable=False)
+    password = db.Column('password', db.String(50), nullable=False)
+    email = db.Column('email', db.String(50))
+    is_admin = db.Column('is_admin', db.String(10))
+
+    def __init__(self, username, password):
+        self.username = username
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+        self.is_admin = False
+
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.username)
+
+    def __repr__(self):
+        return '<User %r>' % (self.username)
+
+
+'''
+FLASK_PRINCIPAL SET-UP AREA. 
+
+Firstly we set up Needs - Admin and User level preferences.
+'''
+# Needs
+be_admin = RoleNeed('admin')
+to_sign_in = ActionNeed('sign in')
+
+# Permissions
+user_permission = Permission(to_sign_in)
+user_permission.description = 'User\'s permissions'
+admin_permission = Permission(be_admin)
+admin_permission.description = 'Admin\'s permissions'
+
+apps_needs = [be_admin, to_sign_in]
+apps_permissions = [user_permission, admin_permission]
+
+
+@identity_loaded.connect_via(app)
+def on_identity_loaded(sender, identity):
+    identity.user = current_user
+    if current_user.is_authenticated:
+        needs = []
+        needs.append(to_sign_in)
+        if current_user.is_admin == 1:
+            needs.append(be_admin)
+        for n in needs:
+            identity.provides.add(n)
+
+
+def current_privileges():
+    return (('{method} : {value}').format(method=n.method, value=n.value)
+            for n in apps_needs if n in g.identity.provides)
+
+
+
 
 
 def allowed_file(filename):
@@ -30,21 +119,6 @@ def allowed_file(filename):
 
 
 ####MODELS
-class User(db.Model):
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True)
-    password = db.Column(db.String(50))
-
-    def __init__(self, username, password):
-        self.username = username
-        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
-
-    def __repr__(self):
-        return '<User %r>' % self.username
-
-
 class Admin(db.Model):
     __tablename__ = 'admin'
     id = db.Column(db.Integer, primary_key=True)
@@ -207,6 +281,8 @@ class Tutor(db.Model):
                                      backref=db.backref('availabiletutors'))
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('tutor'))
     classes = db.relationship("Tutorial", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
+    userid = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user = db.relationship("User", backref=db.backref('tutor'))
     def __init__(self, name, year, studyperiod):
         self.name = name
         self.year = year
@@ -292,6 +368,44 @@ db.mapper(TutorAvailability, tutoravailabilitymap)
 
 
 # Route that will process the file upload
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if request.method == 'GET':
+        return render_template("login.html", form=form)
+    elif request.method == 'POST':
+        if form.validate_on_submit():
+            print(form.user_id.data)
+            print(form.password.data)
+            user = User.query.filter_by(username=form.user_id.data).first()
+            if bcrypt.check_password_hash(user.password, form.password.data):
+                login_user(user)
+                identity_changed.send(current_app._get_current_object(), identity=Identity(user.username))
+                return redirect('/')
+            return render_template('login.html', form=form, msg="Username or Password was incorrect")
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = LoginForm()
+    if request.method == 'GET':
+        return render_template("register.html", form=form)
+    elif request.method == 'POST':
+        if form.validate_on_submit():
+            if User.query.filter_by(username=form.user_id.data).first() is None:
+                user = User(username=form.user_id.data, password=form.password.data)
+                db.session.add(user)
+                db.session.commit()
+            return redirect('register')
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect('/')
+
+
 @app.route('/uploadstudentdata', methods=['POST'])
 def uploadstudentdata():
     try:
@@ -319,9 +433,18 @@ def viewclashreport():
     return render_template("viewclashreport.html")
 
 
+@app.route('/users')
+def view_users():
+    return render_template('viewusers.html')
+
 @app.route('/tutoravailability')
 def managetutoravailability():
     return render_template("tutoravailability.html", timeslots=get_timeslots(), tutors=get_tutors())
+
+
+@app.route('/currentuser')
+def currentuser():
+    return render_template("user.html", user=current_user)
 
 
 @app.route('/numbereligiblesubjectsmappedajax')
@@ -402,6 +525,7 @@ def upload_tutor_availabilities():
     return render_template("uploadtutordata.html",msg2=msg2)
 
 @app.route('/runtimetabler')
+@admin_permission.require()
 def run_timetabler():
     return render_template("runtimetabler.html", tutors=get_tutors(), timeslots=get_timeslots())
 
@@ -497,6 +621,7 @@ def add_timetabledclass_to_subject(subcode):
 
 
 @app.route('/admin')
+@admin_permission.require()
 def admin():
     return render_template('admin.html', admin=getadmin())
 
@@ -580,6 +705,7 @@ def add_subject_to_student(studentcode):
 
 
 @app.route('/')
+@login_required
 def hello_world():
     return render_template('index.html')
 
@@ -849,6 +975,19 @@ def viewtutors_ajax():
             data4.append(q)
         row['subjects'] = data3
         row['availabletimes'] = data4
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/viewusersajax')
+def viewusers_ajax():
+    data = User.query.options(joinedload('tutor')).all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = " "
+    print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
@@ -1634,6 +1773,12 @@ if Admin.query.filter_by(key='timetable').first() is None:
     db.session.commit()
     timetableadmin = Admin(key='timetable', value=timetable.id)
     db.session.add(timetableadmin)
+    db.session.commit()
+
+if User.query.filter_by(username='admin').first() is None:
+    user = User(username='admin', password='password')
+    user.is_admin = True
+    db.session.add(user)
     db.session.commit()
 
 

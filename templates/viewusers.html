@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Users</h1>
+    {{ msg }}
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table" id="users">
+                <thead>
+                <td>Username</td>
+                <td>Mapped Tutor</td>
+                <td>Admin User?</td>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <a href="register">
+                <button type="button" class="button">Add User</button>
+            </a>
+        </div>
+    </div>
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+    <script>
+
+        $(document).ready(function () {
+            $('#users').DataTable({
+                "ajax": {
+                    "url": '/viewusersajax',
+                    "type": 'GET'
+                },
+                "columns": [{
+                    "data": "name", "render": function (data, type, row, meta) {
+                        return "<a href='/viewuser%3Fusername%3D" + row.username + "'>" + row.username + "</a>";
+                    }
+                }, {
+                    "data": "mappedtutor", "render": function (data, type, row, meta) {
+                        if ("name" in row.tutor) {
+                            return row.tutor.name;
+                        } else {
+                            return ""
+                        }
+
+                    }
+                }, {
+                    "data": "isadmin", "render": function (data, type, row, meta) {
+                        if (row.is_admin == 1) {
+                            return "Yes"
+                        } else {
+                            return "No"
+                        }
+                    }
+                }]
+            });
+        });
+    </script>
+
+{% endblock %}
