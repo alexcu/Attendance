@@ -17,9 +17,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database50.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database50.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -144,6 +144,19 @@ class Subject(db.Model):
         self.year = year
         self.studyperiod = studyperiod
         self.repeats = repeats
+
+    def get_attendance_rate(self):
+        totalstudents = 0
+        attendedstudents = 0
+        tutorials = self.classes
+        for tutorial in tutorials:
+            if len(tutorials) > 0:
+                totalstudents += len(self.students)
+                attendedstudents += len(tutorial.attendees)
+        if totalstudents == 0:
+            return 0
+        else:
+            return 100 * round(attendedstudents / totalstudents, 2)
 
 
 class Student(db.Model):

@@ -12,6 +12,7 @@
                 <td>Study Period</td>
                 <td>Tutor</td>
                 <td>Repeats</td>
+                <td>Attendance Rate</td>
                 </thead>
                 <tr>
                     <td>{{ rows["subcode"] }}</td>
@@ -27,7 +28,9 @@
                             {% endif %}
                         {% endfor %}
                     </select></td>
-
+                    <td id="parent">{{ rows.get_attendance_rate() }}%
+                        <button id="showhidebutton" class="button">Show Graph</button>
+                    </td>
                 </tr>
             </table>
             <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">
@@ -37,6 +40,13 @@
                         <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
                             <button type="button" class="button-delete">Remove Tutor From Subject</button>
                         </a>{% endif %}
+            <div id="popup" style="display: none">
+                <h1>Attendance Rate</h1>
+                <canvas id="SubjectAttendanceRate" height="125"></canvas>
+
+
+            </div>
+
         </div>
     </div>
     <div class="row">
@@ -196,8 +206,8 @@
         {% else %}
 
                     <div class="row">
-        <div class="col-md-6">
-        <h1>Manage Student Class Allocation</h1>
+                    <div class="col-md-12">
+                        <h1>Manage Timetabled Classes</h1>
 <table class="table">
 <thead>
 <td>Student</td>
@@ -247,15 +257,11 @@
 
     {% endif %}
 
-<div class="col-lg-6">
-<h1>Attendance Rate</h1>
-    <canvas id="SubjectAttendanceRate" height="250"></canvas>
+
 
 
 </div>
 
-
-</div>
     <script src="../static/js/Chart.bundle.js"></script>
     <script>
 
@@ -430,6 +436,19 @@
         }
 
         getSubjectAttendanceData()
+
+
+        var e = document.getElementById('showhidebutton');
+        var attendancegraphcanvas = document.getElementById('popup');
+        e.onclick = function () {
+            if (attendancegraphcanvas.style.display == 'block') {
+                e.innerText = "Show Graph";
+                attendancegraphcanvas.style.display = 'none';
+            } else {
+                e.innerText = "Hide Graph";
+                attendancegraphcanvas.style.display = 'block';
+            }
+        }
 
 
 
