@@ -13,9 +13,11 @@
                     <td>{{ tutor["name"] }}</td>
                 </tr>
             </table>
+            {% if current_user.is_admin == '1' %}
             <a href="{{ url_for('remove_tutor', tutorid = tutor["id"]) }}">
-                <button type="button" class="btn btn-lg btn-default">Delete Tutor</button>
+                <button type="button" class="button-delete">Delete Tutor</button>
             </a>
+            {% endif %}
         </div>
         <div class="col-md-6">
             <h1>Subjects this tutor teaches:</h1>
@@ -38,11 +40,12 @@
                         <td> {{ subject["studyperiod"] }}</td>
                         <td>
                             <a href="{{ url_for('remove_subject_from_tutor', subcode = subject.subcode, tutorid = tutor['id']) }}">
-                                <button type="button" class="btn btn-default">Remove</button>
+<img src='../static/img/removeSymbol.png' class='deleteIcon' />
                             </a></td>
                     </tr>
                 {% endfor %}
             </table>
+        {% if current_user.is_admin == '1' %}
             <h3>Add Subject to Tutor</h3>
             <form action="{{ url_for('add_subject_to_tutor', tutorid = tutor["id"]) }}" method="POST">
                 <select name="subject">
@@ -54,9 +57,10 @@
 
                 </select>
 
-                <input type="submit" value="Add Subject to Tutor"/>
+                <input type="submit" class="button" value="Add Subject to Tutor"/>
             </form>
             {{ msg2 }}
+        {% endif %}
         </div>
     </div>
 

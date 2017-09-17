@@ -19,7 +19,7 @@
                     <td>{{ rows["subname"] }}</td>
                     <td> {{ rows["studyperiod"] }}</td>
                     <td><a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["name"] }}</a></td>
-                    <td><select id="repeats" onchange="changedvalue()">
+                    <td>{% if current_user.is_admin == '1' %}<select id="repeats" onchange="changedvalue()">
                         {% for i in range(1,5) %}
                             {% if i == rows["repeats"] %}
                                 <option selected>{{ i }}</option>
@@ -27,19 +27,20 @@
                                 <option>{{ i }}</option>
                             {% endif %}
                         {% endfor %}
-                    </select></td>
+                    </select>{% else %}{{ rows["repeats"] }}{% endif %}</td>
                     <td id="parent">{{ rows.get_attendance_rate() }}%
                         <button id="showhidebutton" class="button">Show Graph</button>
                     </td>
                 </tr>
             </table>
-            <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">
+           {% if current_user.is_admin == '1' %} <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">
                 <button class="button-delete">Delete {{ rows["subname"] }}</button>
-            </a>
+            </a>{% endif %}
             {% if tutor != None %}
+                       {% if current_user.is_admin == '1' %}
                         <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
                             <button type="button" class="button-delete">Remove Tutor From Subject</button>
-                        </a>{% endif %}
+                        </a>{% endif %}{% endif %}
             <div id="popup" style="display: none">
                 <h1>Attendance Rate</h1>
                 <canvas id="SubjectAttendanceRate" height="125"></canvas>
@@ -49,6 +50,7 @@
 
         </div>
     </div>
+    {% if current_user.is_admin == '1' %}
     <div class="row">
         <div class="col-md-12">
             {% if tutor == None %}
@@ -69,7 +71,7 @@
             {% endif %}
         </div>
     </div>
-
+{% endif %}
 
 
 
@@ -188,6 +190,7 @@
 
 
                     </table>
+                {% if current_user.is_admin == '1' %}
                     <form action="{{ url_for('add_timetabledclass_to_subject', subcode = subject.subcode) }}"
                           method="POST">
                         <select name="timeslot">
@@ -201,6 +204,7 @@
 
                         <input type="submit" class="button" value="Timetable Class"/>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         {% else %}
@@ -232,6 +236,7 @@
 </tr>
 {% endfor %}
 </table>
+                    {% if current_user.is_admin == '1' %}
          <form action="{{ url_for('add_timetabledclass_to_subject', subcode = subject.subcode) }}"
                           method="POST">
                         <select name="timeslot">
@@ -245,17 +250,15 @@
 
                         <input type="submit" class="button" value="Timetable Class"/>
                     </form>
+{% endif %}
 
-
-        </div>
 
         {% endif %}
+        </div>
+                    </div>
     {% endif %}
 
-    {% if tutor != None %}
 
-
-    {% endif %}
 
 
 

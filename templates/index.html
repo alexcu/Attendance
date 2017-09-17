@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
+    {% if current_user.is_admin == '1' %}
     <main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
         <section class="row text-center placeholders">
             <div class="col-6 col-sm-4 placeholder">
@@ -20,7 +21,9 @@
             </div>
         </section>
     </main>
-
+        {% else %}
+        <h1>Welcome to IH Tutorial Management!</h1>
+{% endif %}
     <script src="../static/js/Chart.bundle.js"></script>
     <script>
         var labels = [];

@@ -16,11 +16,11 @@
         </div>
     </div>
 
-
+{% if current_user.is_admin == '1' %}
     <a href="addtimeslot">
         <button type="button" class="button">Add Timeslot</button>
     </a>
-
+{% endif %}
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>
@@ -33,7 +33,11 @@
                 },
                 "columns": [{"data": "day"}, {"data": "time"}, {
                     "render": function (data, type, row, meta) {
+                        {% if current_user.is_admin == '1' %}
                         return "<a href='/removetimeslot%3Ftimeslotid%3D" + row.id + "'>Remove</a>";
+                        {% else %}
+                        return "";
+                        {% endif %}
                     }
                 }
                 ]

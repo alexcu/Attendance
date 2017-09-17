@@ -32,12 +32,13 @@
                         </td>
                         <td> {{ subject["studyperiod"] }}</td>
                         <td>
-                            <a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}"><img
-                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
+                            {% if current_user.is_admin == '1' %}<a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}"><img
+                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>{% endif %}
                         </td>
                     </tr>
                 {% endfor %}
             </table>
+        {% if current_user.is_admin == '1' %}
             <form action="{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method="POST">
                 <select name="subject">
                     {% for subject in eligiblesubjects %}
@@ -49,6 +50,7 @@
                 </select>
                 <input type="submit" class="button" value="Add Subject to Student"/>
             </form>
+        {% endif %}
         </div>
         {% if rows.timetabledclasses|length !=0 %}
             <div class="col-md-6">
@@ -64,6 +66,7 @@
 
 
     {{ msg }}
+    {% if rows.timetabledclasses|length !=0 %}
     <h1>Student Timetable</h1>
     <div class="row">
         <div class="col-md-12">
@@ -84,14 +87,15 @@
                         </td>
                         <td> {{ timetabledclass.timeslot.day + " " + timetabledclass.timeslot.time }}</td>
                         <td>
-                            <a href="{{ url_for('remove_timetabled_class', timetabledclassid = timetabledclass.id) }}"><img
-                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
+                           {% if current_user.is_admin == '1' %} <a href="{{ url_for('remove_timetabled_class', timetabledclassid = timetabledclass.id) }}"><img
+                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>{% endif %}
                         </td>
                     </tr>
                 {% endfor %}
             </table>
         </div>
     </div>
+    {% endif %}
 
     <script src="../static/js/Chart.bundle.js"></script>
     <script>

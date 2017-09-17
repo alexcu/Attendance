@@ -21,9 +21,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database53.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database53.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -99,10 +99,11 @@ def on_identity_loaded(sender, identity):
     if current_user.is_authenticated:
         needs = []
         needs.append(to_sign_in)
-        if current_user.is_admin == 1:
+        if current_user.is_admin == 1 or current_user.is_admin == '1':
             needs.append(be_admin)
         for n in needs:
             identity.provides.add(n)
+        print(identity.provides)
 
 
 def current_privileges():
@@ -282,7 +283,7 @@ class Tutor(db.Model):
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True,cascade ="all,delete-orphan", backref=db.backref('tutor'))
     classes = db.relationship("Tutorial", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
     userid = db.Column(db.Integer, db.ForeignKey('users.id'))
-    user = db.relationship("User", backref=db.backref('tutor'))
+    user = db.relationship("User", backref=db.backref('tutor',uselist=False))
     def __init__(self, name, year, studyperiod):
         self.name = name
         self.year = year
@@ -387,6 +388,7 @@ def login():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@admin_permission.require()
 def register():
     form = LoginForm()
     if request.method == 'GET':
@@ -407,6 +409,7 @@ def logout():
 
 
 @app.route('/uploadstudentdata', methods=['POST'])
+@admin_permission.require()
 def uploadstudentdata():
     try:
         filename2 = upload(request.files['file'])
@@ -420,6 +423,7 @@ def uploadstudentdata():
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
+@admin_permission.require()
 def uploadtimetableclasslists():
     if request.method == 'POST':
         filename2 = upload(request.files['file'])
@@ -429,20 +433,24 @@ def uploadtimetableclasslists():
 
 
 @app.route('/viewclashreport')
+@admin_permission.require()
 def viewclashreport():
     return render_template("viewclashreport.html")
 
 
 @app.route('/users')
+@admin_permission.require()
 def view_users():
     return render_template('viewusers.html')
 
 @app.route('/tutoravailability')
+@admin_permission.require()
 def managetutoravailability():
     return render_template("tutoravailability.html", timeslots=get_timeslots(), tutors=get_tutors())
 
 
 @app.route('/currentuser')
+@login_required
 def currentuser():
     return render_template("user.html", user=current_user)
 
@@ -633,6 +641,13 @@ def add_tutor_to_subject(subcode):
         msg = linksubjecttutor(tutorid, subcode)
         return redirect(url_for('view_subject', subcode=subcode))
 
+@app.route('/myclasses')
+def get_my_classes():
+    return render_template('myclasses.html',tutor=current_user.tutor)
+
+@app.route('/myprofile')
+def view_my_profile():
+    return view_tutor_template(current_user.tutor.id)
 
 @app.route('/addtutortosubjecttimetabler?subcode=<subcode>', methods=['GET', 'POST'])
 def add_tutor_to_subject_timetabler(subcode):
@@ -723,6 +738,7 @@ def delete_all_classes():
     return "Done"
 
 @app.route('/subjects')
+@login_required
 def view_subjects():
     return render_template('subjects.html')
 
@@ -747,6 +763,44 @@ def viewsubjects_ajax():
         row['tutor'] = []
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
+
+@app.route('/viewmysubjectsajax')
+def viewmysubjects_ajax():
+    data = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),tutor = current_user.tutor).options(
+        joinedload('students')).all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+        row['students'] = len(row['students'])
+        row['tutor'] = []
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+@app.route('/useradminajax',methods=['POST'])
+def user_admin_ajax():
+    user = User.query.get(int(request.form['user_id']))
+    adminvalue = int(request.form['admin'])
+    if user.is_admin=='1' and user.username != 'admin':
+        if adminvalue == 0:
+            user.is_admin = '0'
+            db.session.commit()
+    else:
+        if adminvalue == 1:
+            print(adminvalue)
+            user.is_admin = '1'
+            db.session.commit()
+    print(user.is_admin)
+    return "Done"
+
+@app.route('/maptutoruserajax', methods=['POST'])
+def user_tutor_mapping():
+    user = User.query.get(int(request.form['user_id']))
+    tutor = Tutor.query.get(int(request.form['tutor_id']))
+    tutor.user = user
+    db.session.commit()
+    return "Done"
 
 
 @app.route('/updateclasstimeajax', methods=['POST'])
@@ -986,7 +1040,10 @@ def viewusers_ajax():
     for row in data:
         data2.append(row.__dict__)
     for row in data2:
-        row['_sa_instance_state'] = " "
+        row['_sa_instance_state'] = ""
+        if row['tutor'] is not None:
+            row['tutor'] = row['tutor'].__dict__
+            row['tutor']['_sa_instance_state']=""
     print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
@@ -1005,6 +1062,7 @@ def viewstudents_ajax():
 
 
 @app.route('/addsubject', methods=['GET', 'POST'])
+@admin_permission.require()
 def add_subject():
     if request.method == 'GET':
         return redirect('/subjects')
@@ -1022,6 +1080,7 @@ def add_subject():
 
 
 @app.route('/addtimeslot', methods=['GET', 'POST'])
+@admin_permission.require()
 def add_timeslot():
     if request.method == 'GET':
         return redirect('/timeslots')
@@ -1039,11 +1098,17 @@ def add_timeslot():
 
 
 @app.route('/subject?subcode=<subcode>')
+@login_required
 def view_subject(subcode):
-    return view_subject_template(subcode)
+    subject = get_subject(subcode)
+    if current_user.is_admin == '1' or current_user.tutor == subject.tutor:
+        return view_subject_template(subcode)
+    else:
+        return redirect('/')
 
 
 @app.route('/removesubject?subcode=<subcode>')
+@admin_permission.require()
 def remove_subject(subcode):
     sub = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
                                   studyperiod=get_current_studyperiod()).first()
@@ -1054,6 +1119,7 @@ def remove_subject(subcode):
 
 
 @app.route('/removetutor?tutorid=<tutorid>')
+@admin_permission.require()
 def remove_tutor(tutorid):
     tut = Tutor.query.get(tutorid)
     db.session.delete(tut)
@@ -1064,6 +1130,7 @@ def remove_tutor(tutorid):
 
 
 @app.route('/removetimeslot?timeslotid=<timeslotid>')
+@admin_permission.require()
 def remove_timeslot(timeslotid):
     timeslot = Timeslot.query.get(timeslotid)
     db.session.delete(timeslot)
@@ -1071,21 +1138,30 @@ def remove_timeslot(timeslotid):
     return redirect("/viewtimeslots")
 
 @app.route('/viewtutors')
+@login_required
 def view_tutors():
     return render_template('viewtutors.html', rows=get_tutors())
 
 
 @app.route('/viewstudents')
+@login_required
 def view_students():
     return render_template('viewstudents.html', rows=get_students())
 
 
 @app.route('/viewstudent?studentcode=<studentcode>')
+@login_required
 def view_student(studentcode):
     return view_student_template(studentcode)
 
+@app.route('/viewuser?username=<username>')
+@login_required
+def view_user(username):
+    return view_user_template(username)
+
 
 @app.route('/runtimetableprogram', methods=['GET', 'POST'])
+@admin_permission.require()
 def run_timetable_program():
     # addnewtimetable = request.form['addtonewtimetable']
     # print(addnewtimetable == "true")
@@ -1093,11 +1169,16 @@ def run_timetable_program():
     return "Done"
 
 @app.route('/viewtutor?tutorid=<tutorid>')
+@login_required
 def view_tutor(tutorid):
-    return view_tutor_template(tutorid)
+    if current_user.is_admin == '1' or current_user.tutor.id == tutorid:
+        return view_tutor_template(tutorid)
+    else:
+        return redirect('/')
 
 
 @app.route('/addtutor', methods=['GET', 'POST'])
+@admin_permission.require()
 def add_tutor():
     if request.method == 'GET':
         return redirect('viewtutors')
@@ -1117,11 +1198,13 @@ def add_tutor():
 
 
 @app.route('/uploadstudentdata')
+@admin_permission.require()
 def upload_student_data():
     return render_template('uploadstudentdata.html')
 
 
 @app.route('/uploadtutordata')
+@admin_permission.require()
 def upload_tutor_data():
     return render_template('uploadtutordata.html')
 
@@ -1549,6 +1632,12 @@ def linksubjectstudent(studentcode, subcode):
 def view_student_template(studentcode, msg=""):
     return render_template('student.html', rows=get_student(studentcode), eligiblesubjects=get_subjects(),
                            subjects=get_student_and_subjects(studentcode), msg=msg)
+
+def view_user_template(username):
+    return render_template('user.html', user = get_user(username), tutors = get_tutors())
+
+def get_user(username):
+    return User.query.filter_by(username=username).first()
 
 #TIMETABLE CODE
 def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,

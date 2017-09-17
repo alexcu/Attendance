@@ -18,8 +18,9 @@
             </table>
         </div>
     </div>
+    {% if current_user.is_admin == '1' %}
     <button onclick="deleteallclasses()" class="button-delete">Delete All Classes</button>
-
+    {% endif %}
 
 
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">

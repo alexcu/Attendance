@@ -15,11 +15,11 @@
         </div>
     </div>
 
-
+{% if current_user.is_admin == '1' %}
     <a href="addstudent">
         <button type="button" class="button">Add Student</button>
     </a>
-
+{% endif %}
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>

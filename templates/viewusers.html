@@ -13,7 +13,7 @@
             </table>
         </div>
     </div>
-
+{% if current_user.is_admin == '1' %}
     <div class="row">
         <div class="col-md-12">
             <a href="register">
@@ -21,6 +21,7 @@
             </a>
         </div>
     </div>
+    {% endif %}
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
     <script>
 
@@ -36,7 +37,7 @@
                     }
                 }, {
                     "data": "mappedtutor", "render": function (data, type, row, meta) {
-                        if ("name" in row.tutor) {
+                        if (row.tutor) {
                             return row.tutor.name;
                         } else {
                             return ""
