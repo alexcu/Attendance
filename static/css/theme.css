@@ -18,9 +18,42 @@ body {
 }
 
 td.attended {
-    background-color: green;
+    background-color: lightgreen;
+    border: 1px solid black;
 }
 
 td.notattended {
-    background-color: red;
+    background-color: lightcoral;
+    border: 1px solid black;
+}
+
+td.occupied {
+    background-color: rgba(69, 140, 255, 0.68);
+    border: 1px solid black;
+}
+
+.button {
+    background-color: blue;
+    color: white;
+}
+
+.button-delete {
+    background-color: orangered;
+    color: white;
+}
+
+input[type="number"]{
+    width: 120px;
+}
+
+img.deleteIcon {
+    width: 25px;
+}
+
+thead {
+    font-weight: bold;
+}
+
+tfoot {
+    font-weight: bold;
 }

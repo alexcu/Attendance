@@ -1,21 +1,22 @@
 {% extends "layout.html" %}
 {% block content %}
+
     <h1>Subjects</h1>
     {{ msg }}
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <table class="table" , id="subjects">
                 <thead>
                 <td>Subject Code</td>
                 <td>Subject Name</td>
-                <td>Study Period</td>
+                <td>Number of Students</td>
                 </thead>
 
                 <tfoot>
                 <tr>
                     <td>Subject Code</td>
                     <td>Subject Name</td>
-                    <td>Study Period</td>
+                    <td>Number of Students</td>
                 </tr>
 
 
@@ -23,10 +24,12 @@
             </table>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-2"><a href="addsubject">
+            <button type="button" class="button">Add Subject</button>
+        </a></div>
+    </div>
 
-    <a href="addsubject">
-        <button type="button" class="btn btn-lg btn-default">Add Subject</button>
-    </a>
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
 
@@ -39,6 +42,7 @@
                     "url": '/viewsubjectsajax',
                     "type": 'GET'
                 },
+                "pageLength": 100,
                 "columns": [{
                     "data": "subcode", "render": function (data, type, row, meta) {
                         return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + data + "</a>";
@@ -47,7 +51,7 @@
                     "data": "subname", "render": function (data, type, row, meta) {
                         return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + data + "</a>";
                     }
-                }, {"data": "studyperiod"}]
+                }, {"data": "students"}]
             });
         });
     </script>
