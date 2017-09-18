@@ -21,9 +21,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database54.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database54.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -233,6 +233,31 @@ class Subject(db.Model):
         else:
             return 100 * round(attendedstudents / totalstudents, 2)
 
+    def is_at_risk(self):
+        averageattendance = self.get_recent_average_attendance()
+        if averageattendance == 0:
+            return False
+        elif averageattendance < 3:
+            return True
+        else:
+            return False
+
+    def get_recent_average_attendance(self):
+        attendedstudents = 0
+        timeframe = 3
+        tutorials = self.classes
+        tutorials = sorted(tutorials, key=lambda tutorial: tutorial.week)
+        if len(tutorials) >= 3:
+            for k in range(1, 1 + timeframe):
+                attendedstudents += len(tutorials[len(tutorials) - k].attendees)
+                averageattendance = attendedstudents / timeframe
+        elif len(tutorials)>0:
+            for k in range(1, 1 + len(tutorials)):
+                attendedstudents += len(tutorials[len(tutorials) - k].attendees)
+                averageattendance = attendedstudents / len(tutorials)
+        else:
+            averageattendance = 0
+        return round(averageattendance,2)
 
 class Student(db.Model):
     __tablename__ = 'students'
@@ -969,6 +994,20 @@ def get_attendance_ajax():
             data[key]['Attendance Rate'] = 0
 
     return json.dumps(data)
+
+@app.route('/getatriskclassesajax' , methods = ['GET','POST'])
+def get_at_risk_classes():
+    subjects = [subject.__dict__ for subject in Subject.query.filter(Subject.year==get_current_year(), Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all() if subject.is_at_risk()]
+    for row in subjects:
+        row['_sa_instance_state']= ""
+        row['tutor'] = row['tutor'].__dict__
+        row['tutor']['_sa_instance_state']=""
+        row['classes'] = []
+        subject = Subject.query.get(row['id'])
+        row['recentaverageattendance'] = subject.get_recent_average_attendance()
+    return '{ "data": ' + json.dumps(subjects) + '}'
+
+
 
 
 @app.route('/viewtimeslotsajax')
