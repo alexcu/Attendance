@@ -1,0 +1,23 @@
+<div id="addModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button-delete" class="close" data-dismiss="modal">Close</button>
+                <h4>Add:</h4>
+                <div class="modal-body">
+                    <form action="" method="POST" class="form">
+                        {{ form.csrf_token }}
+                        {% for input in form %}
+                            {% if input.name != 'csrf_token' %}
+                                <div class="form-group">
+                                    <label for='{{ input.name }}'>{{ input.label }}: </label> {{ input(class_='form-control', id_=input.name) }}<br>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <button type="submit" class="button">Add</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

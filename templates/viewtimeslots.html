@@ -17,10 +17,12 @@
     </div>
 
 {% if current_user.is_admin == '1' %}
-    <a href="addtimeslot">
-        <button type="button" class="button">Add Timeslot</button>
-    </a>
+    <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Timeslot</button>
 {% endif %}
+
+    {% include 'mymodal.html' %}
+
+
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>
@@ -34,7 +36,7 @@
                 "columns": [{"data": "day"}, {"data": "time"}, {
                     "render": function (data, type, row, meta) {
                         {% if current_user.is_admin == '1' %}
-                        return "<a href='/removetimeslot%3Ftimeslotid%3D" + row.id + "'>Remove</a>";
+                            return "<a href='/removetimeslot%3Ftimeslotid%3D" + row.id + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>";
                         {% else %}
                         return "";
                         {% endif %}

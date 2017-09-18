@@ -12,7 +12,7 @@ from flask_sqlalchemy import *
 from pulp import *
 from sqlalchemy.orm import joinedload
 
-from forms import LoginForm
+from forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
 # DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
@@ -21,9 +21,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database54.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database55.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -259,25 +259,34 @@ class Subject(db.Model):
             averageattendance = 0
         return round(averageattendance,2)
 
+    def view_subject_template(self, msg=""):
+        return render_template("subject.html", subject=self, students=self.students,
+                               tutor=self.tutor, tutors=get_tutors(),
+                               classes=self.classes, attendees=get_attendees_for_subject(self.subcode),
+                               msg=msg, times=find_possible_times(self.subcode),
+                               timeslots=get_timeslots(),
+                               timetabledclasses=self.timetabledclasses)
+
 class Student(db.Model):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
     studentcode = db.Column(db.String(50), nullable=False)
-    firstname = db.Column(db.String(50), nullable=False)
-    lastname = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(50), nullable=True)
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
     timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable,
                                         backref=db.backref('students'))
-    def __init__(self, studentcode, firstname, lastname, year, studyperiod):
+    university = db.Column(db.String(50))
+    college = db.Column(db.String(50))
+    email = db.Column(db.String(50))
+
+    def __init__(self, studentcode, name, year, studyperiod, email=""):
         self.studentcode = studentcode
-        self.firstname = firstname
-        self.lastname = lastname
-        self.name = firstname + " " + lastname
+        self.name = name
         self.year = year
         self.studyperiod = studyperiod
+        self.email = email
 
 
 class Timetable(db.Model):
@@ -309,10 +318,12 @@ class Tutor(db.Model):
     classes = db.relationship("Tutorial", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
     userid = db.Column(db.Integer, db.ForeignKey('users.id'))
     user = db.relationship("User", backref=db.backref('tutor',uselist=False))
-    def __init__(self, name, year, studyperiod):
+
+    def __init__(self, name, year, studyperiod, email=""):
         self.name = name
         self.year = year
         self.studyperiod = studyperiod
+        self.email = email
 
     def get_teaching_times(self):
         teachingtimes = []
@@ -341,6 +352,13 @@ class TimetabledClass(db.Model):
         self.tutorid = tutorid
 
 
+class Room(db.Model):
+    __tablename__ = 'rooms'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    projector = db.Column(db.Boolean)
+    building = db.Column(db.String(50))
+
 class Timeslot(db.Model):
     __tablename__ = 'timeslots'
     id = db.Column(db.Integer, primary_key=True)
@@ -351,13 +369,16 @@ class Timeslot(db.Model):
     daynumeric = db.Column(db.String(50), nullable=False)
     time = db.Column(db.String(50), nullable=False)
     timetabledclasses = db.relationship("TimetabledClass", backref = db.backref('timeslot'),single_parent=True,cascade ='all,delete-orphan')
-    def __init__(self, studyperiod, year, timetable, day, time):
+    preferredtime = db.Column(db.Boolean)
+
+    def __init__(self, studyperiod, year, timetable, day, time, preferredtime=True):
         self.studyperiod = studyperiod
         self.year = year
         self.timetable = timetable
         self.day = day
         self.daynumeric = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(day)
         self.time = time
+        self.preferredtime = preferredtime
 
 
 class Tutorial(db.Model):
@@ -369,7 +390,7 @@ class Tutorial(db.Model):
     year = db.Column(db.Integer, nullable=False)
     studyperiod = db.Column(db.String(50), nullable=False)
     attendees = db.relationship("Student", secondary=stuattendance)
-
+    datetime = db.Column(db.DateTime)
     def __init__(self, subjectid, tutorid, week, year, studyperiod):
         self.subjectid = subjectid
         self.tutorid = tutorid
@@ -466,7 +487,8 @@ def viewclashreport():
 @app.route('/users')
 @admin_permission.require()
 def view_users():
-    return render_template('viewusers.html')
+    form = LoginForm()
+    return render_template('viewusers.html', form=form)
 
 @app.route('/tutoravailability')
 @admin_permission.require()
@@ -567,9 +589,18 @@ def view_timetable():
     return render_template('viewtimetable.html')
 
 
-@app.route('/timeslots')
+@app.route('/timeslots', methods=['GET', 'POST'])
+@login_required
 def view_timeslots():
-    return render_template('viewtimeslots.html')
+    form = TimeslotForm()
+    if request.method == 'GET':
+        return render_template('viewtimeslots.html', form=form)
+    else:
+        if form.validate_on_submit():
+            day = form.day.data
+            time = form.time.data
+            add_timeslot(day, time)
+        return render_template('viewtimeslots.html', form=form)
 
 
 @app.route('/deletetutorial?tutorialid=<tutorialid>')
@@ -770,11 +801,25 @@ def delete_all_classes():
                                                         timetable=get_current_timetable()).all()
     return "Done"
 
-@app.route('/subjects')
+
+@app.route('/subjects', methods=['GET', 'POST'])
 @login_required
 def view_subjects():
-    return render_template('subjects.html')
-
+    form = AddSubjectForm()
+    if request.method == 'GET':
+        return render_template('subjects.html', form=form)
+    else:
+        if form.validate_on_submit() and int(current_user.is_admin) == 1:
+            subname = form.subname.data
+            subcode = form.subcode.data
+            if Subject.query.filter_by(subcode=subcode, year=get_current_year(),
+                                       studyperiod=get_current_studyperiod()).first() is None:
+                sub = Subject(subcode=subcode, subname=subname, studyperiod=get_current_studyperiod(),
+                              year=get_current_year())
+                db.session.add(sub)
+                db.session.commit()
+            msg = "Record successfully added"
+            return redirect("/subjects")
 
 @app.route('/updatesubjectrepeats', methods=['POST'])
 def update_subject_repeats():
@@ -1109,40 +1154,13 @@ def viewstudents_ajax():
     return '{ "data" : ' + data + '}'
 
 
-@app.route('/addsubject', methods=['GET', 'POST'])
-@admin_permission.require()
-def add_subject():
-    if request.method == 'GET':
-        return redirect('/subjects')
-    elif request.method == 'POST':
-        subname = request.form['subname']
-        subcode = request.form['subcode']
-        if Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                   studyperiod=get_current_studyperiod()).first() is None:
-            sub = Subject(subcode=subcode, subname=subname, studyperiod=get_current_studyperiod(),
-                          year=get_current_year())
-            db.session.add(sub)
-            db.session.commit()
-        msg = "Record successfully added"
-        return redirect("/subjects")
-
-
-@app.route('/addtimeslot', methods=['GET', 'POST'])
-@admin_permission.require()
-def add_timeslot():
-    if request.method == 'GET':
-        return redirect('/timeslots')
-    else:
-        day = request.form['day']
-        time = request.form['time']
-        if Timeslot.query.filter_by(year=get_current_year(), timetable=get_current_timetable(),
-                                    studyperiod=get_current_studyperiod(), day=day, time=time).first() is None:
-            timeslot = Timeslot(studyperiod=get_current_studyperiod(), year=get_current_year(),
-                                timetable=get_current_timetable(), day=day, time=time)
-            db.session.add(timeslot)
-            db.session.commit()
-
-        return redirect("/timeslots")
+def add_timeslot(day, time):
+    if Timeslot.query.filter_by(year=get_current_year(), timetable=get_current_timetable(),
+                                studyperiod=get_current_studyperiod(), day=day, time=time).first() is None:
+        timeslot = Timeslot(studyperiod=get_current_studyperiod(), year=get_current_year(),
+                            timetable=get_current_timetable(), day=day, time=time)
+        db.session.add(timeslot)
+        db.session.commit()
 
 
 @app.route('/subject?subcode=<subcode>')
@@ -1150,7 +1168,7 @@ def add_timeslot():
 def view_subject(subcode):
     subject = get_subject(subcode)
     if current_user.is_admin == '1' or current_user.tutor == subject.tutor:
-        return view_subject_template(subcode)
+        return subject.view_subject_template()
     else:
         return redirect('/')
 
@@ -1173,7 +1191,7 @@ def remove_tutor(tutorid):
     db.session.delete(tut)
     db.session.commit()
     msg = "Completed Successfully"
-    return redirect("/viewtutors")
+    return redirect("/tutors")
 
 
 
@@ -1183,18 +1201,44 @@ def remove_timeslot(timeslotid):
     timeslot = Timeslot.query.get(timeslotid)
     db.session.delete(timeslot)
     db.session.commit()
-    return redirect("/viewtimeslots")
+    return redirect("/timeslots")
 
-@app.route('/viewtutors')
+
+@app.route('/tutors', methods=['GET', 'POST'])
 @login_required
 def view_tutors():
-    return render_template('viewtutors.html', rows=get_tutors())
+    form = NameForm()
+    if request.method == 'GET':
+        return render_template('viewtutors.html', rows=get_tutors(), form=form)
+    else:
+        if form.validate_on_submit():
+            name = form.name.data
+            email = form.email.data
+            year = get_current_year()
+            studyperiod = get_current_studyperiod()
+            if Tutor.query.filter_by(name=name, year=year,
+                                     studyperiod=studyperiod).first() is None:
+                tut = Tutor(name=name, year=year,
+                            studyperiod=studyperiod, email=email)
+                db.session.add(tut)
+                db.session.commit()
+            msg = "Record successfully added"
+        return redirect("/tutors")
 
 
-@app.route('/viewstudents')
+@app.route('/students', methods=['GET', 'POST'])
 @login_required
 def view_students():
-    return render_template('viewstudents.html', rows=get_students())
+    form = StudentForm()
+    if request.method == 'GET':
+        return render_template('viewstudents.html', rows=get_students(), form=form)
+    elif request.method == 'POST':
+        if form.validate_on_submit():
+            name = form.name.data
+            studentcode = form.studentcode.data
+            email = form.email.data
+            add_student(name=name, studentcode=studentcode, email=email)
+        return redirect('/students')
 
 
 @app.route('/viewstudent?studentcode=<studentcode>')
@@ -1223,26 +1267,6 @@ def view_tutor(tutorid):
         return view_tutor_template(tutorid)
     else:
         return redirect('/')
-
-
-@app.route('/addtutor', methods=['GET', 'POST'])
-@admin_permission.require()
-def add_tutor():
-    if request.method == 'GET':
-        return redirect('viewtutors')
-    elif request.method == 'POST':
-
-        name = request.form['name'].strip()
-        year = get_current_year()
-        studyperiod = get_current_studyperiod()
-        if Tutor.query.filter_by(name=name, year=year,
-                                 studyperiod=studyperiod).first() is None:
-            tut = Tutor(name=name, year=year,
-                        studyperiod=studyperiod)
-            db.session.add(tut)
-            db.session.commit()
-        msg = "Record successfully added"
-        return redirect("/viewtutors")
 
 
 @app.route('/uploadstudentdata')
@@ -1308,13 +1332,6 @@ def get_subject(subcode):
                                    studyperiod=get_current_studyperiod()).first()
 
 
-def view_subject_template(subcode, msg=""):
-    return render_template("subject.html", rows=get_subject(subcode), students=get_subject_and_students(subcode),
-                           tutor=get_subject_and_tutor(subcode), tutors=get_tutors(),
-                           classes=get_classes_for_subject(subcode), attendees=get_attendees_for_subject(subcode),
-                           msg=msg, subject=get_subject(subcode), times=find_possible_times(subcode),
-                           timeslots=get_timeslots(),
-                           timetabledclasses=get_timetabled_classes(subcode))
 
 
 def get_min_max_week():
@@ -1333,6 +1350,16 @@ def get_classes_for_subject(subcode):
     results = Tutorial.query.filter_by(subjectid=sub.id, year=get_current_year(),
                                     studyperiod=get_current_studyperiod()).all()
     return sorted(results, key=attrgetter('week'))
+
+
+def add_student(name, studentcode, email):
+    print("Adding Student " + name)
+    year = get_current_year()
+    studyperiod = get_current_studyperiod()
+    if Student.query.filter_by(year=year, studyperiod=studyperiod, studentcode=studentcode).first() is None:
+        student = Student(name=name, email=email, studentcode=studentcode)
+        db.session.add(student)
+        db.session.commit()
 
 
 def get_timetabled_classes(subcode):
@@ -1431,8 +1458,8 @@ def populate_students(filename):
         if row['Study Period'] == studyperiod:
             if Student.query.filter_by(studentcode=str(int(row["Student Id"])), year=year,
                                        studyperiod=studyperiod).first() == None:
-                student = Student(studentcode=str(int(row["Student Id"])), firstname=row["Given Name"],
-                                  lastname=row['Family Name'], year=year, studyperiod=studyperiod)
+                student = Student(studentcode=str(int(row["Student Id"])),
+                                  name=row["Given Name"] + " " + row["Family Name"], year=year, studyperiod=studyperiod)
                 db.session.add(student)
                 db.session.commit()
             if Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
@@ -1441,8 +1468,8 @@ def populate_students(filename):
                                   subname=row["Component Study Package Title"], year=year, studyperiod=studyperiod)
                 db.session.add(subject)
                 db.session.commit()
-            student = Student.query.filter_by(studentcode=str(int(row["Student Id"])), firstname=row["Given Name"],
-                                              lastname=row['Family Name'], year=year,
+            student = Student.query.filter_by(studentcode=str(int(row["Student Id"])),
+                                              name=row["Given Name"] + " " + row["Family Name"], year=year,
                                               studyperiod=studyperiod).first()
             subject = Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
                                               studyperiod=studyperiod).first()
