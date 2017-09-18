@@ -2,6 +2,7 @@
 
 {% block content %}
     {% if current_user.is_admin == '1' %}
+        <h1>Dashboard</h1>
     <main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
         <section class="row text-center placeholders">
             <div class="col-6 col-sm-4 placeholder">
@@ -57,10 +58,15 @@
                 dataType: 'json',
                 success: function (data) {
                     for (var k =0; k < Object.keys(data).length;k++) {
-                        var key = "Week " + (k+1)
-                        labelsline.push(key);
-                        dataline.push(Math.round(data[key]['Attendance Rate']));
+                        var key = Object.keys(data)[k]
+                        if (data[key]) {
+                            labelsline.push(key);
+                            dataline.push(Math.round(data[key]["Attendance Rate"]));
+                        }
                     };
+                    console.log(data)
+                    console.log(labelsline)
+                    console.log(dataline)
                     drawAttendanceChart();
                 }
             });
@@ -73,9 +79,11 @@
                 dataType: 'json',
                 success: function (data) {
                     for (var k =0; k < Object.keys(data).length;k++) {
-                        var key = "Week " + (k+1)
+                        var key = Object.keys(data)[k]
+                        if (data[key]) {
                         labelsroll.push(key);
-                        dataroll.push(Math.round(data[key]['Roll Marking']));
+                            dataroll.push(Math.round(data[key]['Roll Marking']));
+                        }
                     };
                     drawRollMarkingChart();
                 }

@@ -21,9 +21,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database53.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database54.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -631,6 +631,13 @@ def add_timetabledclass_to_subject(subcode):
 @app.route('/admin')
 @admin_permission.require()
 def admin():
+    print('threads:', len(executor._threads))
+    print()
+    print('Estimated Pending Work Queue:')
+    for num, item in enumerate(executor._work_queue.queue):
+        print('{}\t{}\t{}\t{}'.format(
+            num + 1, item.fn, item.args, item.kwargs,
+        ))
     return render_template('admin.html', admin=getadmin())
 
 
@@ -687,10 +694,11 @@ def remove_timetabled_class(timetabledclassid):
     subject = TimetabledClass.query.get(timetabledclass.subjectid)
     db.session.delete(timetabledclass)
     db.session.commit()
-    if len(subject.timetabledclasses) == 1:
-        for tutorial in subject.timetabledclasses:
-            tutorial.students = subject.students
-            db.session.commit()
+    if subject.timetabledclasses is not None:
+        if len(subject.timetabledclasses) == 1:
+            for tutorial in subject.timetabledclasses:
+                tutorial.students = subject.students
+                db.session.commit()
     return redirect("/timetable")
 
 
@@ -874,6 +882,7 @@ def get_roll_marking_ajax():
             data[key]['Roll Marking'] =0
         else:
             data[key]['Roll Marking'] = 100*round(len(tutorials)/len(alltutorials),2)
+    print(data)
     return json.dumps(data)
 
 
@@ -1754,6 +1763,7 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
     model += (100*lpSum(studentsum[(i)] for i in STUDENTS) + lpSum(num930classes[(i)] for i in TIMES) + 500*lpSum(daysforteacherssum[(m)] for m in TEACHERS))
     print("Solving Model")
     model.solve()
+    print("Status:", LpStatus[model.status])
     print("Complete")
     for j in SUBJECTS:
         subject = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
@@ -1781,7 +1791,7 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                                                               studyperiod=get_current_studyperiod(), name=i).first()
                             timetabledclass.students.append(student)
                             db.session.commit()
-
+    print("Status:", LpStatus[model.status])
     return model.objective.value()
 
 
