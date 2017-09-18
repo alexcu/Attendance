@@ -21,9 +21,9 @@ app = Flask(__name__)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database55.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database56.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -259,13 +259,13 @@ class Subject(db.Model):
             averageattendance = 0
         return round(averageattendance,2)
 
-    def view_subject_template(self, msg=""):
+    def view_subject_template(self, form,msg=""):
         return render_template("subject.html", subject=self, students=self.students,
                                tutor=self.tutor, tutors=get_tutors(),
                                classes=self.classes, attendees=get_attendees_for_subject(self.subcode),
                                msg=msg, times=find_possible_times(self.subcode),
                                timeslots=get_timeslots(),
-                               timetabledclasses=self.timetabledclasses)
+                               timetabledclasses=self.timetabledclasses, form = form)
 
 class Student(db.Model):
     __tablename__ = 'students'
@@ -330,6 +330,12 @@ class Tutor(db.Model):
         for timeclass in self.timetabledclasses:
             teachingtimes.append(timeclass.timeslot)
         return teachingtimes
+
+    def view_tutor_template(self, form,msg="", msg2="", msg3=""):
+        return render_template('tutor.html', tutor=self, eligiblesubjects=get_subjects(),
+                               subjects=self.subjects, timeslots=get_timeslots(),
+                               availability=self.availabletimes,
+                               msg=msg, msg2=msg2, msg3=msg3, form = form)
 
 
 class TimetabledClass(db.Model):
@@ -710,7 +716,7 @@ def get_my_classes():
 
 @app.route('/myprofile')
 def view_my_profile():
-    return view_tutor_template(current_user.tutor.id)
+    return current_user.tutor.view_tutor_template()
 
 @app.route('/addtutortosubjecttimetabler?subcode=<subcode>', methods=['GET', 'POST'])
 def add_tutor_to_subject_timetabler(subcode):
@@ -820,6 +826,7 @@ def view_subjects():
                 db.session.commit()
             msg = "Record successfully added"
             return redirect("/subjects")
+        return render_template('subjects.html', form=form)
 
 @app.route('/updatesubjectrepeats', methods=['POST'])
 def update_subject_repeats():
@@ -1163,12 +1170,20 @@ def add_timeslot(day, time):
         db.session.commit()
 
 
-@app.route('/subject?subcode=<subcode>')
+@app.route('/subject?subcode=<subcode>', methods = ['GET', 'POST'])
 @login_required
 def view_subject(subcode):
     subject = get_subject(subcode)
+    form = AddSubjectForm(obj=subject)
     if current_user.is_admin == '1' or current_user.tutor == subject.tutor:
-        return subject.view_subject_template()
+        if request.method == 'GET':
+            return subject.view_subject_template(form)
+        elif request.method == 'POST':
+            if form.validate_on_submit():
+                subject.subcode = form.subcode.data
+                subject.subname = form.subname.data
+                db.session.commit()
+            return redirect(url_for('view_subject', subcode = subcode))
     else:
         return redirect('/')
 
@@ -1209,7 +1224,7 @@ def remove_timeslot(timeslotid):
 def view_tutors():
     form = NameForm()
     if request.method == 'GET':
-        return render_template('viewtutors.html', rows=get_tutors(), form=form)
+        return render_template('viewtutors.html', form=form)
     else:
         if form.validate_on_submit():
             name = form.name.data
@@ -1223,7 +1238,8 @@ def view_tutors():
                 db.session.add(tut)
                 db.session.commit()
             msg = "Record successfully added"
-        return redirect("/tutors")
+            return redirect("/tutors")
+        return render_template('viewtutors.html',form=form)
 
 
 @app.route('/students', methods=['GET', 'POST'])
@@ -1231,14 +1247,15 @@ def view_tutors():
 def view_students():
     form = StudentForm()
     if request.method == 'GET':
-        return render_template('viewstudents.html', rows=get_students(), form=form)
+        return render_template('viewstudents.html', form=form)
     elif request.method == 'POST':
         if form.validate_on_submit():
             name = form.name.data
             studentcode = form.studentcode.data
             email = form.email.data
             add_student(name=name, studentcode=studentcode, email=email)
-        return redirect('/students')
+            return redirect('/students')
+        return render_template('viewstudents.html',  form=form)
 
 
 @app.route('/viewstudent?studentcode=<studentcode>')
@@ -1260,11 +1277,20 @@ def run_timetable_program():
     preparetimetable()
     return "Done"
 
-@app.route('/viewtutor?tutorid=<tutorid>')
+@app.route('/viewtutor?tutorid=<tutorid>',methods = ['GET', 'POST'])
 @login_required
 def view_tutor(tutorid):
+    tutor = Tutor.query.get(tutorid)
+    form = NameForm(obj=tutor)
     if current_user.is_admin == '1' or current_user.tutor.id == tutorid:
-        return view_tutor_template(tutorid)
+        if request.method=='GET':
+            return tutor.view_tutor_template(form)
+        elif request.method == 'POST':
+            if form.validate_on_submit():
+                tutor.name = form.name.data
+                tutor.email = form.email.data
+                db.session.commit()
+            return redirect(url_for('view_tutor',tutorid = tutorid))
     else:
         return redirect('/')
 
@@ -1379,13 +1405,6 @@ def checkboxvalue(checkbox):
         return 1
     else:
         return 0
-
-
-def view_tutor_template(tutorid, msg="", msg2="", msg3=""):
-    return render_template('tutor.html', tutor=get_tutor(tutorid), eligiblesubjects=get_subjects(),
-                           subjects=get_tutor_and_subjects(tutorid), timeslots=get_timeslots(),
-                           availability=get_tutor_availability(tutorid),
-                           msg=msg, msg2=msg2, msg3=msg3)
 
 
 def get_student_and_subjects(studentcode):

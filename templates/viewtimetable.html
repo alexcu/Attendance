@@ -19,7 +19,7 @@
         </div>
     </div>
     {% if current_user.is_admin == '1' %}
-    <button onclick="deleteallclasses()" class="button-delete">Delete All Classes</button>
+    <button onclick="deleteallclasses()" class="button-delete delete" data-confirm='Are you sure you want to delete all timetabled classes?'>Delete All Classes</button>
     {% endif %}
 
 
