@@ -277,9 +277,7 @@ def add_timetabledclass_to_subject(subcode):
     if TimetabledClass.query.filter_by(studyperiod=get_current_studyperiod(), year=get_current_year(),
                                        subjectid=subject.id, timetable=timetable, time=timeslot.id,
                                        tutorid=subject.tutor.id).first() is None:
-        timetabledclass = TimetabledClass(studyperiod=get_current_studyperiod(), year=get_current_year(),
-                                          subjectid=subject.id, timetable=timetable, time=timeslot.id,
-                                          tutorid=subject.tutor.id)
+        timetabledclass = TimetabledClass(subjectid=subject.id, timetable=timetable, time=timeslot.id,tutorid=subject.tutor.id)
         db.session.add(timetabledclass)
         db.session.commit()
         if len(subject.timetabledclasses) ==1:
@@ -418,8 +416,7 @@ def view_subjects():
             subcode = form.subcode.data
             if Subject.query.filter_by(subcode=subcode, year=get_current_year(),
                                        studyperiod=get_current_studyperiod()).first() is None:
-                sub = Subject(subcode=subcode, subname=subname, studyperiod=get_current_studyperiod(),
-                              year=get_current_year())
+                sub = Subject(subcode=subcode, subname=subname)
                 db.session.add(sub)
                 db.session.commit()
             msg = "Record successfully added"
@@ -505,8 +502,7 @@ def update_class_time_ajax():
 def create_new_class_ajax():
     subjectid = int(request.form['subjectid'])
     subject = Subject.query.get(subjectid)
-    tutorial = Tutorial(year=get_current_year(), studyperiod=get_current_studyperiod(), subjectid=subjectid,
-                     week = 3, tutorid=subject.tutor.id)
+    tutorial = Tutorial(subjectid=subjectid,week = 3, tutorid=subject.tutor.id)
     db.session.add(tutorial)
     db.session.commit()
     return json.dumps(tutorial.id)
@@ -766,8 +762,7 @@ def viewstudents_ajax():
 def add_timeslot(day, time):
     if Timeslot.query.filter_by(year=get_current_year(), timetable=get_current_timetable(),
                                 studyperiod=get_current_studyperiod(), day=day, time=time).first() is None:
-        timeslot = Timeslot(studyperiod=get_current_studyperiod(), year=get_current_year(),
-                            timetable=get_current_timetable(), day=day, time=time)
+        timeslot = Timeslot(timetable=get_current_timetable(), day=day, time=time)
         db.session.add(timeslot)
         db.session.commit()
 
@@ -831,12 +826,9 @@ def view_tutors():
         if form.validate_on_submit():
             name = form.name.data
             email = form.email.data
-            year = get_current_year()
-            studyperiod = get_current_studyperiod()
-            if Tutor.query.filter_by(name=name, year=year,
-                                     studyperiod=studyperiod).first() is None:
-                tut = Tutor(name=name, year=year,
-                            studyperiod=studyperiod, email=email)
+            if Tutor.query.filter_by(name=name, year=get_current_year(),
+                                     studyperiod=get_current_studyperiod()).first() is None:
+                tut = Tutor(name=name,email=email)
                 db.session.add(tut)
                 db.session.commit()
             msg = "Record successfully added"

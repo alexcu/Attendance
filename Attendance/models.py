@@ -6,26 +6,37 @@ from operator import attrgetter
 from pandas import ExcelFile, isnull
 from datetime import time
 
-'''
-This is the basic User class that is used by Flask-Login and Flask-Principal.
 
-By default it creates a non-admin user.
-'''
-class User(db.Model):
-    __tablename__ = "users"
+class Base(db.Model):
+    '''
+    I'm using this class to house the common database columns that come up again and again when defining these things.
+    All of my classes can now extend Base and call its constructor.
+    '''
     id = db.Column('id', db.Integer, primary_key=True)
+    year = db.Column('year', db.Integer, nullable=False)
+    studyperiod = db.Column('studyperiod', db.String(20), nullable=False)
+
+    def __init__(self):
+        self.year = get_current_year()
+        self.studyperiod = get_current_studyperiod()
+
+class User(Base):
+    '''
+    This is the basic User class that is used by Flask-Login and Flask-Principal.
+
+    By default it creates a non-admin user.
+    '''
+    __tablename__ = "users"
     username = db.Column('username', db.String(40), unique=True, index=True, nullable=False)
     password = db.Column('password', db.String(50), nullable=False)
     email = db.Column('email', db.String(50))
     is_admin = db.Column('is_admin', db.String(10))
-    year = db.Column('year', db.Integer, nullable = False)
-    studyperiod = db.Column('studyperiod',db.String(20), nullable=False)
     def __init__(self, username, password):
+        super().__init__()
         self.username = username
         self.password = bcrypt.generate_password_hash(password).decode('utf-8')
         self.is_admin = False
-        self.year = get_current_year()
-        self.studyperiod = get_current_studyperiod()
+
     def is_authenticated(self):
         return True
 
@@ -44,10 +55,12 @@ class User(db.Model):
 
 ####MODELS
 
-'''
-This is the Admin table where we keep key value pairs for certain things like year, studyperiod, timetable etc.
-'''
+
 class Admin(db.Model):
+    '''
+    This is the Admin table where we keep key value pairs for certain things like year, studyperiod, timetable etc.
+    It specifically does not inherit from Base as I do not want a year/studyperiod tag on this table.
+    '''
     __tablename__ = 'admin'
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True, nullable=False)
@@ -57,42 +70,6 @@ class Admin(db.Model):
         self.key = key
         self.value = value
 
-'''
-class SubStuMap(object):
-    def __init__(self, student_id, subject_id):
-        self.student_id = student_id
-        self.subject_id = subject_id
-
-
-class SubTutMap(object):
-    def __init__(self, tutor_id, subject_id):
-        self.tutor_id = tutor_id
-        self.subject_id = subject_id
-
-
-class StuAttendance(object):
-    def __init__(self, class_id, student_id):
-        self.class_id = class_id
-        self.student_id = student_id
-
-
-class StuTimetable(object):
-    def __init__(self, timetabledclass_id, student_id):
-        self.timetabledclass_id = timetabledclass_id
-        self.student_id = student_id
-
-
-class TimeslotClasses(object):
-    def __init__(self, timeslot_id, timetabledclass_id):
-        self.timetabledclass_id = timetabledclass_id
-        self.timeslot_id = timeslot_id
-
-
-class TutorAvailability(object):
-    def __init__(self, tutor_id, timeslot_id):
-        self.tutor_id = tutor_id
-        self.timeslot_id = timeslot_id
-'''
 '''
 ##Association tables
 Association tables for the many-to-many relationships. These are the secondaries on db.relationship.
@@ -136,21 +113,17 @@ tutoravailabilitymap = db.Table('tutoravailabilitymap',
 '''
 This is the subject class that contains each subject for each year/studyperiod
 '''
-class Subject(db.Model):
+class Subject(Base):
     __tablename__ = 'subjects'
-    id = db.Column(db.Integer, primary_key=True)
     subcode = db.Column(db.String(50), nullable=False)
     subname = db.Column(db.String(50), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
-    studyperiod = db.Column(db.String(50), nullable=False)
     classes = db.relationship("Tutorial", backref=db.backref('subject'), single_parent=True, cascade='all,delete-orphan')
     repeats = db.Column(db.Integer,default = 1)
     timetabledclasses = db.relationship("TimetabledClass",single_parent=True, cascade = 'all,delete-orphan')
-    def __init__(self, subcode, subname, year, studyperiod,repeats = 1):
+    def __init__(self, subcode, subname, repeats = 1):
+        super().__init__()
         self.subcode = subcode
         self.subname = subname
-        self.year = year
-        self.studyperiod = studyperiod
         self.repeats = repeats
 
 
@@ -204,13 +177,10 @@ class Subject(db.Model):
                                timeslots=get_timeslots(),
                                timetabledclasses=self.timetabledclasses, form = form)
 
-class Student(db.Model):
+class Student(Base):
     __tablename__ = 'students'
-    id = db.Column(db.Integer, primary_key=True)
     studentcode = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(50), nullable=True)
-    year = db.Column(db.Integer, nullable=False)
-    studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
     timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable,
                                         backref=db.backref('students'))
@@ -218,11 +188,10 @@ class Student(db.Model):
     college = db.Column(db.String(50))
     email = db.Column(db.String(50))
 
-    def __init__(self, studentcode, name, year, studyperiod, email=""):
+    def __init__(self, studentcode, name, email=""):
+        super().__init__()
         self.studentcode = studentcode
         self.name = name
-        self.year = year
-        self.studyperiod = studyperiod
         self.email = email
 
     def view_student_template(self, msg=""):
@@ -230,27 +199,23 @@ class Student(db.Model):
                                subjects=self.subjects, msg=msg)
 
 
-class Timetable(db.Model):
+class Timetable(Base):
     __tablename__ = 'timetable'
     id = db.Column(db.Integer, primary_key=True)
     studyperiod = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
     key = db.Column(db.String(50), nullable=True)
     timeslots = db.relationship("Timeslot", single_parent = True, cascade = 'all,delete-orphan')
-    def __init__(self, year, studyperiod, key=""):
-        self.studyperiod = studyperiod
-        self.year = year
+    def __init__(self, key=""):
+        super().__init__()
         self.key = key
 
 
 
 
-class Tutor(db.Model):
+class Tutor(Base):
     __tablename__ = 'tutors'
-    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
-    studyperiod = db.Column(db.String(50), nullable=False)
     subjects = db.relationship("Subject", secondary=subtutmap,
                                backref=db.backref('tutor', uselist=False,lazy='joined'))
     availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap,
@@ -260,10 +225,9 @@ class Tutor(db.Model):
     userid = db.Column(db.Integer, db.ForeignKey('users.id'))
     user = db.relationship("User", backref=db.backref('tutor',uselist=False))
 
-    def __init__(self, name, year, studyperiod, email=""):
+    def __init__(self, name, email=""):
+        super().__init__()
         self.name = name
-        self.year = year
-        self.studyperiod = studyperiod
         self.email = email
         self.generate_user_for_tutor()
 
@@ -286,20 +250,24 @@ class Tutor(db.Model):
             db.session.add(user)
             user.tutor = self
             db.session.commit()
-class TimetabledClass(db.Model):
+
+
+class TimetabledClass(Base):
+    '''
+    This class represents a class on the timetable - for example, Linear Algebra is timetabled to be at Wednesday 7:30pm.
+
+    When the timetable solver has finished - it inputs timetabledclasses.
+
+    '''
     __tablename__ = 'timetabledclass'
-    id = db.Column(db.Integer, primary_key=True)
-    studyperiod = db.Column(db.String(50), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
     subject = db.relationship("Subject")
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
 
-    def __init__(self, studyperiod, year, subjectid, timetable, time, tutorid):
-        self.studyperiod = studyperiod
-        self.year = year
+    def __init__(self, subjectid, timetable, time, tutorid):
+        super().__init__()
         self.subjectid = subjectid
         self.timetable = timetable
         self.time = time
@@ -313,11 +281,8 @@ class Room(db.Model):
     projector = db.Column(db.Boolean)
     building = db.Column(db.String(50))
 
-class Timeslot(db.Model):
+class Timeslot(Base):
     __tablename__ = 'timeslots'
-    id = db.Column(db.Integer, primary_key=True)
-    studyperiod = db.Column(db.String(50), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     day = db.Column(db.String(50), nullable=False)
     daynumeric = db.Column(db.String(50), nullable=False)
@@ -325,9 +290,8 @@ class Timeslot(db.Model):
     timetabledclasses = db.relationship("TimetabledClass", backref = db.backref('timeslot'),single_parent=True,cascade ='all,delete-orphan')
     preferredtime = db.Column(db.Boolean)
 
-    def __init__(self, studyperiod, year, timetable, day, time, preferredtime=True):
-        self.studyperiod = studyperiod
-        self.year = year
+    def __init__(self, timetable, day, time, preferredtime=True):
+        super().__init__()
         self.timetable = timetable
         self.day = day
         self.daynumeric = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(day)
@@ -335,24 +299,21 @@ class Timeslot(db.Model):
         self.preferredtime = preferredtime
 
 
-class Tutorial(db.Model):
+class Tutorial(Base):
+    '''
+    This class is the physical tutorial that occurs 12 weeks in the semester. For instance - this is the tutorial that occurs on the
+    30th October 2017.
+    '''
     __tablename__ = 'tutorials'
-    id = db.Column(db.Integer, primary_key=True)
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
     week = db.Column(db.Integer, nullable=False)
-    year = db.Column(db.Integer, nullable=False)
-    studyperiod = db.Column(db.String(50), nullable=False)
     attendees = db.relationship("Student", secondary=stuattendance)
     datetime = db.Column(db.DateTime)
-    def __init__(self, subjectid, tutorid, week, year, studyperiod):
+    def __init__(self, subjectid, tutorid, week):
         self.subjectid = subjectid
         self.tutorid = tutorid
         self.week = week
-        self.year = year
-        self.studyperiod = studyperiod
-
-
 
 
 ##### MODELS HELPER FUNCTIONS
@@ -530,13 +491,13 @@ def populate_students(filename):
             if Student.query.filter_by(studentcode=str(int(row["Student Id"])), year=year,
                                        studyperiod=studyperiod).first() == None:
                 student = Student(studentcode=str(int(row["Student Id"])),
-                                  name=row["Given Name"] + " " + row["Family Name"], year=year, studyperiod=studyperiod)
+                                  name=row["Given Name"] + " " + row["Family Name"])
                 db.session.add(student)
                 db.session.commit()
             if Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
                                        studyperiod=studyperiod).first() == None:
                 subject = Subject(subcode=row["Component Study Package Code"],
-                                  subname=row["Component Study Package Title"], year=year, studyperiod=studyperiod)
+                                  subname=row["Component Study Package Title"])
                 db.session.add(subject)
                 db.session.commit()
             student = Student.query.filter_by(studentcode=str(int(row["Student Id"])),
@@ -544,10 +505,8 @@ def populate_students(filename):
                                               studyperiod=studyperiod).first()
             subject = Subject.query.filter_by(subcode=row["Component Study Package Code"], year=year,
                                               studyperiod=studyperiod).first()
-            if db.session.query(substumap).filter(substumap.c.student_id == student.id,
-                                                  substumap.c.subject_id == subject.id).first() is None:
-                mapping = SubStuMap(student_id=student.id, subject_id=subject.id)
-                db.session.add(mapping)
+            if subject not in student.subjects:
+                student.subjects.append(subject)
                 db.session.commit()
 
 
@@ -555,7 +514,7 @@ def populate_timetabledata(filename):
     year = get_current_year()
     studyperiod = get_current_studyperiod()
     if Timetable.query.filter_by(year=year, studyperiod=studyperiod).first() is None:
-        timetable = Timetable(year, studyperiod, "default")
+        timetable = Timetable(key="default")
         db.session.add(timetable)
         db.session.commit()
     print("Timetable Created")
@@ -563,12 +522,12 @@ def populate_timetabledata(filename):
     df = xl.parse(xl.sheet_names[0])
     for index, row in df.iterrows():
         if Tutor.query.filter_by(year=year, studyperiod=studyperiod, name=row['x3']).first() is None:
-            tutor = Tutor(year=year, studyperiod=studyperiod, name=row['x3'])
+            tutor = Tutor(name=row['x3'])
             db.session.add(tutor)
             db.session.commit()
         tutor = Tutor.query.filter_by(year=year, studyperiod=studyperiod, name=row['x3']).first()
         if Subject.query.filter_by(year=year, studyperiod=studyperiod, subcode=row['x1']).first() is None:
-            subject = Subject(year=year, studyperiod=studyperiod, subcode=row['x1'])
+            subject = Subject(subcode=row['x1'])
             db.session.add(subject)
             db.session.commit()
         subject = Subject.query.filter_by(subcode=row['x1'], year=year, studyperiod=studyperiod).first()
@@ -578,7 +537,7 @@ def populate_timetabledata(filename):
         time2 = check_time(time2)
 
         if Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first() is None:
-            timeslot = Timeslot(year = get_current_year(), studyperiod = get_current_studyperiod(),day = day,time = time2,timetable=get_current_timetable())
+            timeslot = Timeslot(day = day,time = time2,timetable=get_current_timetable())
             db.session.add(timeslot)
             db.session.commit()
         timeslot = Timeslot.query.filter_by(year=year, studyperiod=studyperiod, day=day, time=time2).first()
@@ -586,7 +545,7 @@ def populate_timetabledata(filename):
 
         if TimetabledClass.query.filter_by(studyperiod=studyperiod, year=year, time=timeslot.id, subjectid=subject.id,
                                            timetable=timetable.id).first() is None:
-            timetabledclass = TimetabledClass(studyperiod=studyperiod, year=year, subjectid=subject.id,
+            timetabledclass = TimetabledClass(subjectid=subject.id,
                                               timetable=timetable.id, time=timeslot.id, tutorid=tutor.id)
             db.session.add(timetabledclass)
             db.session.commit()
@@ -594,12 +553,9 @@ def populate_timetabledata(filename):
                                                           subjectid=subject.id, timetable=timetable.id).first()
         for i in range(5, len(row)):
             if not isnull(row[i]):
-
                 student = Student.query.filter_by(year=year, studyperiod=studyperiod, name=row[i]).first()
-                if db.session.query(stutimetable).filter(stutimetable.c.student_id == student.id,
-                                                         stutimetable.c.timetabledclass_id == timetabledclass.id).first() is None:
-                    mapping = StuTimetable(student_id=student.id, timetabledclass_id=timetabledclass.id)
-                    db.session.add(mapping)
+                if timetabledclass not in student.timetabledclasses:
+                    student.timetabledclasses.append(timetabledclass)
                     db.session.commit()
 
 
@@ -615,7 +571,7 @@ def populate_availabilities(filename):
     df = xl.parse(xl.sheet_names[0])
     for index,row in df.iterrows():
         if Tutor.query.filter_by(name=row["Tutor"], year=year, studyperiod=studyperiod).first() is None:
-            tutor = Tutor(name=row["Tutor"], year=year, studyperiod=studyperiod)
+            tutor = Tutor(name=row["Tutor"])
             db.session.add(tutor)
             db.session.commit()
         tutor = Tutor.query.filter_by(name=row["Tutor"], year=year, studyperiod=studyperiod).first()
@@ -626,7 +582,7 @@ def populate_availabilities(filename):
             if keysplit[0] in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
                 if Timeslot.query.filter_by(year=year, studyperiod=studyperiod, timetable=timetable, day=keysplit[0],
                                             time=keysplit[1]).first() is None:
-                    timeslot = Timeslot(year=year, studyperiod=studyperiod, timetable=timetable, day=keysplit[0],
+                    timeslot = Timeslot(timetable=timetable, day=keysplit[0],
                                         time=keysplit[1])
                     db.session.add(timeslot)
                     db.session.commit()
@@ -646,14 +602,13 @@ def populate_tutors(filename):
     df = xl.parse(xl.sheet_names[0])
     for index, row in df.iterrows():
         if Tutor.query.filter_by(name=row['Tutor'], year=year, studyperiod=studyperiod).first() is None:
-            tutor = Tutor(name=row['Tutor'], year=year, studyperiod=studyperiod)
+            tutor = Tutor(name=row['Tutor'])
             db.session.add(tutor)
             db.session.commit()
 
         tutor = Tutor.query.filter_by(name=row['Tutor'], year=year, studyperiod=studyperiod).first()
         if Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first() is None:
-            subject = Subject(subcode=row["Subject Code"], subname=" ", year=year, studyperiod=studyperiod,
-                              repeats=row["Repeats"])
+            subject = Subject(subcode=row["Subject Code"], subname=" ", repeats=row["Repeats"])
             db.session.add(subject)
             db.session.commit()
         subject = Subject.query.filter_by(subcode=row["Subject Code"], year=year, studyperiod=studyperiod).first()
@@ -725,8 +680,7 @@ def add_class_to_db(week, subcode, attendees):
     subject = get_subject(subcode)
     if Tutorial.query.filter_by(week = week, subjectid=subject.id, year=get_current_year(),
                              studyperiod=get_current_studyperiod(), tutorid=tutor.id).first() == None:
-        specificclass = Tutorial(week = week, subjectid=subject.id, year=get_current_year(),
-                              studyperiod=get_current_studyperiod(), tutorid=tutor.id)
+        specificclass = Tutorial(week = week, subjectid=subject.id, tutorid=tutor.id)
         db.session.add(specificclass)
         db.session.commit()
         add_students_to_class(specificclass, attendees)
@@ -739,9 +693,8 @@ def add_class_to_db(week, subcode, attendees):
 def add_students_to_class(specificclass, attendees):
     for i in range(len(attendees)):
         student = get_student(attendees[i])
-        mapping = StuAttendance(class_id=specificclass.id, student_id=student.id)
-        db.session.add(mapping)
-    db.session.commit()
+        specificclass.attendees.append(student)
+        db.session.commit()
     return "Completed Successfully"
 
 
@@ -773,9 +726,9 @@ def linksubjectstudent(studentcode, subcode):
                                       studyperiod=get_current_studyperiod()).first()
     subject = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
                                       studyperiod=get_current_studyperiod()).first()
-    mapping = SubStuMap(student_id=student.id, subject_id=subject.id)
-    db.session.add(mapping)
-    db.session.commit()
+    if subject not in student.subjects:
+        student.subjects.append(subject)
+        db.session.commit()
     return "Linked Successfully."
 
 def get_users():
