@@ -1,11 +1,16 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
+from wtforms import StringField, PasswordField, SelectField
 from wtforms.validators import DataRequired, Email, Optional
 
 
 class NameForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     email = StringField('Email', validators=[Email(), Optional()])
+
+class EditTutorForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[Email(), Optional()])
+    user = SelectField('User', validators = [Optional()], coerce=int)
 
 
 class LoginForm(FlaskForm):

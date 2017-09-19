@@ -31,8 +31,8 @@
                     "type": 'GET'
                 },
                 "columns": [{"data": "studentcode"}, {
-                    "data": "firstname", "render": function (data, type, row, meta) {
-                        return "<a href='/viewstudent%3Fstudentcode%3D" + row.studentcode + "'>" + row.firstname + " " + row.lastname + "</a>";
+                    "data": "name", "render": function (data, type, row, meta) {
+                        return "<a href='/viewstudent%3Fstudentcode%3D" + row.studentcode + "'>" + row.name+"</a>";
                     }
                 }]
             });

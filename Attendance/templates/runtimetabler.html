@@ -106,7 +106,7 @@
                 },
                     {
                         "data": "addtutor", "render": function (data, type, row, meta) {
-                        return "<form action='/addtutortosubjecttimetabler%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'>{% for temptutor in tutors %} <option value={{ temptutor['id'] }}>{{ temptutor['name'] }} </option>{% endfor %} </select> <input type='submit' class='button' value='Add Tutor to Subject'/> </form>";
+                        return "<form action='/addtutortosubjecttimetabler%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'><option value=''>--Please Select a Tutor--</option>{% for temptutor in tutors %} <option value={{ temptutor['id'] }}>{{ temptutor['name'] }} </option>{% endfor %} </select> <input type='submit' class='button' value='Add Tutor to Subject'/> </form>";
                     }
                     }]
             });

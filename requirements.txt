@@ -3,9 +3,9 @@ pandas
 flask_bcrypt
 flask_sqlalchemy
 xlrd
-pulp
+PuLP
 flask_wtf
 wtforms
-gviz_api
 flask_login
 flask_principal
+sqlalchemy
