@@ -8,10 +8,15 @@
                 <thead>
                 <td>Student ID</td>
                 <td>Name</td>
+                <td></td>
                 </thead>
                 <tr>
                     <td>{{ student.studentcode }}</td>
                     <td>{{ student.name }}</td>
+                    <td>
+                        <button class="button" data-toggle="modal" data-target="#editModal">Edit Student Details
+                        </button>
+                    </td>
                 </tr>
             </table>
             <h1>Subjects this student takes:</h1>
@@ -96,7 +101,7 @@
         </div>
     </div>
     {% endif %}
-
+    {% include "mymodal.html" %}
     <script src="../static/js/Chart.bundle.js"></script>
     <script>
         var ctx = document.getElementById("StudentAttendanceRate");
@@ -113,8 +118,36 @@
                         attendancelabels.push(k);
                     } );
                     attendancelabels.sort(function(a,b) {
-                        a = parseInt(a.split(' ')[1])
-                        b = parseInt(b.split(' ')[1])
+                        a = parseInt(a.split(' ')[1]);
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        b = parseInt(b.split(' ')[1]);
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
                         return a-b
                     });
                     for(var k=0; k<attendancelabels.length; k++) {
@@ -126,9 +159,51 @@
         }
 
         function drawStudentAttendanceChart() {
-            console.log(attendancedata)
-            console.log(cumattendancedata)
-            console.log(attendancelabels)
+            console.log(attendancedata);
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            console.log(cumattendancedata);
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            console.log(attendancelabels);
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
             var myStudentAttendanceChart = new Chart(ctx, {
                 type: 'line',
                 data: {

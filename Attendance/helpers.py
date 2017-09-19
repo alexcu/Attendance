@@ -1,6 +1,9 @@
+from pulp import LpMinimize, LpProblem, LpVariable, lpSum, LpInteger, LpBinary, LpStatus
+from flask import render_template
 from Attendance import app, db, executor
 from Attendance.models import *
-from pulp import LpMinimize, LpProblem, LpVariable, lpSum, LpInteger, LpBinary, LpStatus
+import os
+
 
 #TIMETABLE CODE
 def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
@@ -208,3 +211,26 @@ def preparetimetable(addtonewtimetable=False):
     executor.submit(runtimetable,STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                        TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
     return render_template("viewtimetable.html")
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
+
+
+def upload(file):
+    if file and allowed_file(file.filename):
+        # Make the filename safe, remove unsupported chars
+        filename = file.filename
+        # Move the file form the temporal folder to
+        # the upload folder we setup
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        filename2 = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        return filename2
+
+
+def checkboxvalue(checkbox):
+    if (checkbox != None):
+        return 1
+    else:
+        return 0

@@ -1,15 +1,20 @@
 from concurrent.futures import ThreadPoolExecutor
+
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
 from flask_principal import Principal, RoleNeed, ActionNeed, Permission, identity_loaded
 from flask_sqlalchemy import *
 
-
-
 # DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database62.db'
+app.config.update(
+    SECRET_KEY='jemimaisababe'
+)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 principals = Principal(app, skip_static=True)
@@ -19,12 +24,7 @@ login_manager.init_app(app)
 # WINDOWS
 # app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
 # LINUX
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
-app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database59.db'
-app.config.update(
-    SECRET_KEY='jemimaisababe'
-)
+
 
 
 '''
@@ -102,7 +102,7 @@ if Admin.query.filter_by(key='studyperiod').first() == None:
     db.session.commit()
 
 if Admin.query.filter_by(key='timetable').first() is None:
-    timetable = Timetable(year=get_current_year(), studyperiod=get_current_studyperiod(), key="default")
+    timetable = Timetable(key="default")
     db.session.add(timetable)
     db.session.commit()
     timetableadmin = Admin(key='timetable', value=timetable.id)

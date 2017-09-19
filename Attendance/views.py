@@ -1,18 +1,18 @@
-from Attendance import app, bcrypt,login_manager, principals, admin_permission, user_permission, db, executor
-from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm
+import json
+
 from flask import request, render_template, redirect, current_app, url_for
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
-from Attendance.helpers import *
-from Attendance.models import *
-import json
-from pulp import *
 from sqlalchemy.orm import joinedload
 
+from Attendance import admin_permission
+from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
+    EditStudentForm
+from Attendance.helpers import *
+from Attendance.models import *
+
+
 ### APP ROUTES
-
-
-# Route that will process the file upload
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -54,15 +54,14 @@ def logout():
 @app.route('/uploadstudentdata', methods=['POST'])
 @admin_permission.require()
 def uploadstudentdata():
-    try:
-        filename2 = upload(request.files['file'])
-        populate_students(filename2)
-        msg = "Completed Successfully"
-    except:
-        msg = "There was an error with the upload, please try again"
+    filename2 = upload(request.files['file'])
+    populate_students(filename2)
+    # msg = "Completed Successfully"
+    # except:
+    #    msg = "There was an error with the upload, please try again"
         # Redirect the user to the uploaded_file route, which
         # will basicaly show on the browser the uploaded file
-    return render_template("uploadstudentdata.html", msg=msg)
+    return render_template("uploadstudentdata.html")
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
@@ -90,7 +89,7 @@ def view_users():
 @app.route('/tutoravailability')
 @admin_permission.require()
 def managetutoravailability():
-    return render_template("tutoravailability.html", timeslots=get_timeslots(), tutors=get_tutors())
+    return render_template("tutoravailability.html", timeslots=Timeslot.get_all(), tutors=Tutor.get_all())
 
 
 @app.route('/currentuser')
@@ -103,13 +102,10 @@ def currentuser():
 def num_eligible_subjects_mapped():
     subjects = Subject.query.filter(Subject.tutor != None, Subject.year == get_current_year(),
                                     Subject.studyperiod == get_current_studyperiod()).all()
-    eligiblesubjects = []
+
     allsubjects = Subject.query.filter(Subject.tutor == None, Subject.year == get_current_year(),
                                        Subject.studyperiod == get_current_studyperiod()).all()
-    for subject in allsubjects:
-        if len(subject.students) >= 3:
-            eligiblesubjects.append(subject)
-
+    eligiblesubjects = [subject for subject in allsubjects if len(subject.students) >= 3]
     data = {}
     data['Eligible Subjects'] = len(eligiblesubjects)
     data['Mapped Subjects'] = len(subjects)
@@ -118,7 +114,7 @@ def num_eligible_subjects_mapped():
 
 @app.route('/viewclashesajax')
 def viewclashreportajax():
-    timeslots = get_timeslots()
+    timeslots = Timeslot.get_all()
     clashes = {}
     for timeslot in timeslots:
         clashestimeslot = {}
@@ -153,8 +149,10 @@ def viewclashreportajax():
 def updateadminsettings():
     year = request.form['year']
     studyperiod = request.form['studyperiod']
-    update_year(year)
-    update_studyperiod(studyperiod)
+    admin = Admin.get(key='year')
+    admin.update(year=year)
+    admin = Admin.get(key='studyperiod')
+    admin.update(studyperiod=studyperiod)
     return render_template('admin.html', admin=getadmin())
 
 
@@ -179,7 +177,7 @@ def upload_tutor_availabilities():
 @app.route('/runtimetabler')
 @admin_permission.require()
 def run_timetabler():
-    return render_template("runtimetabler.html", tutors=get_tutors(), timeslots=get_timeslots())
+    return render_template("runtimetabler.html", tutors=Tutor.get_all(), timeslots=Timeslot.get_all())
 
 @app.route('/timetable')
 def view_timetable():
@@ -201,6 +199,7 @@ def view_timeslots():
 
 
 @app.route('/deletetutorial?tutorialid=<tutorialid>')
+@login_required
 def delete_tutorial(tutorialid):
     specificclass = Tutorial.query.get(tutorialid)
     sub = Subject.query.get(specificclass.subjectid)
@@ -209,6 +208,7 @@ def delete_tutorial(tutorialid):
     return redirect(url_for('view_subject', subcode=sub.subcode))
 
 @app.route('/deleteuser?username=<username>')
+@admin_permission.require()
 def delete_user(username):
     user = User.query.filter_by(username = username).first()
     db.session.delete(user)
@@ -271,18 +271,14 @@ def add_subject_to_tutor(tutorid):
 
 @app.route('/addtimetabledclasstosubject?subcode=<subcode>', methods=['POST'])
 def add_timetabledclass_to_subject(subcode):
-    subject = get_subject(subcode)
+    subject = Subject.get(subcode=subcode)
     timeslot = Timeslot.query.get(request.form['timeslot'])
     timetable = get_current_timetable()
-    if TimetabledClass.query.filter_by(studyperiod=get_current_studyperiod(), year=get_current_year(),
-                                       subjectid=subject.id, timetable=timetable, time=timeslot.id,
-                                       tutorid=subject.tutor.id).first() is None:
-        timetabledclass = TimetabledClass(subjectid=subject.id, timetable=timetable, time=timeslot.id,tutorid=subject.tutor.id)
-        db.session.add(timetabledclass)
+    timetabledclass = TimetabledClass.get_or_create(subjectid=subject.id, timetable=timetable, time=timeslot.id,
+                                                    tutorid=subject.tutor.id)
+    if len(subject.timetabledclasses) == 1:
+        timetabledclass.students = subject.students
         db.session.commit()
-        if len(subject.timetabledclasses) ==1:
-            timetabledclass.students = subject.students
-            db.session.commit()
     return redirect(url_for('view_subject', subcode=subcode))
 
 
@@ -302,8 +298,8 @@ def admin():
 @app.route('/addtutortosubject?subcode=<subcode>', methods=['GET', 'POST'])
 def add_tutor_to_subject(subcode):
     if request.method == 'POST':
-        tutorid = request.form['tutor']
-        msg = linksubjecttutor(tutorid, subcode)
+        tutor = Tutor.query.get(request.form['tutor'])
+        tutor.addSubject(subcode=subcode)
         return redirect(url_for('view_subject', subcode=subcode))
 
 @app.route('/myclasses')
@@ -662,7 +658,7 @@ def get_at_risk_classes():
 
 @app.route('/viewtimeslotsajax')
 def viewtimeslots_ajax():
-    data = get_timeslots()
+    data = Timeslot.get_all()
     data2 = []
     for row in data:
         data2.append(row.__dict__)
@@ -770,16 +766,17 @@ def add_timeslot(day, time):
 @app.route('/subject?subcode=<subcode>', methods = ['GET', 'POST'])
 @login_required
 def view_subject(subcode):
-    subject = get_subject(subcode)
+    subject = Subject.get(subcode=subcode)
     form = AddSubjectForm(obj=subject)
     if current_user.is_admin == '1' or current_user.tutor == subject.tutor:
         if request.method == 'GET':
             return subject.view_subject_template(form)
         elif request.method == 'POST':
             if form.validate_on_submit():
-                subject.subcode = form.subcode.data
-                subject.subname = form.subname.data
-                db.session.commit()
+                subject.update(**form.data)
+                # subject.subcode = form.subcode.data
+                # subject.subname = form.subname.data
+                # db.session.commit()
             return redirect(url_for('view_subject', subcode = subcode))
     else:
         return redirect('/')
@@ -788,8 +785,8 @@ def view_subject(subcode):
 @app.route('/removesubject?subcode=<subcode>')
 @admin_permission.require()
 def remove_subject(subcode):
-    sub = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                  studyperiod=get_current_studyperiod()).first()
+    sub = Subject.get(subcode=subcode)
+
     db.session.delete(sub)
     db.session.commit()
     msg = "Completed Successfully"
@@ -847,45 +844,43 @@ def view_students():
             name = form.name.data
             studentcode = form.studentcode.data
             email = form.email.data
-            add_student(name=name, studentcode=studentcode, email=email)
+            Student.create(name=name, studentcode=studentcode, email=email)
             return redirect('/students')
-        return render_template('viewstudents.html',  form=form)
+        return render_template('viewstudents.html', form=form)
 
 
-@app.route('/viewstudent?studentcode=<studentcode>')
+@app.route('/viewstudent?studentcode=<studentcode>', methods=['GET', 'POST'])
 @login_required
 def view_student(studentcode):
-    student = Student.query.filter_by(studentcode = studentcode, year = get_current_year(), studyperiod = get_current_studyperiod()).first()
-    return student.view_student_template()
+    student = Student.get(studentcode=studentcode)
+    form = EditStudentForm(obj=student)
+    if request.method == 'GET':
+        if student.university is not None:
+            form.university.data = student.university
+        if student.college is not None:
+            form.college.data = student.college
+        return student.view_student_template(form)
+    elif request.method == 'POST' and current_user.is_admin:
+        if form.validate_on_submit():
+            form.populate_obj(student)
+            student.save()
+            # student.update(name = form.name.data, studentcode = form.studentcode.data, university=form.university.data,college = form.college.data)
+            redirect(url_for('view_student', studentcode=studentcode))
+        return student.view_student_template(form)
 
-@app.route('/viewuser?username=<username>')
-@login_required
-def view_user(username):
-    return view_user_template(username)
 
-
-@app.route('/runtimetableprogram', methods=['GET', 'POST'])
-@admin_permission.require()
-def run_timetable_program():
-    # addnewtimetable = request.form['addtonewtimetable']
-    # print(addnewtimetable == "true")
-    preparetimetable()
-    return "Done"
-
-@app.route('/viewtutor?tutorid=<tutorid>',methods = ['GET', 'POST'])
+@app.route('/viewtutor?tutorid=<tutorid>', methods=['GET', 'POST'])
 @login_required
 def view_tutor(tutorid):
     tutor = Tutor.query.get(tutorid)
-
     form = EditTutorForm(obj=tutor)
-
-    users = get_users()
-    choices = [(-1,"")]
+    users = User.get_all()
+    choices = [(-1, "")]
     for user in users:
         choices.append((int(user.id), user.username))
     form.user.choices = choices
     if current_user.is_admin == '1' or current_user.tutor.id == tutorid:
-        if request.method=='GET':
+        if request.method == 'GET':
             if tutor.user is not None:
                 form.user.data = tutor.user.id
             return tutor.view_tutor_template(form)
@@ -899,9 +894,26 @@ def view_tutor(tutorid):
                 else:
                     tutor.user = None
                     db.session.commit()
-            return redirect(url_for('view_tutor',tutorid = tutorid))
+            return redirect(url_for('view_tutor', tutorid=tutorid))
     else:
         return redirect('/')
+
+
+@app.route('/viewuser?username=<username>')
+@login_required
+def view_user(username):
+    user = User.get(username=username)
+    return user.view_user_template()
+
+
+@app.route('/runtimetableprogram', methods=['GET', 'POST'])
+@admin_permission.require()
+def run_timetable_program():
+    # addnewtimetable = request.form['addtonewtimetable']
+    # print(addnewtimetable == "true")
+    preparetimetable()
+    return "Done"
+
 
 
 @app.route('/uploadstudentdata')
