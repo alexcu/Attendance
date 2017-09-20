@@ -3,6 +3,7 @@ from flask import render_template
 from Attendance import app, db, executor
 from Attendance.models import *
 import os
+from pandas import ExcelFile
 
 
 #TIMETABLE CODE
@@ -234,3 +235,13 @@ def checkboxvalue(checkbox):
         return 1
     else:
         return 0
+
+
+def read_excel(filename):
+    '''
+    :param filename - path to an Excel file:
+    :return: pandas dataframe
+    '''
+    xl = ExcelFile(filename)
+    df = xl.parse(xl.sheet_names[0])
+    return df

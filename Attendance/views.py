@@ -51,17 +51,20 @@ def logout():
     return redirect('/')
 
 
-@app.route('/uploadstudentdata', methods=['POST'])
+@app.route('/uploadstudentdata', methods=['GET', 'POST'])
 @admin_permission.require()
 def uploadstudentdata():
-    filename2 = upload(request.files['file'])
-    populate_students(filename2)
+    if request.method == 'GET':
+        return render_template('uploadstudentdata.html')
+    elif request.method == 'POST':
+        filename2 = upload(request.files['file'])
+        populate_students(filename2)
     # msg = "Completed Successfully"
     # except:
     #    msg = "There was an error with the upload, please try again"
         # Redirect the user to the uploaded_file route, which
         # will basicaly show on the browser the uploaded file
-    return render_template("uploadstudentdata.html")
+        return redirect("/students")
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
@@ -156,21 +159,27 @@ def updateadminsettings():
     return render_template('admin.html', admin=getadmin())
 
 
-@app.route('/uploadtutordata', methods=['POST'])
+@app.route('/uploadtutordata', methods=['GET', 'POST'])
+@admin_permission.require()
 def uploadtutordata():
-    filename2 = upload(request.files['file'])
-    print("Uploaded Successfully")
-    populate_tutors(filename2)
-    print("Populated Tutors")
-    # os.remove(filename2)
-    msg = "Completed successfully"
-    return render_template("uploadtutordata.html", msg=msg)
+    if request.method == 'GET':
+        return render_template('uploadtutordata.html')
+    elif request.method == 'POST':
+        filename2 = upload(request.files['file'])
+        print("Uploaded Successfully")
+        df = read_excel(filename2)
+        populate_tutors(df)
+        print("Populated Tutors")
+        # os.remove(filename2)
+        msg = "Completed successfully"
+        return render_template('uploadtutordata.html', msg=msg)
 
 @app.route('/uploadtutoravailabilities', methods=['POST'])
 def upload_tutor_availabilities():
     filename2 = upload(request.files['file'])
     print("Uploaded Successfully")
-    populate_availabilities(filename2)
+    df = read_excel(filename2)
+    populate_availabilities(df)
     msg2 = "Completed Successfully"
     return render_template("uploadtutordata.html",msg2=msg2)
 
@@ -916,13 +925,4 @@ def run_timetable_program():
 
 
 
-@app.route('/uploadstudentdata')
-@admin_permission.require()
-def upload_student_data():
-    return render_template('uploadstudentdata.html')
 
-
-@app.route('/uploadtutordata')
-@admin_permission.require()
-def upload_tutor_data():
-    return render_template('uploadtutordata.html')

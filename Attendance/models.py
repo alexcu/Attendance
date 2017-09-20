@@ -85,6 +85,9 @@ class User(Base):
         self.password = bcrypt.generate_password_hash(password).decode('utf-8')
         self.is_admin = False
 
+    def make_admin(self):
+        self.update(is_admin=True)
+
     def is_authenticated(self):
         return True
 
@@ -421,27 +424,23 @@ class Tutorial(Base):
 
 # HELPER METHODS
 def unlinksubjecttutor(tutorid, subcode):
-    subject = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                      studyperiod=get_current_studyperiod()).first()
+    subject = Subject.get(subcode=subcode)
     subject.tutor = None
     db.session.commit()
     return "Unlinked Successfully."
 
 
 def unlinksubjectstudent(studentcode, subcode):
-    student = Student.query.filter_by(studentcode=studentcode, year=get_current_year(),
-                                      studyperiod=get_current_studyperiod()).first()
-    subject = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                      studyperiod=get_current_studyperiod()).first()
+    student = Student.get(studentcode=studentcode)
+    subject = Subject.get(subcode=subcode)
     student.subjects.remove(subject)
     db.session.commit()
     return "Unlinked Successfully"
 
 
 def linksubjecttutor(tutorid, subcode):
-    subject = Subject.query.filter_by(subcode=subcode, year=get_current_year(),
-                                      studyperiod=get_current_studyperiod()).first()
-    subject.tutor = Tutor.query.filter_by(id=tutorid).first()
+    subject = Subject.get(subcode=subcode)
+    subject.tutor = Tutor.get(id=tutorid)
     db.session.commit()
     msg = "Subject Linked to Tutor Successfully"
     return msg
@@ -466,12 +465,10 @@ def getadmin():
     return admin
 
 
-def populate_students(filename):
+def populate_students(df):
     print("Populating Students")
     year = get_current_year()
     studyperiod = get_current_studyperiod()
-    xl = ExcelFile(filename)
-    df = xl.parse(xl.sheet_names[0])
     for index, row in df.iterrows():
         if row['Study Period'] == studyperiod:
             student = Student.get_or_create(studentcode=str(int(row["Student Id"])),
@@ -481,11 +478,9 @@ def populate_students(filename):
             student.addSubject(subject)
 
 
-def populate_timetabledata(filename):
+def populate_timetabledata(df):
     timetable = Timetable.get_or_create(key="default")
     print("Timetable Created")
-    xl = ExcelFile(filename)
-    df = xl.parse(xl.sheet_names[0])
     for index, row in df.iterrows():
         tutor = Tutor.get_or_create(name=row['x3'])
         subject = Subject.get_or_create(subcode=row['x1'])
@@ -504,9 +499,7 @@ def populate_timetabledata(filename):
                     db.session.commit()
 
 
-def populate_availabilities(filename):
-    xl = ExcelFile(filename)
-    df = xl.parse(xl.sheet_names[0])
+def populate_availabilities(df):
     for index, row in df.iterrows():
         tutor = Tutor.get_or_create(name=row["Tutor"])
         tutor.availabletimes = []
@@ -520,9 +513,7 @@ def populate_availabilities(filename):
                     tutor.addAvailableTime(timeslot)
 
 
-def populate_tutors(filename):
-    xl = ExcelFile(filename)
-    df = xl.parse(xl.sheet_names[0])
+def populate_tutors(df):
     for index, row in df.iterrows():
         tutor = Tutor.get_or_create(name=row['Tutor'])
         subject = Subject.get_or_create(subcode=row["Subject Code"])
