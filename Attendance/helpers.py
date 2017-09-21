@@ -9,6 +9,24 @@ from pandas import ExcelFile
 #TIMETABLE CODE
 def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                  TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms):
+    '''
+
+    :param STUDENTS: should be an array of student names
+    :param SUBJECTS: should be an array of subject codes
+    :param TIMES: an array of strings representing possible timeslots
+    :param day:
+    :param DAYS: the days corresponding to the timeslots above
+    :param TEACHERS: an array of the names of the tutors
+    :param SUBJECTMAPPING: This is a dictionary representing the subjects
+                            each tutor is taking
+    :param REPEATS: A dictionary of how many repeats each subject has
+    :param TEACHERMAPPING: A dictionary of what subject each tutor teachers
+    :param TUTORAVAILABILITY:
+    :param maxclasssize: An integer representing the maximum class size
+    :param minclasssize: An integer representing the minimum class size
+    :param nrooms: An integer representing the max allowable concurrent classes
+    :return: A string representing model status.
+    '''
     print("Running solver")
     model = LpProblem('Timetabling', LpMinimize)
     #Create Variables
@@ -124,33 +142,22 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
     print("Status:", LpStatus[model.status])
     print("Complete")
     for j in SUBJECTS:
-        subject = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                          subcode=j).first()
+        subject = Subject.get(subcode=j)
         for k in TIMES:
             timesplit = k.split(' ')
-            timeslot = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                                timetable=get_current_timetable(), day=timesplit[0],
-                                                time=timesplit[1]).first()
+            timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
             for m in TEACHERS:
-                tutor = Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                              name=m).first()
+                tutor = Tutor.get(name=m)
                 if subject_vars[(j, k, m)].varValue == 1:
-
-                    timetabledclass = TimetabledClass(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                                      subjectid=subject.id, timetable=get_current_timetable(),
-                                                      time=timeslot.id, tutorid=tutor.id)
-                    db.session.add(timetabledclass)
-                    db.session.commit()
-
+                    timetabledclass = TimetabledClass.create(subjectid=subject.id, timetable=get_current_timetable().id,
+                                                             time=timeslot.id, tutorid=tutor.id)
                     for i in STUDENTS:
-
                         if assign_vars[(i, j, k, m)].varValue == 1:
-                            student = Student.query.filter_by(year=get_current_year(),
-                                                              studyperiod=get_current_studyperiod(), name=i).first()
+                            student = Student.get(name=i)
                             timetabledclass.students.append(student)
                             db.session.commit()
     print("Status:", LpStatus[model.status])
-    return model.objective.value()
+    return LpStatus[model.status]
 
 
 def preparetimetable(addtonewtimetable=False):
@@ -198,7 +205,7 @@ def preparetimetable(addtonewtimetable=False):
     TIMES = []
     day = []
     timeslots = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                         timetable=get_current_timetable()).all()
+                                         timetable=get_current_timetable().id).all()
     for timeslot in timeslots:
         TIMES.append(timeslot.day + " " + timeslot.time)
         day.append(timeslot.day)

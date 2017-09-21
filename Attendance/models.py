@@ -522,8 +522,9 @@ def populate_tutors(df):
 
 
 def update_year(year):
-    admin = Admin.get(key='currentyear')
-    admin.update(year=year)
+    admin = Admin.query.filter_by(key='currentyear').first()
+    admin.value = year
+    db.session.commit()
 
 
 def update_studyperiod(studyperiod):

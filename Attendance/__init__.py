@@ -114,8 +114,6 @@ if User.get(username='admin') is None:
     user = User.create(username='admin', password='password')
     user.update(is_admin=True)
 
-
-
 if __name__ == '__main__':
     handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
     handler.setLevel(logging.INFO)
