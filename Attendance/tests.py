@@ -149,47 +149,74 @@ class TimeslotTests(BaseTest):
 
 
 class TimetableTests(BaseTest):
-    def test_timetable(self):
+    def setUpTestData(self):
         Student.create(name='Justin Smallwood', studentcode=542066)
         Student.create(name='Tom Cox', studentcode=123595)
         Subject.create(subcode='ECON10005', subname='Quantitative Methods 1', repeats=1)
         Subject.create(subcode='MAST10006', subname='Calculus 2', repeats=1)
-        STUDENTS = ['Justin Smallwood', 'Tom Cox']
-        SUBJECTS = ['ECON10005', 'MAST10006']
         Timeslot.create(day='Monday', time='7:30pm')
         Timeslot.create(day='Tuesday', time='9:30pm')
-        TIMES = ['Monday 7:30pm', 'Tuesday 9:30pm']
-        day = ['Monday', 'Tuesday']
-        DAYS = {}
-        DAYS['Monday'] = ['Monday 7:30pm']
-        DAYS['Tuesday'] = ['Tuesday 9:30pm']
         tutor = Tutor.get_or_create(name='Omid Kaveh')
         tutor.subjects.append(Subject.get(subcode='MAST10006'))
+        tutor.availabletimes.append(Timeslot.get(day='Monday'))
         db.session.commit()
         tutor = Tutor.get_or_create(name='Jemima Capper')
         tutor.subjects.append(Subject.get(subcode='ECON10005'))
+        tutor.availabletimes.append(Timeslot.get(day='Monday'))
+        tutor.availabletimes.append(Timeslot.get(day='Tuesday'))
         db.session.commit()
-        TEACHERS = ['Omid Kaveh', 'Jemima Capper']
-        REPEATS = {}
-        REPEATS['ECON10005'] = 1
-        REPEATS['MAST10006'] = 1
-        maxclasssize = 2
-        minclasssize = 1
-        nrooms = 12
-        TEACHERMAPPING = {}
-        TEACHERMAPPING['Omid Kaveh'] = ['MAST10006']
-        TEACHERMAPPING['Jemima Capper'] = ['ECON10005']
-        TUTORAVAILABILITY = {}
-        TUTORAVAILABILITY['Omid Kaveh'] = ['Monday 7:30pm']
-        TUTORAVAILABILITY['Jemima Capper'] = ['Monday 7:30pm', 'Tuesday 9:30pm']
-        SUBJECTMAPPING = {}
-        SUBJECTMAPPING['ECON10005'] = ['Justin Smallwood', 'Tom Cox']
+
         student = Student.get(name='Tom Cox')
         student.subjects.append(Subject.get(subcode='ECON10005'))
-        SUBJECTMAPPING['MAST10006'] = ['Justin Smallwood']
+        db.session.commit()
         student = Student.get(name='Justin Smallwood')
         student.subjects.append(Subject.get(subcode='MAST10006'))
         student.subjects.append(Subject.get(subcode='ECON10005'))
+        db.session.commit()
+
+    def test_timetable(self):
+        STUDENTSTEST = ['Justin Smallwood', 'Tom Cox']
+        SUBJECTSTEST = ['ECON10005', 'MAST10006']
+        TIMESTEST = ['Monday 7:30pm', 'Tuesday 9:30pm']
+        dayTEST = ['Monday', 'Tuesday']
+        DAYSTEST = {}
+        DAYSTEST['Monday'] = set(['Monday 7:30pm'])
+        DAYSTEST['Tuesday'] = set(['Tuesday 9:30pm'])
+        TEACHERSTEST = ['Omid Kaveh', 'Jemima Capper']
+
+        REPEATSTEST = {}
+        REPEATSTEST['ECON10005'] = 1
+        REPEATSTEST['MAST10006'] = 1
+
+        maxclasssizeTEST = 400
+        minclasssizeTEST = 1
+        nroomsTEST = 12
+        TEACHERMAPPINGTEST = {}
+        TEACHERMAPPINGTEST['Omid Kaveh'] = set(['MAST10006'])
+        TEACHERMAPPINGTEST['Jemima Capper'] = set(['ECON10005'])
+        TUTORAVAILABILITYTEST = {}
+        TUTORAVAILABILITYTEST['Omid Kaveh'] = set(['Monday 7:30pm'])
+        TUTORAVAILABILITYTEST['Jemima Capper'] = set(['Monday 7:30pm', 'Tuesday 9:30pm'])
+        SUBJECTMAPPINGTEST = {}
+        SUBJECTMAPPINGTEST['ECON10005'] = set(['Justin Smallwood', 'Tom Cox'])
+        SUBJECTMAPPINGTEST['MAST10006'] = set(['Justin Smallwood'])
+
+        (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+         TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = get_timetable_data()
+
+        self.assertCountEqual(STUDENTS, STUDENTSTEST)
+        self.assertCountEqual(SUBJECTS, SUBJECTSTEST)
+        self.assertCountEqual(TEACHERS, TEACHERSTEST)
+        self.assertCountEqual(TIMES, TIMESTEST)
+        self.assertCountEqual(day, dayTEST)
+        self.assertDictEqual(REPEATS, REPEATSTEST)
+        self.assertDictEqual(DAYS, DAYSTEST)
+        self.assertEqual(maxclasssize, maxclasssizeTEST)
+        self.assertEqual(minclasssize, minclasssizeTEST)
+        self.assertEqual(nrooms, nroomsTEST)
+        self.assertDictEqual(SUBJECTMAPPING, SUBJECTMAPPINGTEST)
+        self.assertDictEqual(TEACHERMAPPING, TEACHERMAPPINGTEST)
+        self.assertDictEqual(TUTORAVAILABILITY, TUTORAVAILABILITYTEST)
 
         result = runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                               TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)

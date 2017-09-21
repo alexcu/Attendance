@@ -169,6 +169,15 @@ def preparetimetable(addtonewtimetable=False):
     #    admin.value = timetable.id
     #    db.session.commit()
     print("Preparing Timetable")
+    (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+     TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = get_timetable_data()
+    print("Everything ready")
+    executor.submit(runtimetable,STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                       TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
+    return render_template("viewtimetable.html")
+
+
+def get_timetable_data():
     SUBJECTS = []
     SUBJECTMAPPING = {}
     STUDENTS = []
@@ -189,6 +198,7 @@ def preparetimetable(addtonewtimetable=False):
         for student in subject.students:
             STUDENTS.append(student.name)
             SUBJECTMAPPING[subject.subcode].append(student.name)
+        SUBJECTMAPPING[subject.subcode] = set(SUBJECTMAPPING[subject.subcode])
     STUDENTS = list(set(STUDENTS))
     TEACHERS = list(set(TEACHERS))
     for tutor in alltutors:
@@ -198,6 +208,8 @@ def preparetimetable(addtonewtimetable=False):
             TUTORAVAILABILITY[tutor.name].append(timeslot.day + " " + timeslot.time)
         for subject in tutor.subjects:
             TEACHERMAPPING[tutor.name].append(subject.subcode)
+        TUTORAVAILABILITY[tutor.name] = set(TUTORAVAILABILITY[tutor.name])
+        TEACHERMAPPING[tutor.name] = set(TEACHERMAPPING[tutor.name])
 
     maxclasssize = 400
     minclasssize = 1
@@ -215,10 +227,13 @@ def preparetimetable(addtonewtimetable=False):
         DAYS[d] = []
     for timeslot in timeslots:
         DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
-    print("Everything ready")
-    executor.submit(runtimetable,STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                       TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
-    return render_template("viewtimetable.html")
+    for d in day:
+        DAYS[d] = set(DAYS[d])
+
+    return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+            TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
+
+
 
 
 def allowed_file(filename):

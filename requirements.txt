@@ -9,3 +9,4 @@ wtforms
 flask_login
 flask_principal
 sqlalchemy
+sphinx
