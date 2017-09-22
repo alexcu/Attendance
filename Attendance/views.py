@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 
 from Attendance import admin_permission
 from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
-    EditStudentForm
+    EditStudentForm, AddTimetableForm, JustNameForm
 from Attendance.helpers import *
 from Attendance.models import *
 
@@ -98,14 +98,28 @@ def currentuser():
 
 
 @app.route('/updateadminsettings', methods=['POST'])
+@admin_permission.require()
 def updateadminsettings():
-    year = request.form['year']
     studyperiod = request.form['studyperiod']
-    admin = Admin.get(key='year')
-    admin.update(year=year)
+    year = request.form['year']
+    if year != None:
+        admin = Admin.get(key='currentyear')
+        admin.update(value=year)
     admin = Admin.get(key='studyperiod')
-    admin.update(studyperiod=studyperiod)
-    return render_template('admin.html', admin=getadmin())
+    admin.update(value=studyperiod)
+    for user in User.get_all(is_admin=True):
+        user.update(year=year, studyperiod=studyperiod)
+    Timetable.get_or_create(key='default')
+    return redirect('/admin')
+
+
+@app.route('/updatetimetable', methods=['POST'])
+@admin_permission.require()
+def updatetimetable():
+    if request.form['timetable'] is not None:
+        admin = Admin.get(key='timetable')
+        admin.update(value=request.form['timetable'])
+    return redirect('/admin')
 
 
 @app.route('/uploadtutordata', methods=['GET', 'POST'])
@@ -170,7 +184,7 @@ def add_timetabledclass_to_subject(subcode):
 @app.route('/admin')
 @admin_permission.require()
 def admin():
-    return render_template('admin.html', admin=getadmin())
+    return render_template('admin.html', admin=getadmin(), timetables=Timetable.get_all())
 
 
 @app.route('/addtutortosubject?subcode=<subcode>', methods=['GET', 'POST'])
@@ -345,6 +359,61 @@ def view_tutors():
         return render_template('viewtutors.html',form=form)
 
 
+@app.route('/rooms', methods=['GET', 'POST'])
+@login_required
+def view_rooms():
+    form = JustNameForm()
+    if request.method == 'GET':
+        return render_template('viewrooms.html', form=form)
+    else:
+        if form.validate_on_submit():
+            name = form.name.data
+            if Room.query.filter_by(name=name).first() is None:
+                room = Room(name=name)
+                db.session.add(room)
+                db.session.commit()
+            msg = "Record successfully added"
+            return redirect("/rooms")
+        return render_template('viewrooms.html', form=form)
+
+
+@app.route('/universities', methods=['GET', 'POST'])
+@login_required
+def view_universities():
+    form = JustNameForm()
+    if request.method == 'GET':
+        return render_template('viewuniversities.html', form=form)
+    else:
+        if form.validate_on_submit():
+            name = form.name.data
+            if University.query.filter_by(name=name).first() is None:
+                uni = University(name=name)
+                db.session.add(uni)
+                db.session.commit()
+            msg = "Record successfully added"
+            return redirect("/universities")
+        return render_template('viewuniversities.html', form=form)
+
+
+@app.route('/colleges', methods=['GET', 'POST'])
+@login_required
+def view_colleges():
+    form = JustNameForm()
+    if request.method == 'GET':
+        return render_template('viewcolleges.html', form=form)
+    else:
+        if form.validate_on_submit():
+            name = form.name.data
+            if College.query.filter_by(name=name).first() is None:
+                college = College(name=name)
+                db.session.add(college)
+                db.session.commit()
+            msg = "Record successfully added"
+            return redirect("/colleges")
+        return render_template('viewcolleges.html', form=form)
+
+
+
 @app.route('/subjects', methods=['GET', 'POST'])
 @login_required
 def view_subjects():
@@ -371,9 +440,15 @@ def viewclashreport():
     return render_template("viewclashreport.html")
 
 
-@app.route('/timetable')
+@app.route('/timetable', methods=['GET', 'POST'])
 def view_timetable():
-    return render_template('viewtimetable.html')
+    form = AddTimetableForm()
+    if request.method == 'GET':
+        return render_template('viewtimetable.html', form=form)
+    elif request.method == 'POST':
+        if form.validate_on_submit():
+            Timetable.create(key=form.key.data)
+        return redirect('/timetable')
 
 
 @app.route('/timeslots', methods=['GET', 'POST'])
@@ -606,6 +681,41 @@ def viewtutors_ajax():
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
+
+@app.route('/viewroomsajax')
+def viewrooms_ajax():
+    data = Room.query.all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/viewuniversitiesajax')
+def viewuniversities_ajax():
+    data = University.query.all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/viewcollegesajax')
+def viewcolleges_ajax():
+    data = College.query.all()
+    data2 = []
+    for row in data:
+        data2.append(row.__dict__)
+    for row in data2:
+        row['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
 
 @app.route('/viewusersajax')
 def viewusers_ajax():

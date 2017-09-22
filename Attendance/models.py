@@ -114,7 +114,7 @@ class User(Base):
     By default it creates a non-admin user.
     '''
     __tablename__ = "users"
-    username = db.Column('username', db.String(40), unique=True, index=True, nullable=False)
+    username = db.Column('username', db.String(40), index=True, nullable=False)
     password = db.Column('password', db.String(50), nullable=False)
     email = db.Column('email', db.String(50))
     is_admin = db.Column('is_admin', db.String(10))
@@ -163,6 +163,21 @@ class Admin(db.Model):
     def __init__(self, key, value):
         self.key = key
         self.value = value
+
+    @classmethod
+    def get(cls, **kwargs):
+        return cls.query.filter_by(**kwargs).first()
+
+    def update(self, commit=True, **kwargs):
+        '''
+
+        :param commit: Commit to the database?
+        :param kwargs: Keyword arguments to update
+        :return: nil.
+        '''
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+        return commit and db.session.commit()
 
 
 '''
@@ -219,7 +234,7 @@ class Subject(Base):
                               cascade='all,delete-orphan')
     repeats = db.Column(db.Integer, default=1)
     timetabledclasses = db.relationship("TimetabledClass", single_parent=True, cascade='all,delete-orphan')
-
+    universityid = db.Column(db.Integer, db.ForeignKey('university.id'))
     def __init__(self, subcode, subname, repeats=1):
         super().__init__()
         self.subcode = subcode
@@ -320,8 +335,8 @@ class Student(Base):
     subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
     timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable,
                                         backref=db.backref('students'))
-    university = db.Column(db.String(50))
-    college = db.Column(db.String(50))
+    universityid = db.Column(db.Integer, db.ForeignKey('university.id'))
+    collegeid = db.Column(db.Integer, db.ForeignKey('colleges.id'))
     email = db.Column(db.String(50))
 
     def __init__(self, studentcode, name, email=""):
@@ -423,7 +438,7 @@ class TimetabledClass(Base):
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-
+    roomid = db.Column(db.ForeignKey('rooms.id'))
     def __init__(self, subjectid, timetable, time, tutorid):
         super().__init__()
         self.subjectid = subjectid
@@ -438,6 +453,7 @@ class Room(db.Model):
     name = db.Column(db.String(50), nullable=False)
     projector = db.Column(db.Boolean)
     building = db.Column(db.String(50))
+    tutorials = db.relationship('TimetabledClass', single_parent=True, backref=db.backref('room'))
 
 
 class Timeslot(Base):
@@ -478,12 +494,25 @@ class Tutorial(Base):
         self.week = week
 
 
-class College(Base):
+class College(db.Model):
     __tablename__ = 'colleges'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    students = db.relationship("Student", single_parent=True, backref=db.backref('college'))
+
+    def __init__(self, name):
+        self.name = name
 
 
-class University(Base):
+class University(db.Model):
     __tablename__ = 'university'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    students = db.relationship("Student", single_parent=True, backref=db.backref('university'))
+    subjects = db.relationship("Subject", single_parent=True, backref=db.backref('university'))
+
+    def __init__(self, name):
+        self.name = name
 
 
 
@@ -535,6 +564,7 @@ def getadmin():
     admin = {}
     admin["currentyear"] = get_current_year()
     admin["studyperiod"] = get_current_studyperiod()
+    admin["timetable"] = get_current_timetable()
     return admin
 
 

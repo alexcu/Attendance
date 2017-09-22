@@ -54,6 +54,14 @@ class StudentForm(NameForm):
     studentcode = StringField('Student Code', validators=[DataRequired()])
 
 
+class AddTimetableForm(FlaskForm):
+    key = StringField('Timetable Name', validators=[DataRequired()])
+
+
 class TimeslotForm(FlaskForm):
     day = StringField('Day', validators=[DataRequired()])
     time = StringField('Time', validators=[DataRequired()])
+
+
+class JustNameForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])

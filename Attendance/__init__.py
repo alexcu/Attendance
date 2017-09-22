@@ -12,7 +12,7 @@ executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database66.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database69.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -113,6 +113,16 @@ if Admin.query.filter_by(key='timetable').first() is None:
 if User.get(username='admin') is None:
     user = User.create(username='admin', password='password')
     user.update(is_admin=True)
+
+if University.query.filter_by(name='University of Melbourne').first() is None:
+    uni = University(name='University of Melbourne')
+    db.session.add(uni)
+    db.session.commit()
+
+if College.query.filter_by(name="International House").first() is None:
+    college = College(name='International House')
+    db.session.add(college)
+    db.session.commit()
 
 if __name__ == '__main__':
     handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
