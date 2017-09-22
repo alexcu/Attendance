@@ -8,6 +8,8 @@ from Attendance.helpers import *
 
 
 class CRUDMixin(object):
+    """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
+    """
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
@@ -18,6 +20,12 @@ class CRUDMixin(object):
 
     @classmethod
     def get_or_create(cls, **kwargs):
+        '''
+        Get, or create and return an object of the specified type with the specified keyword arguments.
+
+        :param kwargs: Arguments for the object.
+        :return:
+        '''
         obj = cls.get(**kwargs)
         if obj is None:
             obj = cls(**kwargs)
@@ -28,41 +36,73 @@ class CRUDMixin(object):
             return obj
 
     def update(self, commit=True, **kwargs):
+        '''
+
+        :param commit: Commit to the database?
+        :param kwargs: Keyword arguments to update
+        :return: nil.
+        '''
         for attr, value in kwargs.items():
             setattr(self, attr, value)
         return commit and self.save() or self
 
     def save(self, commit=True):
+        '''
+        Save the current object.
+        :param commit: Commit to the database?
+        :return: Current object
+        '''
         db.session.add(self)
         if commit:
             db.session.commit()
         return self
 
     def delete(self, commit=True):
+        '''
+        Delete this object.
+        :param commit: Commit to the database?
+        :return: Nil.
+        '''
         db.session.delete(self)
         return commit and db.session.commit()
 
     @classmethod
     def create(cls, commit=True, **kwargs):
+        '''
+        Create an object with the specified keywords.
+        :param commit:
+        :param kwargs:
+        :return: Created object.
+        '''
         instance = cls(**kwargs)
         return instance.save(commit=commit)
 
     @classmethod
     def get_all(cls, **kwargs):
+        '''
+        Get all instances of the specified class with the specified keyword arguments.
+        :param kwargs: The keywords.
+        :return: List of all instances matching the arguments.
+        '''
         return cls.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(), **kwargs).all()
 
 
 class Base(db.Model, CRUDMixin):
-    __abstract__ = True
     '''
+    Base class for the other models to inherit.
+
     I'm using this class to house the common database columns that come up again and again when defining these things.
     All of my classes can now extend Base and call its constructor.
     '''
+    __abstract__ = True
     id = db.Column('id', db.Integer, primary_key=True)
     year = db.Column('year', db.Integer, nullable=False)
     studyperiod = db.Column('studyperiod', db.String(20), nullable=False)
 
     def __init__(self):
+        '''
+        Set the current year and studyperiod on the object.
+        '''
         self.year = get_current_year()
         self.studyperiod = get_current_studyperiod()
 
@@ -165,12 +205,13 @@ tutoravailabilitymap = db.Table('tutoravailabilitymap',
                                 db.Column('timeslot_id', db.Integer, db.ForeignKey('timeslots.id'))
                                 )
 
-'''
-This is the subject class that contains each subject for each year/studyperiod
-'''
+
 
 
 class Subject(Base):
+    '''
+    This is the subject class that contains each subject for each year/studyperiod
+    '''
     __tablename__ = 'subjects'
     subcode = db.Column(db.String(50), nullable=False)
     subname = db.Column(db.String(50), nullable=False)
@@ -202,6 +243,12 @@ class Subject(Base):
             return 100 * round(attendedstudents / totalstudents, 2)
 
     def is_at_risk(self):
+        '''
+        Identify if a particular class is "at-risk".
+
+        At risk is defined as recent average attendance rate has dropped below 3 students.
+        :return: True if at-risk, False otherwise.
+        '''
         averageattendance = self.get_recent_average_attendance()
         if averageattendance == 0:
             return False
@@ -215,6 +262,12 @@ class Subject(Base):
         db.session.commit()
 
     def get_recent_average_attendance(self):
+        '''
+        Get the recent average attendance for a subject.
+
+        Recent is defined as the last 3 classes, get the recent attendance in terms of number of students.
+        :return: Average number of students from the last 3 classes.
+        '''
         attendedstudents = 0
         timeframe = 3
         tutorials = self.classes
@@ -240,6 +293,12 @@ class Subject(Base):
                                timetabledclasses=self.timetabledclasses, form=form)
 
     def find_possible_times(self):
+        '''
+        Find times where all students are available for a class.
+
+        This method is used by the Subject template to help timetable a class when there is already a timetable in place
+        :return: List of times in which all students in a particular subject have no timetabled classes.
+        '''
         students = self.students
         times = Timeslot.get_all()
         for student in students:
@@ -419,6 +478,16 @@ class Tutorial(Base):
         self.week = week
 
 
+class College(Base):
+    __tablename__ = 'colleges'
+
+
+class University(Base):
+    __tablename__ = 'university'
+
+
+
+
 ##### MODELS HELPER FUNCTIONS
 
 
@@ -459,6 +528,10 @@ def get_min_max_week():
 
 
 def getadmin():
+    '''
+    Get the current admin parameters.
+    :return: Dictionary of admin parameters - currently current year and studyperiod.
+    '''
     admin = {}
     admin["currentyear"] = get_current_year()
     admin["studyperiod"] = get_current_studyperiod()
@@ -466,6 +539,11 @@ def getadmin():
 
 
 def populate_students(df):
+    '''
+    Populate student and subject database from a dataframe.
+    :param df: Pandas dataframe containing the student and subject data.
+    :return: Nil.
+    '''
     print("Populating Students")
     year = get_current_year()
     studyperiod = get_current_studyperiod()
@@ -479,6 +557,11 @@ def populate_students(df):
 
 
 def populate_timetabledata(df):
+    '''
+    Populate timetable and classlists from dataframe
+    :param df: Pandas dataframe containing timetable and classlist data.
+    :return: Nil.
+    '''
     timetable = Timetable.get_or_create(key="default")
     print("Timetable Created")
     for index, row in df.iterrows():
@@ -500,6 +583,11 @@ def populate_timetabledata(df):
 
 
 def populate_availabilities(df):
+    '''
+    Populate tutor availabilities from dataframe.
+    :param df: Pandas dataframe containing tutor availabilities (1/0) against the current timeslots.
+    :return: Nil.
+    '''
     for index, row in df.iterrows():
         tutor = Tutor.get_or_create(name=row["Tutor"])
         tutor.availabletimes = []
@@ -522,12 +610,22 @@ def populate_tutors(df):
 
 
 def update_year(year):
+    '''
+    Update the current year in the admin table.
+    :param year: The year to switch to.
+    :return: Nil.
+    '''
     admin = Admin.query.filter_by(key='currentyear').first()
     admin.value = year
     db.session.commit()
 
 
 def update_studyperiod(studyperiod):
+    '''
+    Update the current studyperiod in the admin table.
+    :param studyperiod: The studyperiod to switch to.
+    :return: Nil.
+    '''
     admin = Admin.query.filter_by(key='studyperiod').first()
     admin.value = studyperiod
     db.session.commit()
@@ -569,16 +667,37 @@ def get_attendees_for_subject(subcode):
 
 
 def get_current_year():
+    '''
+    Get the current year from the admin table.
+    :return: The current year as an integer.
+    '''
     admin = Admin.query.filter_by(key='currentyear').first()
     return int(admin.value)
 
 
 def get_current_timetable():
+    '''
+    Get the current timetable from the database.
+    :return: The current timetable as an object.
+    '''
     admin = Admin.query.filter_by(key='timetable').first()
     return Timetable.get(id=int(admin.value))
 
 
+def get_current_timetable_id():
+    '''
+    Get the current timetable id from the database.
+    :return: The current timetable id as an integer.
+    '''
+    admin = Admin.query.filter_by(key='timetable').first()
+    return Timetable.get(id=int(admin.value)).id
+
+
 def get_current_studyperiod():
+    '''
+    Get the current studyperiod from the database
+    :return: The current studyperiod as a String.
+    '''
     admin = Admin.query.filter_by(key='studyperiod').first()
     return admin.value
 

@@ -10,6 +10,10 @@ from pandas import ExcelFile
 def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                  TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms):
     '''
+    Run the timetabling process and input into the database.
+
+    This process calls the CBCSolver using the PuLP package and then adds the classes to the database.
+
 
     :param STUDENTS: should be an array of student names
     :param SUBJECTS: should be an array of subject codes
@@ -161,6 +165,12 @@ def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
 
 
 def preparetimetable(addtonewtimetable=False):
+    '''
+    Get timetable data and then execute the timetabling program.
+
+    :param addtonewtimetable: Whether this should be added to a new timetable and set as default.
+    :return: The view timetable page.
+    '''
     # if addtonewtimetable == "true":
     #    timetable = Timetable(get_current_year(),get_current_studyperiod())
     #    db.session.add(timetable)
@@ -178,6 +188,10 @@ def preparetimetable(addtonewtimetable=False):
 
 
 def get_timetable_data():
+    '''
+    Get all required timetable data from the database
+    :return: All timetabling data as a tuple to the preparetimetable method.
+    '''
     SUBJECTS = []
     SUBJECTMAPPING = {}
     STUDENTS = []
@@ -237,11 +251,22 @@ def get_timetable_data():
 
 
 def allowed_file(filename):
+    '''
+    Checks whether the uploaded file has an allowed extension.
+    :param filename: The filename to check
+    :return: True/False
+    '''
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
 
 def upload(file):
+    '''
+    Save the uploaded file to the UPLOAD_FOLDER directory.
+
+    :param file: The file to upload
+    :return: Filename of uploaded file in upload folder
+    '''
     if file and allowed_file(file.filename):
         # Make the filename safe, remove unsupported chars
         filename = file.filename
@@ -253,6 +278,12 @@ def upload(file):
 
 
 def checkboxvalue(checkbox):
+    '''
+    Get value of checkbox.
+
+    :param checkbox: Input from request.form
+    :return: 1 if ticked, 0 if not.
+    '''
     if (checkbox != None):
         return 1
     else:
@@ -261,6 +292,8 @@ def checkboxvalue(checkbox):
 
 def read_excel(filename):
     '''
+    Read Excel File provided by filename.
+
     :param filename - path to an Excel file:
     :return: pandas dataframe
     '''
