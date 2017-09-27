@@ -13,7 +13,7 @@ executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database65.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database70.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
@@ -111,7 +111,7 @@ if Admin.query.filter_by(key='timetable').first() is None:
     db.session.add(timetableadmin)
     db.session.commit()
 
-if User.get(username='admin') is None:
+if User.query.filter_by(username='admin').first() is None:
     user = User.create(username='admin', password='password')
     user.update(is_admin=True)
 

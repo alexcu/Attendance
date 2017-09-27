@@ -236,12 +236,14 @@
                                     {% for room in rooms %}
                                         {% if room.id == timeclass.room.id %}
                                             <option value="{{ room.id }}" selected>{{ room.name }}</option>
-                                        {% else %}
+                                        {% elif timeclass.timeslot in room.get_available_times() %}
                                             <option value="{{ room.id }}">{{ room.name }}</option>
                                         {% endif %}
                                     {% endfor %}
                                 </select></td>
-                                <td></td>
+                                <td><a href="/downloadroll%3Fclassid%3D{{ timeclass.id }}">
+                                    <button class="button">Download Roll</button>
+                                </a></td>
                             </tr>
                         {% endfor %}
 

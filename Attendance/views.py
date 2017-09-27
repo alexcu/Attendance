@@ -62,17 +62,15 @@ def logout():
 @app.route('/uploadstudentdata', methods=['GET', 'POST'])
 @admin_permission.require()
 def uploadstudentdata():
-    if request.method == 'GET':
-        return render_template('uploadstudentdata.html')
-    elif request.method == 'POST':
-        filename2 = upload(request.files['file'])
-        populate_students(filename2)
+    filename2 = upload(request.files['file'])
+    df = read_excel(filename2)
+    populate_students(df)
     # msg = "Completed Successfully"
     # except:
     #    msg = "There was an error with the upload, please try again"
         # Redirect the user to the uploaded_file route, which
         # will basicaly show on the browser the uploaded file
-        return redirect("/students")
+    return redirect("/students")
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
@@ -80,7 +78,9 @@ def uploadstudentdata():
 def uploadtimetableclasslists():
     if request.method == 'POST':
         filename2 = upload(request.files['file'])
-        populate_timetabledata(filename2)
+        df = read_excel(filename2)
+        populate_timetabledata(df)
+
         msg = "Completed Successfully"
     return render_template("uploadtimetabledata.html")
 
@@ -299,7 +299,7 @@ def remove_subject_from_student(studentcode, subcode):
 @app.route('/removetimetabledclass?timetabledclassid=<timetabledclassid>')
 def remove_timetabled_class(timetabledclassid):
     timetabledclass = TimetabledClass.query.get(timetabledclassid)
-    subject = TimetabledClass.query.get(timetabledclass.subjectid)
+    subject = timetabledclass.subject
     db.session.delete(timetabledclass)
     db.session.commit()
     if subject.timetabledclasses is not None:
@@ -629,7 +629,7 @@ def viewtimeslots_ajax():
 @app.route('/viewtimetableajax')
 def viewtimetable_ajax():
     data = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
-        joinedload('tutor')).all()
+        joinedload('tutor'), joinedload('room')).all()
     data2 = []
 
     for row3 in data:
@@ -652,6 +652,12 @@ def viewtimetable_ajax():
         data2[i]['timeslot']['availabiletutors'] = []
         data2[i]['timeslot']['timetabledclasses'] = []
         data2[i]['timetabledclasses'] = []
+        if data2[i]['room'] is not None:
+            data2[i]['room'] = data2[i]['room'].__dict__
+            data2[i]['room']['_sa_instance_state'] = ""
+        else:
+            data2[i]['room'] = {}
+            data2[i]['room']['name'] = ""
     data = json.dumps(data2)
 
     return '{ "data" : ' + data + '}'
@@ -1102,4 +1108,11 @@ def document_test():
     print()
     room = subject.timetabledclasses[0].room
     print(room)
-    create_roll(students, subject, timeslot, room)
+    document = create_roll(students, subject, timeslot, room)
+    return send_file('../demo.docx')
+
+
+@app.route('/downloadroll?classid=<classid>')
+def download_roll(classid):
+    document = get_roll(classid)
+    return send_file(document, as_attachment=True)

@@ -1,4 +1,10 @@
-from Attendance import db, bcrypt
+from datetime import time
+from operator import attrgetter
+
+from flask import render_template
+from pandas import isnull
+
+from Attendance import bcrypt
 from Attendance.helpers import *
 
 
@@ -582,7 +588,6 @@ def populate_students(df):
     :return: Nil.
     '''
     print("Populating Students")
-    year = get_current_year()
     studyperiod = get_current_studyperiod()
     for index, row in df.iterrows():
         if row['Study Period'] == studyperiod:

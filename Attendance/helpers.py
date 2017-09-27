@@ -1,12 +1,7 @@
-from Attendance import app, db, executor
 from Attendance.models import *
 import os
 from pandas import ExcelFile
-from docx import Document
-import os
-
-from docx import Document
-from pandas import ExcelFile
+from pulp import LpProblem, LpMinimize, lpSum, LpVariable, LpStatus, LpInteger, LpBinary
 
 from Attendance import app, db, executor
 from Attendance.models import *
@@ -308,17 +303,27 @@ def read_excel(filename):
     return df
 
 
+def get_roll(classid):
+    timeclass = TimetabledClass.get(id=classid)
+    subject = timeclass.subject
+    students = subject.students
+    room = timeclass.room
+    timeslot = timeclass.timeslot
+    return create_roll(students, subject, timeslot, room)
+
+
+
 def create_roll(students, subject, timeslot, room):
     document = Document()
 
     document.add_heading(subject.subname, 0)
 
     document.add_paragraph('Timeslot: ' + timeslot.day + " " + timeslot.time)
-
-    document.add_paragraph('Room: ' + room.name)
+    if room is not None:
+        document.add_paragraph('Room: ' + room.name)
 
     table = document.add_table(rows=1, cols=12)
-    table.style = 'LightShading-Accent1'
+    table.style = 'TableGrid'
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = 'Name'
     hdr_cells[1].text = '1'
@@ -335,8 +340,6 @@ def create_roll(students, subject, timeslot, room):
     for item in students:
         row_cells = table.add_row().cells
         row_cells[0].text = str(item.name)
-    table.allow_autofit = True
-
-    document.add_page_break()
-
-    document.save('demo.docx')
+    document.save(app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx')
+    return app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx'
+    # document.save('demo.docx')

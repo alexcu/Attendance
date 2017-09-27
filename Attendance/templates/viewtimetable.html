@@ -72,7 +72,9 @@
                         return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
                     }
                 }, {
-                    "data": "room"
+                    "data": "room", "render": function (data, type, row, meta) {
+                        return row.room.name;
+                    }
                 }
 
                     ,
