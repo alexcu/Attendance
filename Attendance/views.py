@@ -1092,3 +1092,14 @@ def update_student_class_attendance_ajax():
         tutorial.attendees.remove(student)
         db.session.commit()
     return json.dumps("Done")
+
+
+@app.route('/document')
+def document_test():
+    subject = Subject.get(subcode='MAST10006')
+    students = subject.students
+    timeslot = subject.timetabledclasses[0].timeslot
+    print()
+    room = subject.timetabledclasses[0].room
+    print(room)
+    create_roll(students, subject, timeslot, room)

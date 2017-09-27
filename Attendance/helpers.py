@@ -1,9 +1,15 @@
-from pulp import LpMinimize, LpProblem, LpVariable, lpSum, LpInteger, LpBinary, LpStatus
-from flask import render_template
 from Attendance import app, db, executor
 from Attendance.models import *
 import os
 from pandas import ExcelFile
+from docx import Document
+import os
+
+from docx import Document
+from pandas import ExcelFile
+
+from Attendance import app, db, executor
+from Attendance.models import *
 
 
 #TIMETABLE CODE
@@ -300,3 +306,37 @@ def read_excel(filename):
     xl = ExcelFile(filename)
     df = xl.parse(xl.sheet_names[0])
     return df
+
+
+def create_roll(students, subject, timeslot, room):
+    document = Document()
+
+    document.add_heading(subject.subname, 0)
+
+    document.add_paragraph('Timeslot: ' + timeslot.day + " " + timeslot.time)
+
+    document.add_paragraph('Room: ' + room.name)
+
+    table = document.add_table(rows=1, cols=12)
+    table.style = 'LightShading-Accent1'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Name'
+    hdr_cells[1].text = '1'
+    hdr_cells[2].text = '2'
+    hdr_cells[3].text = '3'
+    hdr_cells[4].text = '4'
+    hdr_cells[5].text = '5'
+    hdr_cells[6].text = '6'
+    hdr_cells[7].text = '7'
+    hdr_cells[8].text = '8'
+    hdr_cells[9].text = '9'
+    hdr_cells[10].text = '10'
+    hdr_cells[11].text = '11'
+    for item in students:
+        row_cells = table.add_row().cells
+        row_cells[0].text = str(item.name)
+    table.allow_autofit = True
+
+    document.add_page_break()
+
+    document.save('demo.docx')

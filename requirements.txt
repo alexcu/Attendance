@@ -11,3 +11,4 @@ flask_principal
 sqlalchemy
 sphinx
 docutils
+python-docx
