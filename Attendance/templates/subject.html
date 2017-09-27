@@ -4,6 +4,7 @@
     <div class="row">
         <div class="col-md-12">
             <h1>{{ subject.subname }}</h1>
+
             {{ msg }}
             <table class="table">
                 <thead>
@@ -135,7 +136,9 @@
             </table>
 
         </div>
+        {% if subject.tutor != None %}
         <button type="button" class="button" onclick="addNewClass()">Add a Class</button>
+        {% endif %}
     </div>
 
 
@@ -156,7 +159,7 @@
                     </thead>
                     <tr>
                         {% for timeslot in timeslots %}
-                            {% if  timeslot in times %}
+                            {% if timeslot in times %}
                                 <td class="attended"></td>
                             {% else %}
                                 <td class="notattended"></td>
@@ -214,6 +217,35 @@
                     <div class="row">
                     <div class="col-md-12">
                         <h1>Manage Timetabled Classes</h1>
+
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <td>Day</td>
+                            <td>Time</td>
+                            <td>Room</td>
+                            <td></td>
+                        </tr>
+                        </thead>
+                        {% for timeclass in timetabledclasses %}
+                            <tr>
+                                <td>{{ timeclass.timeslot.day }}</td>
+                                <td>{{ timeclass.timeslot.time }}</td>
+                                <td><select id="classroom" onchange="updateClassRoom({{ timeclass.id }})">
+                                    <option value="-1"></option>
+                                    {% for room in rooms %}
+                                        {% if room.id == timeclass.room.id %}
+                                            <option value="{{ room.id }}" selected>{{ room.name }}</option>
+                                        {% else %}
+                                            <option value="{{ room.id }}">{{ room.name }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select></td>
+                                <td></td>
+                            </tr>
+                        {% endfor %}
+
+                    </table>
 <table class="table">
 <thead>
 <td>Student</td>
@@ -320,6 +352,24 @@
             });
 
 
+    }
+
+
+        function updateClassRoom(timeclassid) {
+            var x = document.getElementById('classroom');
+            var y = x.options[x.selectedIndex].value;
+            $.ajax({
+                url: "/updateclassroomajax",
+                data: {timeclassid: timeclassid, roomid: y},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+
+                },
+                error: function () {
+
+                }
+            });
         }
 
         function updateStudentClassAttendance(classid, studentid, id) {

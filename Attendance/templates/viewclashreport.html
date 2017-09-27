@@ -9,6 +9,7 @@
                 <td>Student ID</td>
                 <td>Name</td>
                 <td>Timeslot</td>
+                <td>Subjects</td>
                 </thead>
 
 
@@ -53,7 +54,18 @@
                     "data": "timeslot", "render": function (data, type, row, meta) {
                         return row.timeslot.day + " " + row.timeslot.time;
                     }
-                }]
+                },
+                    {
+                        "data": "subjects", "render": function (data, type, row, meta) {
+                        var str = "";
+                        for (i = 0; i < row.subjects.length; i++) {
+                            str += row.subjects[i] + "<br>"
+                            console.log(str)
+
+                        }
+                        return str
+                    }
+                    }]
             });
 
             $('#atrisk').DataTable({

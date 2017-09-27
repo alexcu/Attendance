@@ -1,6 +1,6 @@
 import json
 
-from flask import request, render_template, redirect, current_app, url_for
+from flask import request, redirect, current_app, url_for
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
 from sqlalchemy.orm import joinedload
@@ -172,7 +172,7 @@ def add_subject_to_tutor(tutorid):
 def add_timetabledclass_to_subject(subcode):
     subject = Subject.get(subcode=subcode)
     timeslot = Timeslot.query.get(request.form['timeslot'])
-    timetable = get_current_timetable()
+    timetable = get_current_timetable().id
     timetabledclass = TimetabledClass.get_or_create(subjectid=subject.id, timetable=timetable, time=timeslot.id,
                                                     tutorid=subject.tutor.id)
     if len(subject.timetabledclasses) == 1:
@@ -225,13 +225,13 @@ def add_subject_to_student(studentcode):
 @app.route('/deleteallclasses')
 def delete_all_classes():
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                                        timetable=get_current_timetable()).all()
+                                                        timetable=get_current_timetable().id).all()
     for timeclass in timetabledclasses:
         db.session.delete(timeclass)
         db.session.commit()
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(),
                                                         studyperiod=get_current_studyperiod(),
-                                                        timetable=get_current_timetable()).all()
+                                                        timetable=get_current_timetable().id).all()
     return "Done"
 
 
@@ -364,7 +364,7 @@ def view_tutors():
 def view_rooms():
     form = JustNameForm()
     if request.method == 'GET':
-        return render_template('viewrooms.html', form=form)
+        return render_template('viewrooms.html', form=form, rooms=Room.get_all(), timeslots=Timeslot.get_all())
     else:
         if form.validate_on_submit():
             name = form.name.data
@@ -374,7 +374,7 @@ def view_rooms():
                 db.session.commit()
             msg = "Record successfully added"
             return redirect("/rooms")
-        return render_template('viewrooms.html', form=form)
+        return render_template('viewrooms.html', form=form, rooms=Room.get_all(), timeslots=Timeslot.get_all())
 
 
 @app.route('/universities', methods=['GET', 'POST'])
@@ -461,7 +461,7 @@ def view_timeslots():
         if form.validate_on_submit():
             day = form.day.data
             time = form.time.data
-            Timeslot.get_or_create(day, time)
+            Timeslot.get_or_create(day=day, time=time)
         return render_template('viewtimeslots.html', form=form)
 
 
@@ -870,27 +870,38 @@ def viewclashreportajax():
     for timeslot in timeslots:
         clashestimeslot = {}
         students = []
+        clashstudents = []
         for timeclass in timeslot.timetabledclasses:
             for student in timeclass.students:
-                if student in students:
+                if student not in students:
                     clashestimeslot[student.id] = {}
                     clashestimeslot[student.id]['student'] = student
                     clashestimeslot[student.id]['timeslot'] = timeslot
-                students.append(student)
-        clashes[timeslot.id] = clashestimeslot
+                    clashestimeslot[student.id]['subjects'] = []
+                    students.append(student)
+                clashestimeslot[student.id]['subjects'].append(timeclass.subject.subname)
+                if len(clashestimeslot[student.id]['subjects']) >= 2:
+                    clashstudents.append(student.id)
+        clashes[timeslot.id] = {key: clashestimeslot[key] for key in clashstudents}
+        clashes[timeslot.id]['time'] = timeslot.day + " " + timeslot.time
+
     data2 = []
     for row in clashes.keys():
         if clashes[row] != {}:
             for key in clashes[row].keys():
-                data2.append(clashes[row][key])
+                if isinstance(clashes[row][key], dict):
+                    data2.append(clashes[row][key])
+    print(data2)
     for row in data2:
         # row['_sa_instance_state'] = ""
+        print(row)
         row['timeslot'] = row['timeslot'].__dict__
         row['timeslot']['_sa_instance_state'] = ""
         row['student'] = row['student'].__dict__
         row['student']['_sa_instance_state'] = ""
         row['timeslot']['availabiletutors'] = []
         row['timeslot']['timetabledclasses'] = []
+    print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
@@ -1038,6 +1049,17 @@ def update_tutor_availability_ajax():
     else:
         tutor.availabletimes.append(timeslot)
     db.session.commit()
+    return json.dumps("Done")
+
+
+@app.route('/updateclassroomajax', methods=['POST'])
+def update_class_room_ajax():
+    timeclass = TimetabledClass.get(id=int(request.form['timeclassid']))
+    if int(request.form['roomid']) != -1:
+        room = Room.query.get(int(request.form['roomid']))
+        timeclass.update(room=room)
+    else:
+        timeclass.update(room=None)
     return json.dumps("Done")
 
 

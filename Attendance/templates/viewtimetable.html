@@ -12,6 +12,7 @@
                 <td>Day</td>
                 <td>Time</td>
                 <td>Tutor</td>
+                    <td>Room</td>
                 <td></td>
                 </tr>
                 </thead>
@@ -70,7 +71,11 @@
                     "data": "tutor", "render": function (data, type, row, meta) {
                         return "<a href='/viewtutor%3Ftutorid%3D" + row.tutor.id + "'>" + row.tutor.name + "</a>";
                     }
-                },
+                }, {
+                    "data": "room"
+                }
+
+                    ,
                     {
                         "data": "tutor", "render": function (data, type, row, meta) {
                         return "<a href='/removetimetabledclass%3Ftimetabledclassid%3D" + row.id + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>";

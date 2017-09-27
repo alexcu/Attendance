@@ -34,7 +34,15 @@
                     "url": '/viewtimeslotsajax',
                     "type": 'GET'
                 },
-                "columns": [{"data": "day"}, {"data": "time"}, {"data": "preferredtime"}, {
+                "columns": [{"data": "day"}, {"data": "time"}, {
+                    "data": "preferredtime", "render": function (data, type, row, meta) {
+                        if (row.preferredtime == true) {
+                            return "Yes"
+                        } else {
+                            return "No"
+                        }
+                    }
+                }, {
                     "render": function (data, type, row, meta) {
                         {% if current_user.is_admin == '1' %}
                             return "<a href='/removetimeslot%3Ftimeslotid%3D" + row.id + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>";

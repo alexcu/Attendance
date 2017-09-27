@@ -1,8 +1,3 @@
-from datetime import time
-from operator import attrgetter
-
-from pandas import ExcelFile, isnull
-from flask import render_template
 from Attendance import db, bcrypt
 from Attendance.helpers import *
 
@@ -303,8 +298,8 @@ class Subject(Base):
         return render_template("subject.html", subject=self, students=self.students,
                                tutor=self.tutor, tutors=Tutor.get_all(),
                                classes=self.classes, attendees=get_attendees_for_subject(self.subcode),
-                               msg=msg, times=self.find_possible_times,
-                               timeslots=Timeslot.get_all(),
+                               msg=msg, times=self.find_possible_times(),
+                               timeslots=Timeslot.get_all(), rooms=Room.get_all(),
                                timetabledclasses=self.timetabledclasses, form=form)
 
     def find_possible_times(self):
@@ -438,7 +433,7 @@ class TimetabledClass(Base):
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-    roomid = db.Column(db.ForeignKey('rooms.id'))
+    roomid = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     def __init__(self, subjectid, timetable, time, tutorid):
         super().__init__()
         self.subjectid = subjectid
@@ -453,7 +448,19 @@ class Room(db.Model):
     name = db.Column(db.String(50), nullable=False)
     projector = db.Column(db.Boolean)
     building = db.Column(db.String(50))
-    tutorials = db.relationship('TimetabledClass', single_parent=True, backref=db.backref('room'))
+    timetabledclasses = db.relationship('TimetabledClass', backref=db.backref('room'))
+
+    @classmethod
+    def get_all(cls):
+        return cls.query.all()
+
+    def get_available_times(self):
+        timeslots = Timeslot.get_all()
+        engagedtimes = []
+        for timeclass in self.timetabledclasses:
+            engagedtimes.append(timeclass.timeslot)
+        return [timeslot for timeslot in timeslots if timeslot not in engagedtimes]
+
 
 
 class Timeslot(Base):

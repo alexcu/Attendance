@@ -23,7 +23,31 @@
 
 
     {% include 'mymodal.html' %}
-
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Room Availabilities</h1>
+            <table class="table" id="roomavailabilities">
+                <thead>
+                <td>Room Name</td>
+                {% for timeslot in timeslots %}
+                    <td>{{ timeslot.day }} {{ timeslot.time }}</td>
+                {% endfor %}
+                </thead>
+                {% for room in rooms %}
+                    <tr>
+                        <td>{{ room.name }}</td>
+                        {% for timeslot in timeslots %}
+                            {% if  timeslot in room.get_available_times() %}
+                                <td class="attended"></td>
+                            {% else %}
+                                <td class="notattended"></td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 
 
 

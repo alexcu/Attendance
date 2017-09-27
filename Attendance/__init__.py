@@ -1,6 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from logging.handlers import RotatingFileHandler
+
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
@@ -10,9 +11,9 @@ from flask_sqlalchemy import *
 # DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = '/Users/justin/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justin/Dropbox/Justin/Documents/Python/database70.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database65.db'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
