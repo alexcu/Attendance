@@ -1,5 +1,7 @@
-from Attendance.models import *
 import os
+
+import pandas
+from docx import Document
 from pandas import ExcelFile
 from pulp import LpProblem, LpMinimize, lpSum, LpVariable, LpStatus, LpInteger, LpBinary
 
@@ -343,3 +345,28 @@ def create_roll(students, subject, timeslot, room):
     document.save(app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx')
     return app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx'
     # document.save('demo.docx')
+
+
+def create_excel(data):
+    writer = pandas.ExcelWriter(app.config['UPLOAD_FOLDER'] + '/timetable.xlsx', engine='xlsxwriter')
+    data.to_excel(writer, sheet_name='Timetable')
+    writer.save()
+    return app.config['UPLOAD_FOLDER'] + '/timetable.xlsx'
+
+
+def format_timetable_data_for_export():
+    timeslots = Timeslot.get_all()
+    timeslots = sorted(timeslots, key=attrgetter('daynumeric', 'time'))
+    timetable = []
+    for i in range(len(timeslots)):
+        timeslot = timeslots[i]
+        classes = timeslot.timetabledclasses
+        for timeclass in classes:
+            timetable.append((timeclass.timeslot.day + ' ' + timeclass.timeslot.time, timeclass.subject.subname,
+                              timeclass.tutor.name, timeclass.room.name))
+
+    timetable = pandas.DataFrame(timetable)
+    timetable.columns = ['Time', 'Subject', 'Tutor', 'Room']
+    print(timetable)
+
+    return timetable

@@ -23,9 +23,13 @@
     </div>
     {% if current_user.is_admin == '1' %}
         <button class="button" data-toggle="modal" data-target="#addModal">Add Timetable</button>
+        <a href="/downloadtimetable">
+            <button class="button">Download Timetable as Excel</button>
+        </a>
         <button onclick="deleteallclasses()" class="button-delete delete"
                 data-confirm='Are you sure you want to delete all timetabled classes?'>Delete All Classes
         </button>
+
     {% endif %}
 
 

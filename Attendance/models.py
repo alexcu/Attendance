@@ -1,8 +1,4 @@
-from datetime import time
 from operator import attrgetter
-
-from flask import render_template
-from pandas import isnull
 
 from Attendance import bcrypt
 from Attendance.helpers import *
@@ -327,6 +323,32 @@ class Subject(Base):
     def get_tutorials_sorted(self):
         results = Tutorial.get_all(subjectid=self.id)
         return sorted(results, key=attrgetter('week'))
+
+    def get_nonattending_students(self):
+        tutorials = self.get_tutorials_sorted()
+        nonattend = set()
+        if len(tutorials) >= 3:
+            attend = set()
+            for tutorial in tutorials[-3:]:
+                for student in tutorial.attendees:
+                    attend.add(student)
+            for student in self.students:
+                if student not in attend:
+                    nonattend.add(student)
+            return nonattend
+        else:
+            return set()
+
+    @classmethod
+    def get_all_nonattending_students(cls):
+        subjects = Subject.get_all()
+        nonattend = set()
+        for subject in subjects:
+            nonattendsubject = subject.get_nonattending_students()
+            for row in nonattendsubject:
+                nonattend.add((row, subject))
+        print(nonattend)
+        return nonattend
 
 
 class Student(Base):

@@ -1,6 +1,6 @@
 import json
 
-from flask import request, redirect, current_app, url_for
+from flask import request, redirect, current_app, url_for, send_file
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
 from sqlalchemy.orm import joinedload
@@ -437,7 +437,7 @@ def view_subjects():
 @app.route('/viewclashreport')
 @admin_permission.require()
 def viewclashreport():
-    return render_template("viewclashreport.html")
+    return render_template("viewclashreport.html", nonattend=Subject.get_all_nonattending_students())
 
 
 @app.route('/timetable', methods=['GET', 'POST'])
@@ -609,6 +609,16 @@ def get_at_risk_classes():
         subject = Subject.query.get(row['id'])
         row['recentaverageattendance'] = subject.get_recent_average_attendance()
     return '{ "data": ' + json.dumps(subjects) + '}'
+
+
+@app.route('/getnonattendingstudentsajax', methods=['POST'])
+def get_nonattending_students_ajax():
+    subject = Subject.get(id=int(request.form['subjectid']))
+    nonattend = subject.get_nonattending_students()
+    if len(nonattend) > 0:
+        print(nonattend)
+    else:
+        return '{"data": {}}'
 
 
 @app.route('/viewtimeslotsajax')
@@ -1116,3 +1126,10 @@ def document_test():
 def download_roll(classid):
     document = get_roll(classid)
     return send_file(document, as_attachment=True)
+
+
+@app.route('/downloadtimetable')
+def download_timetable():
+    timetable = format_timetable_data_for_export()
+    timetable = create_excel(timetable)
+    return send_file(timetable, as_attachment=True)
