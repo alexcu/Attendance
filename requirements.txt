@@ -12,3 +12,4 @@ sqlalchemy
 sphinx
 docutils
 python-docx
+pymysql
