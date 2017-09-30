@@ -15,6 +15,21 @@
             </table>
         </div>
     </div>
+    <h1>Classes At Risk</h1>
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table" id="atrisk">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Recent Average Attendance</td>
+                </thead>
+
+
+            </table>
+        </div>
+    </div>
+
 
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
@@ -38,6 +53,22 @@
                     "data": "timeslot", "render": function (data, type, row, meta) {
                         return row.timeslot.day + " " + row.timeslot.time;
                     }
+                }]
+            });
+
+            $('#atrisk').DataTable({
+                "ajax": {
+                    "url": '/getatriskclassesajax',
+                    "type": 'GET'
+                },
+                "columns": [{
+                    "data": "subcode"
+                }, {
+                    "data": "subcode", "render": function (data, type, row, meta) {
+                        return "<a href='/viewsubject%3Fsubcode%3D" + row.subcode + "'>" + row.subname + "</a>";
+                    }
+                }, {
+                    "data": "recentaverageattendance"
                 }]
             });
         });

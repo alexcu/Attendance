@@ -24,11 +24,17 @@
             </table>
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-2"><a href="addsubject">
-            <button type="button" class="button">Add Subject</button>
-        </a></div>
+    <div class="row" style="display: none">
+
+
     </div>
+    <div class="row">
+        <div class="col-md-2">
+            <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Subject</button>
+        </div>
+    </div>
+    {% include 'mymodal.html' %}
+
 
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 

@@ -86,7 +86,7 @@
                     }
                 }, {
                     "data": "remove", "render": function (data, type, row, meta) {
-                        return "<a href='/removesubjectfromtutortimetabler%3Ftutorid%3D" + row.tutor.id + "&subcode%3D" + row.subcode + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>";
+                        return "<a href='/removesubjectfromtutortimetabler%3Ftutorid%3D" + row.tutor.id + "&subcode%3D" + row.subcode + "' class='delete' data-confirm='Are you sure you want to delete this item?'><img src='../static/img/removeSymbol.png' class='deleteIcon' class='delete' data-confirm='Are you sure you want to delete this item?'/></a>";
                     }
                 }]
             });
@@ -106,7 +106,7 @@
                 },
                     {
                         "data": "addtutor", "render": function (data, type, row, meta) {
-                        return "<form action='/addtutortosubjecttimetabler%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'>{% for temptutor in tutors %} <option value={{ temptutor['id'] }}>{{ temptutor['name'] }} </option>{% endfor %} </select> <input type='submit' class='button' value='Add Tutor to Subject'/> </form>";
+                        return "<form action='/addtutortosubjecttimetabler%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'><option value=''>--Please Select a Tutor--</option>{% for temptutor in tutors %} <option value={{ temptutor['id'] }}>{{ temptutor['name'] }} </option>{% endfor %} </select> <input type='submit' class='button' value='Add Tutor to Subject'/> </form>";
                     }
                     }]
             });

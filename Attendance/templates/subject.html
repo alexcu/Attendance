@@ -3,7 +3,8 @@
 
     <div class="row">
         <div class="col-md-12">
-            <h1>{{ rows.subname }}</h1>
+            <h1>{{ subject.subname }}</h1>
+
             {{ msg }}
             <table class="table">
                 <thead>
@@ -15,31 +16,34 @@
                 <td>Attendance Rate</td>
                 </thead>
                 <tr>
-                    <td>{{ rows["subcode"] }}</td>
-                    <td>{{ rows["subname"] }}</td>
-                    <td> {{ rows["studyperiod"] }}</td>
+                    <td>{{ subject["subcode"] }}</td>
+                    <td>{{ subject["subname"] }}</td>
+                    <td> {{ subject["studyperiod"] }}</td>
                     <td><a href="{{ url_for('view_tutor', tutorid = tutor["id"]) }}">{{ tutor["name"] }}</a></td>
-                    <td><select id="repeats" onchange="changedvalue()">
+                    <td>{% if current_user.is_admin == '1' %}<select id="repeats" onchange="changedvalue()">
                         {% for i in range(1,5) %}
-                            {% if i == rows["repeats"] %}
+                            {% if i == subject["repeats"] %}
                                 <option selected>{{ i }}</option>
                             {% else %}
                                 <option>{{ i }}</option>
                             {% endif %}
                         {% endfor %}
-                    </select></td>
-                    <td id="parent">{{ rows.get_attendance_rate() }}%
+                    </select>{% else %}{{ subject["repeats"] }}{% endif %}</td>
+                    <td id="parent">{{ subject.get_attendance_rate() }}%
                         <button id="showhidebutton" class="button">Show Graph</button>
                     </td>
                 </tr>
             </table>
-            <a href="{{ url_for('remove_subject', subcode = rows["subcode"]) }}">
-                <button class="button-delete">Delete {{ rows["subname"] }}</button>
-            </a>
+            {% if current_user.is_admin == '1' %}
+                <button class="button" data-toggle="modal" data-target="#editModal">Edit {{ subject["subname"] }}</button>
+                <a href="{{ url_for('remove_subject', subcode = subject["subcode"]) }}" class='delete' data-confirm='Are you sure you want to delete this item?'>
+                    <button class="button-delete">Delete {{ subject["subname"] }}</button>
+            </a>{% endif %}
             {% if tutor != None %}
-                        <a href="{{ url_for('remove_tutor_from_subject', subcode = rows["subcode"], tutorid = tutor["id"]) }}">
+                       {% if current_user.is_admin == '1' %}
+                           <a href="{{ url_for('remove_tutor_from_subject', subcode = subject["subcode"], tutorid = tutor["id"]) }}" class="delete" data-confirm="Are you sure you want to delete this item?">
                             <button type="button" class="button-delete">Remove Tutor From Subject</button>
-                        </a>{% endif %}
+                        </a>{% endif %}{% endif %}
             <div id="popup" style="display: none">
                 <h1>Attendance Rate</h1>
                 <canvas id="SubjectAttendanceRate" height="125"></canvas>
@@ -49,11 +53,12 @@
 
         </div>
     </div>
+    {% if current_user.is_admin == '1' %}
     <div class="row">
         <div class="col-md-12">
             {% if tutor == None %}
                 <h3>Add Tutor to Subject</h3>
-                <form action="{{ url_for('add_tutor_to_subject', subcode = rows["subcode"]) }}" method="POST">
+                <form action="{{ url_for('add_tutor_to_subject', subcode = subject["subcode"]) }}" method="POST">
                     <select name="tutor">
                         {% for temptutor in tutors %}
 
@@ -69,7 +74,7 @@
             {% endif %}
         </div>
     </div>
-
+{% endif %}
 
 
 
@@ -92,7 +97,7 @@
                                                                           id="classweek/{{ class.id }}"
                                                                           style="width: 35px"
                                                                           onchange="changeClassTime({{ class.id }})"/><a
-                            href='{{ url_for('delete_tutorial',tutorialid=class.id) }}'><img
+                            href='{{ url_for('delete_tutorial',tutorialid=class.id) }}' class="delete" data-confirm="Are you sure you want to delete this item?"><img
                             src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
                     </td>
                 {% endfor %}
@@ -105,16 +110,16 @@
                             <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["studentcode"] }}</a>
                         </td>
                         <td id="studentid/{{ student.id }}">
-                            <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["firstname"] }} {{ student["lastname"] }}</a>
+                            <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student["name"] }}</a>
                         </td>
-                        <td>{% for timeclass in rows.timetabledclasses %}
+                        <td>{% for timeclass in subject.timetabledclasses %}
                             {% if student in timeclass.students %}
 {{ timeclass.timeslot.day }} {{timeclass.timeslot.time }}
                             {% endif %}
                             {% endfor %}
                             </td>
                         <td>
-                            <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = rows["subcode"]) }}"><img
+                            <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = subject["subcode"]) }}" class="delete" data-confirm="Are you sure you want to delete this item?"><img
                                     src='../static/img/removeSymbol.png' class='deleteIcon'/></a></a>
                         </td>
                         {% for class in classes %}
@@ -131,7 +136,9 @@
             </table>
 
         </div>
+        {% if subject.tutor != None %}
         <button type="button" class="button" onclick="addNewClass()">Add a Class</button>
+        {% endif %}
     </div>
 
 
@@ -152,7 +159,7 @@
                     </thead>
                     <tr>
                         {% for timeslot in timeslots %}
-                            {% if  timeslot in times %}
+                            {% if timeslot in times %}
                                 <td class="attended"></td>
                             {% else %}
                                 <td class="notattended"></td>
@@ -188,6 +195,7 @@
 
 
                     </table>
+                {% if current_user.is_admin == '1' %}
                     <form action="{{ url_for('add_timetabledclass_to_subject', subcode = subject.subcode) }}"
                           method="POST">
                         <select name="timeslot">
@@ -201,6 +209,7 @@
 
                         <input type="submit" class="button" value="Timetable Class"/>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         {% else %}
@@ -208,17 +217,48 @@
                     <div class="row">
                     <div class="col-md-12">
                         <h1>Manage Timetabled Classes</h1>
+
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <td>Day</td>
+                            <td>Time</td>
+                            <td>Room</td>
+                            <td></td>
+                        </tr>
+                        </thead>
+                        {% for timeclass in timetabledclasses %}
+                            <tr>
+                                <td>{{ timeclass.timeslot.day }}</td>
+                                <td>{{ timeclass.timeslot.time }}</td>
+                                <td><select id="classroom" onchange="updateClassRoom({{ timeclass.id }})">
+                                    <option value="-1"></option>
+                                    {% for room in rooms %}
+                                        {% if room.id == timeclass.room.id %}
+                                            <option value="{{ room.id }}" selected>{{ room.name }}</option>
+                                        {% elif timeclass.timeslot in room.get_available_times() %}
+                                            <option value="{{ room.id }}">{{ room.name }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select></td>
+                                <td><a href="/downloadroll%3Fclassid%3D{{ timeclass.id }}">
+                                    <button class="button">Download Roll</button>
+                                </a></td>
+                            </tr>
+                        {% endfor %}
+
+                    </table>
 <table class="table">
 <thead>
 <td>Student</td>
 {% for timeclass in timetabledclasses %}
-<td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}<a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = timeclass.id) }}"><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a></td>
+<td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}<a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = timeclass.id) }}" class="delete" data-confirm="Are you sure you want to delete this item?"><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a></td>
 {% endfor %}
 </thead>
-{% for student in rows.students %}
+    {% for student in subject.students %}
 <tr>
 <td>{{ student.name }}</td>
-{% for timeclass in rows.timetabledclasses %}
+    {% for timeclass in subject.timetabledclasses %}
 
 {% if  student in timeclass.students %}
 
@@ -232,6 +272,7 @@
 </tr>
 {% endfor %}
 </table>
+                    {% if current_user.is_admin == '1' %}
          <form action="{{ url_for('add_timetabledclass_to_subject', subcode = subject.subcode) }}"
                           method="POST">
                         <select name="timeslot">
@@ -245,22 +286,51 @@
 
                         <input type="submit" class="button" value="Timetable Class"/>
                     </form>
+{% endif %}
 
-
-        </div>
 
         {% endif %}
+        </div>
+                    </div>
     {% endif %}
 
-    {% if tutor != None %}
 
 
-    {% endif %}
 
 
 
 
 </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            {% if subject.get_nonattending_students()|length > 0 %}
+                <h1>Non-Attending Students</h1>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <td>Student Name</td>
+                        <td></td>
+                    </tr>
+                    </thead>
+                    {% for student in subject.get_nonattending_students() %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student.name }}</a>
+                            </td>
+                            <td></td>
+                        </tr>
+                    {% endfor %}
+
+                </table>
+
+
+                </div>
+
+
+                </div>
+            {% endif %}
+    {% include "mymodal.html" %}
 
     <script src="../static/js/Chart.bundle.js"></script>
     <script>
@@ -273,7 +343,7 @@
             var y = x.options[x.selectedIndex].text;
             $.ajax({
                 url: "/updatesubjectrepeats",
-                data: {subject: {{ rows.id }}, repeats: y},
+                data: {subject: {{ subject.id }}, repeats: y},
                 type: "POST",
                 dataType: "json",
                 success: function (data) {
@@ -313,6 +383,24 @@
             });
 
 
+    }
+
+
+        function updateClassRoom(timeclassid) {
+            var x = document.getElementById('classroom');
+            var y = x.options[x.selectedIndex].value;
+            $.ajax({
+                url: "/updateclassroomajax",
+                data: {timeclassid: timeclassid, roomid: y},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+
+                },
+                error: function () {
+
+                }
+            });
         }
 
         function updateStudentClassAttendance(classid, studentid, id) {
@@ -358,7 +446,7 @@
         function addNewClass() {
             $.ajax({
                 url: "/createnewclassajax",
-                data: {subjectid: {{rows.id}}},
+                data: {subjectid: {{subject.id}}},
                 type: "POST",
                 dataType: "json",
                 success: function (data) {
@@ -367,7 +455,7 @@
                         var trow = tbl.rows[i];
                         if (i == 0) {
                             var y = document.createElement('td');
-                            y.innerHTML = "Week <input type='number' id='classweek/" + data + "' value='3' onchange ='changeClassTime(" + data + ")' style = 'width: 35px' /><a href='deletetutorial%3Ftutorialid%3D" + data + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>"
+                            y.innerHTML = "Week <input type='number' id='classweek/" + data + "' value='3' onchange ='changeClassTime(" + data + ")' style = 'width: 35px' /><a href='deletetutorial%3Ftutorialid%3D" + data + "' class='delete' data-confirm='Are you sure you want to delete this item?'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>"
                             trow.appendChild(y);
                         } else {
                             var studentid;
@@ -400,7 +488,7 @@
         function getSubjectAttendanceData() {
             $.ajax({
                 type: 'GET',
-                url: '{{ url_for('get_subject_attendance_rate_ajax',subjectid = rows.id) }}',
+                url: '{{ url_for('get_subject_attendance_rate_ajax',subjectid = subject.id) }}',
                 dataType: 'json',
                 success: function (data) {
                     Object.keys(data).forEach(function (k) {

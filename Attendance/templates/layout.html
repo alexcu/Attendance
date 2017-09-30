@@ -53,19 +53,27 @@
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li><a href="/">Home</a></li>
-                <li class="dropdown">
+                {% if current_user.is_authenticated %}
+                {% if current_user.is_admin == '1' %}
+                    <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
                        aria-expanded="false">Manage<span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a href="subjects">Subjects</a></li>
                         <li><a href="timetable">Timetable</a></li>
-                        <li><a href="timeslots">Timeslots</a></li>
-                        <li><a href="viewtutors">Tutors</a></li>
-                        <li><a href="tutoravailability">Tutor Availability</a></li>
-                        <li><a href="viewstudents">Students</a></li>
+                            <li><a href="timeslots">Timeslots</a></li>
+                        <li><a href="tutors">Tutors</a></li>
+                            <li><a href="tutoravailability">Tutor Availability</a></li>
+                            <li><a href="users">Users</a></li>
+                        <li><a href="students">Students</a></li>
+                        <li><a href="rooms">Rooms</a></li>
+                        <li><a href="universities">Universities</a></li>
+                        <li><a href="colleges">Colleges</a></li>
                     </ul>
                 </li>
-                <li class="dropdown">
+                    {% endif %}
+                    {% if current_user.is_admin=='1' %}
+                        <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
                        aria-expanded="false">Upload Data <span class="caret"></span></a>
                     <ul class="dropdown-menu">
@@ -73,16 +81,34 @@
                         <li><a href="uploadtutordata">Tutor Data</a></li>
                         <li><a href="uploadtimetableclasslists">Timetable Data</a></li>
                     </ul>
-                </li>
-                <li class="dropdown">
+                        </li>{% endif %}
+
+                    {% if current_user.tutor %}
+                    <li><a href="/myclasses">My Classes</a></li>
+                    <li><a href="/myprofile">My Profile</a></li>
+                    {% endif %}
+
+                    {% if current_user.is_admin=='1' %}
+                        <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
                        aria-expanded="false">Reports<span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a href="viewclashreport">Clash Report</a></li>
                     </ul>
-                </li>
-                <li><a href="admin">Admin</a></li>
-                <li><a href="runtimetabler">Run Timetabler</a></li>
+                        </li>{% endif %}
+                    {% if current_user.is_admin=='1' %}
+                        <li><a href="admin">Admin</a></li>{% endif %}
+                    {% if current_user.is_admin=='1' %}
+                        <li><a href="runtimetabler">Run Timetabler</a></li>{% endif %}
+                {% endif %}
+                {% if current_user.is_authenticated %}
+                    {% if current_user.tutor %}
+                        <li><a href="/currentuser">Hi {{ current_user.tutor.name }}!</a></li>
+                    {% else %}
+                        <li><a href="/currentuser">Hi {{ current_user.username }}!</a></li>
+                    {% endif %}{% endif %}
+                <li>{% if current_user.is_authenticated %}<a href="logout">Logout</a> {% else %}
+                    <a href="login">Login</a> {% endif %}</li>
             </ul>
         </div><!--/.nav-collapse -->
     </div>
@@ -108,6 +134,22 @@
 <script src="../static/js/bootstrap.min.js"></script>
 <script src="../static/js/docs.min.js"></script>
 <script src="../static/js/moment.js"></script>
+<script>
+
+    var deleteLinks = document.querySelectorAll('.delete');
+
+for (var i = 0; i < deleteLinks.length; i++) {
+  deleteLinks[i].addEventListener('click', function(event) {
+      event.preventDefault();
+
+      var choice = confirm(this.getAttribute('data-confirm'));
+
+      if (choice) {
+        window.location.href = this.getAttribute('href');
+      }
+  });
+}
+</script>
 
 
 <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->

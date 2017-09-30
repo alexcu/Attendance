@@ -8,10 +8,15 @@
                 <thead>
                 <td>Student ID</td>
                 <td>Name</td>
+                <td></td>
                 </thead>
                 <tr>
-                    <td>{{ rows.studentcode }}</td>
-                    <td>{{ rows["firstname"] }} {{ rows["lastname"] }}</td>
+                    <td>{{ student.studentcode }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>
+                        <button class="button" data-toggle="modal" data-target="#editModal">Edit Student Details
+                        </button>
+                    </td>
                 </tr>
             </table>
             <h1>Subjects this student takes:</h1>
@@ -32,13 +37,14 @@
                         </td>
                         <td> {{ subject["studyperiod"] }}</td>
                         <td>
-                            <a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = rows['studentcode']) }}"><img
-                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
+                            {% if current_user.is_admin == '1' %}<a href="{{ url_for('remove_subject_from_student', subcode = subject.subcode, studentcode = student.studentcode) }}"><img
+                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>{% endif %}
                         </td>
                     </tr>
                 {% endfor %}
             </table>
-            <form action="{{ url_for('add_subject_to_student', studentcode = rows["studentcode"]) }}" method="POST">
+        {% if current_user.is_admin == '1' %}
+            <form action="{{ url_for('add_subject_to_student', studentcode = student.studentcode) }}" method="POST">
                 <select name="subject">
                     {% for subject in eligiblesubjects %}
 
@@ -49,8 +55,9 @@
                 </select>
                 <input type="submit" class="button" value="Add Subject to Student"/>
             </form>
+        {% endif %}
         </div>
-        {% if rows.timetabledclasses|length !=0 %}
+        {% if student.timetabledclasses|length !=0 %}
             <div class="col-md-6">
                 <canvas id="StudentAttendanceRate" height="250"></canvas>
             </div>
@@ -64,6 +71,7 @@
 
 
     {{ msg }}
+    {% if student.timetabledclasses|length !=0 %}
     <h1>Student Timetable</h1>
     <div class="row">
         <div class="col-md-12">
@@ -75,7 +83,7 @@
                 <td></td>
                 </thead>
 
-                {% for timetabledclass in rows.timetabledclasses %}
+                {% for timetabledclass in student.timetabledclasses %}
                     <tr>
 
                         <td>{{ timetabledclass.subject.subcode }}</td>
@@ -84,15 +92,16 @@
                         </td>
                         <td> {{ timetabledclass.timeslot.day + " " + timetabledclass.timeslot.time }}</td>
                         <td>
-                            <a href="{{ url_for('remove_timetabled_class', timetabledclassid = timetabledclass.id) }}"><img
-                                    src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
+                           {% if current_user.is_admin == '1' %} <a href="{{ url_for('remove_timetabled_class', timetabledclassid = timetabledclass.id) }}"><img
+                                   src='../static/img/removeSymbol.png' class='deleteIcon'/></a>{% endif %}
                         </td>
                     </tr>
                 {% endfor %}
             </table>
         </div>
     </div>
-
+    {% endif %}
+    {% include "mymodal.html" %}
     <script src="../static/js/Chart.bundle.js"></script>
     <script>
         var ctx = document.getElementById("StudentAttendanceRate");
@@ -102,15 +111,43 @@
         function getStudentAttendanceData() {
             $.ajax({
                 type: 'GET',
-                url: '{{ url_for('get_student_attendance_rate_ajax',studentid = rows.id) }}',
+                url: '{{ url_for('get_student_attendance_rate_ajax',studentid = student.id) }}',
                 dataType: 'json',
                 success: function (data) {
                     Object.keys(data).forEach(function (k) {
                         attendancelabels.push(k);
                     } );
                     attendancelabels.sort(function(a,b) {
-                        a = parseInt(a.split(' ')[1])
-                        b = parseInt(b.split(' ')[1])
+                        a = parseInt(a.split(' ')[1]);
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        b = parseInt(b.split(' ')[1]);
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
+                        ;
                         return a-b
                     });
                     for(var k=0; k<attendancelabels.length; k++) {
@@ -122,9 +159,51 @@
         }
 
         function drawStudentAttendanceChart() {
-            console.log(attendancedata)
-            console.log(cumattendancedata)
-            console.log(attendancelabels)
+            console.log(attendancedata);
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            console.log(cumattendancedata);
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            console.log(attendancelabels);
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
+            ;
             var myStudentAttendanceChart = new Chart(ctx, {
                 type: 'line',
                 data: {

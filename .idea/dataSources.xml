@@ -97,11 +97,17 @@
         <property name="enable_load_extension" value="true" />
       </driver-properties>
     </data-source>
-    <data-source source="LOCAL" name="database48.db" uuid="685d2a58-3282-4351-a370-732222dd418e">
+    <data-source source="LOCAL" name="database41.db" uuid="685d2a58-3282-4351-a370-732222dd418e">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database48.db</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="database66.db" uuid="5c2004cb-fe6d-435f-947c-cf352504fb48">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database66.db</jdbc-url>
     </data-source>
   </component>
 </project>

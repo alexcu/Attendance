@@ -13,21 +13,22 @@
             </table>
         </div>
     </div>
-
+    {% if current_user.is_admin == '1' %}
     <div class="row">
         <div class="col-md-12">
-    <a href="addtutor">
-        <button type="button" class="button">Add Tutor</button>
-    </a>
-            <form action="{{ url_for('add_tutor') }}" method="POST">
-                <h3>Add New Tutor</h3>
-                Name<br>
-                <input type="text" name="name"/></br>
-                <input type="submit" value="Add Tutor" class="button"/><br>
 
-            </form>
+            <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Tutor</button>
+
         </div>
-    </div>
+    </div>{% endif %}
+
+
+    {% include 'mymodal.html' %}
+
+
+
+
+
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
     <script>
 
