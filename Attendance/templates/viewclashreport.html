@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Timetable Clashes</h1>
+    {{ msg }}
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table" id="clashes">
+                <thead>
+                <td>Student ID</td>
+                <td>Name</td>
+                <td>Timeslot</td>
+                <td>Subjects</td>
+                </thead>
+
+
+            </table>
+        </div>
+    </div>
+
+    <div class="row">
+        <h1>Subjects At Risk</h1>
+    <div class ="col-md-12">
+        <table class="table" id="atrisk">
+                <thead>
+                <td>Subject Code</td>
+                <td>Subject Name</td>
+                <td>Recent Average Attendance</td>
+                </thead>
+
+
+            </table>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Non-Attending</h1>
+            <table class="table">
+                <thead>
+                <tr>
+                    <td>Student Name</td>
+                    <td>Subject Name</td>
+                </tr>
+                </thead>
+                {% for (student,subject) in nonattend %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('view_student', studentcode = student.studentcode) }}">{{ student.name }}</a>
+                        </td>
+                        <td><a href='{{ url_for('view_subject',subcode = subject.subcode) }}'>{{ subject.subname }}</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+            </table>
+
+        </div>
+    </div>
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+
+    <script>
+
+        $(document).ready(function () {
+            $('#clashes').DataTable({
+                "ajax": {
+                    "url": '/viewclashesajax',
+                    "type": 'GET'
+                },
+                "columns": [{
+                    "data": "studentcode", "render": function (data, type, row, meta) {
+                        return row.student.studentcode
+                    }
+                }, {
+                    "data": "name", "render": function (data, type, row, meta) {
+                        return "<a href='/viewstudent%3Fstudentcode%3D" + row.student.studentcode + "'>" + row.student.name + "</a>";
+                    }
+                }, {
+                    "data": "timeslot", "render": function (data, type, row, meta) {
+                        return row.timeslot.day + " " + row.timeslot.time;
+                    }
+                },
+                    {
+                        "data": "subjects", "render": function (data, type, row, meta) {
+                        var str = "";
+                        for (i = 0; i < row.subjects.length; i++) {
+                            str += row.subjects[i] + "<br>"
+                            console.log(str)
+
+                        }
+                        return str
+                    }
+                    }]
+            });
+
+            $('#atrisk').DataTable({
+                "ajax": {
+                    "url": '/getatriskclassesajax',
+                    "type": 'GET'
+                },
+                "columns": [{
+                    "data": "subcode"
+                }, {
+                    "data": "subcode", "render": function (data, type, row, meta) {
+                        return "<a href='/viewsubject%3Fsubcode%3D" + row.subcode + "'>" + row.subname+ "</a>";
+                    }
+                }, {
+                    "data": "recentaverageattendance"
+                }]
+            });
+        });
+    </script>
+{% endblock %}

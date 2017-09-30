@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Timeslots</h1>
+    {{ msg }}
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table" id="timeslots">
+                <thead>
+                <td>Day</td>
+                <td>Time</td>
+                <td>Preferred Time?</td>
+                <td></td>
+                </thead>
+
+
+            </table>
+        </div>
+    </div>
+
+{% if current_user.is_admin == '1' %}
+    <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Timeslot</button>
+{% endif %}
+
+    {% include 'mymodal.html' %}
+
+
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+
+    <script>
+
+        $(document).ready(function () {
+            $('#timeslots').DataTable({
+                "ajax": {
+                    "url": '/viewtimeslotsajax',
+                    "type": 'GET'
+                },
+                "columns": [{"data": "day"}, {"data": "time"}, {
+                    "data": "preferredtime", "render": function (data, type, row, meta) {
+                        if (row.preferredtime == true) {
+                            return "Yes"
+                        } else {
+                            return "No"
+                        }
+                    }
+                }, {
+                    "render": function (data, type, row, meta) {
+                        {% if current_user.is_admin == '1' %}
+                            return "<a href='/removetimeslot%3Ftimeslotid%3D" + row.id + "'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>";
+                        {% else %}
+                        return "";
+                        {% endif %}
+                    }
+                }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

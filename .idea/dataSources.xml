@@ -70,5 +70,44 @@
         <property name="enable_load_extension" value="true" />
       </driver-properties>
     </data-source>
+    <data-source source="LOCAL" name="database32.db" uuid="85ec3f6f-3dfa-4b29-92f5-4eef31bcbb17">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database32.db</jdbc-url>
+      <driver-properties>
+        <property name="enable_load_extension" value="true" />
+      </driver-properties>
+    </data-source>
+    <data-source source="LOCAL" name="database36.db" uuid="86e61764-63f6-401f-845c-4cc1d8f67c6c">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/../Attendance\sqlite:///$USER_HOME$/Dropbox/Justin/Documents/Python/database36.db</jdbc-url>
+      <driver-properties>
+        <property name="enable_load_extension" value="true" />
+      </driver-properties>
+    </data-source>
+    <data-source source="LOCAL" name="database40.db" uuid="d976f2ca-b97f-4f7d-b4f5-12be295cc009">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/../Attendance\..\..\Dropbox\Justin\Documents\Python\database40.db</jdbc-url>
+      <driver-properties>
+        <property name="enable_load_extension" value="true" />
+      </driver-properties>
+    </data-source>
+    <data-source source="LOCAL" name="database41.db" uuid="685d2a58-3282-4351-a370-732222dd418e">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database48.db</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="database66.db" uuid="5c2004cb-fe6d-435f-947c-cf352504fb48">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database66.db</jdbc-url>
+    </data-source>
   </component>
 </project>

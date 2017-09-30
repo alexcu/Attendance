@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block content %}
+
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Manage Tutor Availabilities</h1>
+            <table class="table" id="tutoravailabilities">
+                <thead>
+                <td>Tutor Name</td>
+                {% for timeslot in timeslots %}
+                    <td>{{ timeslot.day }} {{ timeslot.time }}</td>
+                {% endfor %}
+                </thead>
+                {% for tutor in tutors %}
+                    <tr>
+                        <td><a href="{{ url_for('view_tutor',tutorid = tutor.id) }}">{{ tutor.name }}</a></td>
+                        {% for timeslot in timeslots %}
+                            {% if  timeslot in tutor.availabletimes %}
+                                <td class="attended" id="slot/{{ timeslot.id }}/{{ tutor.id }}"
+                                    onclick="updateAvailability({{ timeslot.id }},{{ tutor.id }},'slot/{{ timeslot.id }}/{{ tutor.id }}')"></td>
+                            {% else %}
+                                <td class="notattended" id="slot/{{ timeslot.id }}/{{ tutor.id }}"
+                                    onclick="updateAvailability({{ timeslot.id }},{{ tutor.id }},'slot/{{ timeslot.id }}/{{ tutor.id }}')"></td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <script>
+
+
+        function updateAvailability(timeslotid, tutorid, id) {
+            $.ajax({
+                url: "/updatetutoravailabilityajax",
+                data: {timeslotid: timeslotid, tutorid: tutorid},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+                    var x = document.getElementById(id);
+                    if (x.className == "attended") {
+                        x.className = "notattended";
+                    } else if (x.className == "notattended") {
+                        x.className = "attended";
+                    }
+                },
+                error: function () {
+
+                }
+            });
+        }
+
+
+    </script>
+
+
+
+{% endblock %}
