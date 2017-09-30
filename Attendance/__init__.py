@@ -13,7 +13,8 @@ executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 # app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database70.db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database70.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:internationalhouse@ihattendance.czbbe4ymxvmv.ap-southeast-2.rds.amazonaws.com/ihattendance'
 app.config.update(
     SECRET_KEY='jemimaisababe'
 )
