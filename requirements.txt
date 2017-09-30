@@ -1,5 +1,14 @@
 flask
 pandas
-flask_bcrypt
-flask_sqlalchemy
+flask-bcrypt
+flask-sqlalchemy
 xlrd
+PuLP
+flask-wtf
+wtforms
+flask-login
+flask-principal
+sqlalchemy
+sphinx
+docutils
+python-docx
