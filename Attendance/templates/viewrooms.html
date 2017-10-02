@@ -1,31 +1,21 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Rooms</h1>
-    {{ msg }}
-    <div class="row">
-        <div class="col-md-12">
-            <table class="rooms" id="rooms">
-                <thead>
-                <td>Name</td>
 
-                </thead>
-            </table>
-        </div>
-    </div>
-    {% if current_user.is_admin == '1' %}
-        <div class="row">
-            <div class="col-md-12">
-
-                <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Room</button>
-
-            </div>
-        </div>{% endif %}
 
 
     {% include 'mymodal.html' %}
     <div class="row">
         <div class="col-md-12">
-            <h1>Room Availabilities</h1>
+
+            <h1>Rooms and Availability</h1>
+            {% if current_user.is_admin == '1' %}
+
+
+
+                <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Room</button>
+
+
+            {% endif %}
             <table class="table" id="roomavailabilities">
                 <thead>
                 <td>Room Name</td>
@@ -53,22 +43,6 @@
 
 
     <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
-    <script>
 
-        $(document).ready(function () {
-            $('#rooms').DataTable({
-                "ajax": {
-                    "url": '/viewroomsajax',
-                    "type": 'GET'
-                },
-                "columns": [{
-                    "data": "name", "render": function (data, type, row, meta) {
-                        return "<a href='/viewroom%3Froomid%3D" + row.id + "'>" + row.name + "</a>";
-                    }
-                }
-                ]
-            });
-        });
-    </script>
 
 {% endblock %}

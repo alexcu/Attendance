@@ -4,7 +4,7 @@ from flask import request, redirect, current_app, url_for, send_file
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
 from sqlalchemy.orm import joinedload
-
+import pandas
 from Attendance import admin_permission
 from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
     EditStudentForm, AddTimetableForm, JustNameForm
@@ -52,6 +52,7 @@ def register():
 
 
 @app.route('/logout')
+@login_required
 def logout():
     logout_user()
     return redirect('/')
@@ -62,15 +63,24 @@ def logout():
 @app.route('/uploadstudentdata', methods=['GET', 'POST'])
 @admin_permission.require()
 def uploadstudentdata():
-    filename2 = upload(request.files['file'])
-    df = read_excel(filename2)
-    populate_students(df)
+    if request.method == 'POST':
+        try:
+            filename2 = upload(request.files['file'])
+            df = read_excel(filename2)
+            populate_students(df)
+            return redirect("/students")
+        except PermissionError as e:
+            app.logger.error(e)
+            return redirect('/uploadstudentdata')
+
     # msg = "Completed Successfully"
     # except:
     #    msg = "There was an error with the upload, please try again"
         # Redirect the user to the uploaded_file route, which
         # will basicaly show on the browser the uploaded file
-    return redirect("/students")
+
+    else:
+        return render_template('/uploadstudentdata.html')
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
@@ -138,6 +148,7 @@ def uploadtutordata():
         return render_template('uploadtutordata.html', msg=msg)
 
 @app.route('/uploadtutoravailabilities', methods=['POST'])
+@admin_permission.require()
 def upload_tutor_availabilities():
     filename2 = upload(request.files['file'])
     print("Uploaded Successfully")
@@ -160,6 +171,7 @@ def run_timetabler():
 
 
 @app.route('/addsubjecttotutor?tutorid=<tutorid>', methods=['GET', 'POST'])
+@admin_permission.require()
 def add_subject_to_tutor(tutorid):
     if request.method == 'POST':
         subcode = request.form['subject']
@@ -169,6 +181,7 @@ def add_subject_to_tutor(tutorid):
 
 
 @app.route('/addtimetabledclasstosubject?subcode=<subcode>', methods=['POST'])
+@admin_permission.require()
 def add_timetabledclass_to_subject(subcode):
     subject = Subject.get(subcode=subcode)
     timeslot = Timeslot.query.get(request.form['timeslot'])
@@ -188,6 +201,7 @@ def admin():
 
 
 @app.route('/addtutortosubject?subcode=<subcode>', methods=['GET', 'POST'])
+@admin_permission.require()
 def add_tutor_to_subject(subcode):
     if request.method == 'POST':
         tutor = Tutor.query.get(request.form['tutor'])
@@ -195,14 +209,19 @@ def add_tutor_to_subject(subcode):
         return redirect(url_for('view_subject', subcode=subcode))
 
 @app.route('/myclasses')
+@login_required
 def get_my_classes():
     return render_template('myclasses.html',tutor=current_user.tutor)
 
 @app.route('/myprofile')
+@login_required
 def view_my_profile():
-    return current_user.tutor.view_tutor_template()
+    tutor = Tutor.query.get(current_user.tutor.id)
+    form = EditTutorForm(obj=tutor)
+    return current_user.tutor.view_tutor_template(form=form)
 
 @app.route('/addtutortosubjecttimetabler?subcode=<subcode>', methods=['GET', 'POST'])
+@admin_permission.require()
 def add_tutor_to_subject_timetabler(subcode):
     if request.method == 'POST':
         tutorid = request.form['tutor']
@@ -214,6 +233,7 @@ def add_tutor_to_subject_timetabler(subcode):
 
 
 @app.route('/addsubjecttostudent?studentcode=<studentcode>', methods=['POST'])
+@admin_permission.require()
 def add_subject_to_student(studentcode):
     subcode = request.form['subject']
     msg = linksubjectstudent(studentcode, subcode)
@@ -223,6 +243,7 @@ def add_subject_to_student(studentcode):
 #DELETION ROUTES
 
 @app.route('/deleteallclasses')
+@admin_permission.require()
 def delete_all_classes():
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
                                                         timetable=get_current_timetable().id).all()
@@ -273,30 +294,35 @@ def remove_tutor(tutorid):
 
 
 @app.route('/removesubjectfromtutor?tutorid=<tutorid>&subcode=<subcode>')
+@admin_permission.require()
 def remove_subject_from_tutor(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
     return redirect(url_for('view_tutor', tutorid=tutorid))
 
 
 @app.route('/removesubjectfromtutortimetabler?tutorid=<tutorid>&subcode=<subcode>')
+@admin_permission.require()
 def remove_subject_from_tutor_timetabler(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
     return redirect("/runtimetabler")
 
 
 @app.route('/removetutorfromsubject?tutorid=<tutorid>&subcode=<subcode>')
+@admin_permission.require()
 def remove_tutor_from_subject(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
     return redirect(url_for('view_subject', subcode=subcode))
 
 
 @app.route('/removesubjectfromstudent?studentcode=<studentcode>&subcode=<subcode>')
+@admin_permission.require()
 def remove_subject_from_student(studentcode, subcode):
     msg = unlinksubjectstudent(studentcode, subcode)
     return redirect(url_for('view_student', studentcode=studentcode))
 
 
 @app.route('/removetimetabledclass?timetabledclassid=<timetabledclassid>')
+@admin_permission.require()
 def remove_timetabled_class(timetabledclassid):
     timetabledclass = TimetabledClass.query.get(timetabledclassid)
     subject = timetabledclass.subject
@@ -311,6 +337,7 @@ def remove_timetabled_class(timetabledclassid):
 
 
 @app.route('/removetimetabledclasssubject?timetabledclassid=<timetabledclassid>')
+@admin_permission.require()
 def remove_timetabled_class_subject(timetabledclassid):
     timetabledclass = TimetabledClass.query.get(timetabledclassid)
     subject = timetabledclass.subject
@@ -324,6 +351,7 @@ def remove_timetabled_class_subject(timetabledclassid):
 
 
 @app.route('/removestudentfromsubject?studentcode=<studentcode>&subcode=<subcode>')
+@admin_permission.require()
 def remove_student_from_subject(studentcode, subcode):
     msg = unlinksubjectstudent(studentcode, subcode)
     return redirect(url_for('view_subject', subcode=subcode))
@@ -441,6 +469,7 @@ def viewclashreport():
 
 
 @app.route('/timetable', methods=['GET', 'POST'])
+@login_required
 def view_timetable():
     form = AddTimetableForm()
     if request.method == 'GET':
@@ -501,11 +530,21 @@ def view_users():
 def view_student(studentcode):
     student = Student.get(studentcode=studentcode)
     form = EditStudentForm(obj=student)
+    colleges = College.query.all()
+    choices = [(-1, "")]
+    for college in colleges:
+        choices.append((int(college.id), college.name))
+    form.college.choices = choices
+    universities = University.query.all()
+    choices = [(-1, "")]
+    for university in universities:
+        choices.append((int(university.id), university.name))
+    form.university.choices = choices
     if request.method == 'GET':
         if student.university is not None:
-            form.university.data = student.university
+            form.university.data = student.university.id
         if student.college is not None:
-            form.college.data = student.college
+            form.college.data = student.college.id
         return student.view_student_template(form)
     elif request.method == 'POST' and current_user.is_admin:
         if form.validate_on_submit():
@@ -526,7 +565,7 @@ def view_tutor(tutorid):
     for user in users:
         choices.append((int(user.id), user.username))
     form.user.choices = choices
-    if current_user.is_admin == '1' or current_user.tutor.id == tutorid:
+    if current_user.is_admin == '1' or int(current_user.tutor.id) == int(tutorid):
         if request.method == 'GET':
             if tutor.user is not None:
                 form.user.data = tutor.user.id
@@ -596,6 +635,7 @@ def internal_server_error(error):
 # AJAX ROUTES
 
 @app.route('/getatriskclassesajax', methods=['GET', 'POST'])
+@admin_permission.require()
 def get_at_risk_classes():
     subjects = [subject.__dict__ for subject in Subject.query.filter(Subject.year == get_current_year(),
                                                                      Subject.studyperiod == get_current_studyperiod(),
@@ -612,6 +652,7 @@ def get_at_risk_classes():
 
 
 @app.route('/getnonattendingstudentsajax', methods=['POST'])
+@admin_permission.require()
 def get_nonattending_students_ajax():
     subject = Subject.get(id=int(request.form['subjectid']))
     nonattend = subject.get_nonattending_students()
@@ -622,6 +663,7 @@ def get_nonattending_students_ajax():
 
 
 @app.route('/viewtimeslotsajax')
+@admin_permission.require()
 def viewtimeslots_ajax():
     data = Timeslot.get_all()
     data2 = []
@@ -637,6 +679,7 @@ def viewtimeslots_ajax():
 
 
 @app.route('/viewtimetableajax')
+@login_required
 def viewtimetable_ajax():
     data = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
         joinedload('tutor'), joinedload('room')).all()
@@ -674,6 +717,7 @@ def viewtimetable_ajax():
 
 
 @app.route('/viewtutorsajax')
+@admin_permission.require()
 def viewtutors_ajax():
     data = Tutor.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
         joinedload('subjects'), joinedload('availabletimes')).all()
@@ -699,6 +743,7 @@ def viewtutors_ajax():
 
 
 @app.route('/viewroomsajax')
+@admin_permission.require()
 def viewrooms_ajax():
     data = Room.query.all()
     data2 = []
@@ -711,6 +756,7 @@ def viewrooms_ajax():
 
 
 @app.route('/viewuniversitiesajax')
+@admin_permission.require()
 def viewuniversities_ajax():
     data = University.query.all()
     data2 = []
@@ -723,6 +769,7 @@ def viewuniversities_ajax():
 
 
 @app.route('/viewcollegesajax')
+@admin_permission.require()
 def viewcolleges_ajax():
     data = College.query.all()
     data2 = []
@@ -734,6 +781,7 @@ def viewcolleges_ajax():
     return '{ "data" : ' + data + '}'
 
 @app.route('/viewusersajax')
+@admin_permission.require()
 def viewusers_ajax():
     data = User.query.options(joinedload('tutor')).all()
     data2 = []
@@ -750,6 +798,7 @@ def viewusers_ajax():
 
 
 @app.route('/viewstudentsajax')
+@admin_permission.require()
 def viewstudents_ajax():
     data = Student.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod())
     data2 = []
@@ -762,6 +811,7 @@ def viewstudents_ajax():
 
 
 @app.route('/createnewclassajax', methods=['POST'])
+@login_required
 def create_new_class_ajax():
     subjectid = int(request.form['subjectid'])
     subject = Subject.query.get(subjectid)
@@ -772,6 +822,7 @@ def create_new_class_ajax():
 
 
 @app.route('/viewcurrentmappedsubjectsajax')
+@admin_permission.require()
 def viewcurrentmappedsubjects_ajax():
     data = Subject.query.filter(Subject.year == get_current_year(), Subject.studyperiod == get_current_studyperiod(),
                                 Subject.tutor != None).options(joinedload('students')).all()
@@ -788,6 +839,7 @@ def viewcurrentmappedsubjects_ajax():
 
 
 @app.route('/vieweligiblesubjectsajax')
+@admin_permission.require()
 def vieweligiblesubjects_ajax():
     data = Subject.query.options(joinedload('students')).filter(Subject.year == get_current_year(),
                                                                 Subject.studyperiod == get_current_studyperiod(),
@@ -807,6 +859,7 @@ def vieweligiblesubjects_ajax():
 
 
 @app.route('/getrollmarkingajax')
+@login_required
 def get_roll_marking_ajax():
     weeks = get_min_max_week()
     minweek = weeks[0]
@@ -830,6 +883,7 @@ def get_roll_marking_ajax():
 
 
 @app.route('/getstudentattendancerate?studentid=<studentid>')
+@login_required
 def get_student_attendance_rate_ajax(studentid):
     student = Student.query.get(studentid)
     subjects = [subject for subject in student.subjects if subject.tutor is not None]
@@ -865,6 +919,7 @@ def get_student_attendance_rate_ajax(studentid):
 
 
 @app.route('/numbereligiblesubjectsmappedajax')
+@login_required
 def num_eligible_subjects_mapped():
     subjects = Subject.query.filter(Subject.tutor != None, Subject.year == get_current_year(),
                                     Subject.studyperiod == get_current_studyperiod()).all()
@@ -880,6 +935,7 @@ def num_eligible_subjects_mapped():
 
 
 @app.route('/viewclashesajax')
+@admin_permission.require()
 def viewclashreportajax():
     timeslots = Timeslot.get_all()
     clashes = {}
@@ -907,22 +963,23 @@ def viewclashreportajax():
             for key in clashes[row].keys():
                 if isinstance(clashes[row][key], dict):
                     data2.append(clashes[row][key])
-    print(data2)
+
     for row in data2:
         # row['_sa_instance_state'] = ""
-        print(row)
+
         row['timeslot'] = row['timeslot'].__dict__
         row['timeslot']['_sa_instance_state'] = ""
         row['student'] = row['student'].__dict__
         row['student']['_sa_instance_state'] = ""
         row['timeslot']['availabiletutors'] = []
         row['timeslot']['timetabledclasses'] = []
-    print(data2)
+
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
 
 @app.route('/updatesubjectrepeats', methods=['POST'])
+@admin_permission.require()
 def update_subject_repeats():
     subject = Subject.query.get(int(request.form['subject']))
     subject.update(repeats=int(request.form['repeats']))
@@ -930,6 +987,7 @@ def update_subject_repeats():
 
 
 @app.route('/viewsubjectsajax')
+@login_required
 def viewsubjects_ajax():
     data = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod()).options(
         joinedload('students')).all()
@@ -945,6 +1003,7 @@ def viewsubjects_ajax():
 
 
 @app.route('/viewmysubjectsajax')
+@login_required
 def viewmysubjects_ajax():
     data = Subject.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
                                    tutor=current_user.tutor).options(
@@ -961,6 +1020,7 @@ def viewmysubjects_ajax():
 
 
 @app.route('/useradminajax', methods=['POST'])
+@admin_permission.require()
 def user_admin_ajax():
     user = User.query.get(int(request.form['user_id']))
     adminvalue = int(request.form['admin'])
@@ -978,6 +1038,7 @@ def user_admin_ajax():
 
 
 @app.route('/maptutoruserajax', methods=['POST'])
+@admin_permission.require()
 def user_tutor_mapping():
     user = User.query.get(int(request.form['user_id']))
     if int(request.form['tutor_id']) != -1:
@@ -991,17 +1052,18 @@ def user_tutor_mapping():
 
 
 @app.route('/updateclasstimeajax', methods=['POST'])
+@login_required
 def update_class_time_ajax():
     classid = int(request.form['classid'])
     week = int(request.form['week'])
     tutorial = Tutorial.query.get(classid)
     tutorial.week = week
     db.session.commit()
-    print(tutorial.week)
     return json.dumps("Done")
 
 
 @app.route('/getsubjectattendancerate?subjectid=<subjectid>')
+@login_required
 def get_subject_attendance_rate_ajax(subjectid):
     subject = Subject.query.get(subjectid)
     weeks = get_min_max_week()
@@ -1029,6 +1091,7 @@ def get_subject_attendance_rate_ajax(subjectid):
 
 
 @app.route('/getattendanceajax')
+@login_required
 def get_attendance_ajax():
     weeks = get_min_max_week()
     minweek = weeks[0]
@@ -1055,6 +1118,7 @@ def get_attendance_ajax():
 
 
 @app.route('/updatetutoravailabilityajax', methods=['POST'])
+@login_required
 def update_tutor_availability_ajax():
     timeslotid = int(request.form['timeslotid'])
     tutorid = int(request.form['tutorid'])
@@ -1069,6 +1133,7 @@ def update_tutor_availability_ajax():
 
 
 @app.route('/updateclassroomajax', methods=['POST'])
+@login_required
 def update_class_room_ajax():
     timeclass = TimetabledClass.get(id=int(request.form['timeclassid']))
     if int(request.form['roomid']) != -1:
@@ -1080,6 +1145,7 @@ def update_class_room_ajax():
 
 
 @app.route('/updatestudentscheduledclassajax', methods=['POST'])
+@login_required
 def update_student_scheduled_class_ajax():
     timeclassid = int(request.form['timeclassid'])
     studentid = int(request.form['studentid'])
@@ -1096,6 +1162,7 @@ def update_student_scheduled_class_ajax():
 
 
 @app.route('/updatestudentclassattendanceajax', methods=['POST'])
+@login_required
 def update_student_class_attendance_ajax():
     classid = int(request.form['classid'])
     studentid = int(request.form['studentid'])
@@ -1111,6 +1178,7 @@ def update_student_class_attendance_ajax():
 
 
 @app.route('/document')
+@login_required
 def document_test():
     subject = Subject.get(subcode='MAST10006')
     students = subject.students
@@ -1123,12 +1191,14 @@ def document_test():
 
 
 @app.route('/downloadroll?classid=<classid>')
+@login_required
 def download_roll(classid):
     document = get_roll(classid)
     return send_file(document, as_attachment=True)
 
 
 @app.route('/downloadtimetable')
+@login_required
 def download_timetable():
     timetable = format_timetable_data_for_export()
     timetable = create_excel(timetable)

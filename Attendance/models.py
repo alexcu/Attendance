@@ -1,19 +1,21 @@
 from operator import attrgetter
-
-from Attendance import bcrypt
+from flask import render_template
+from Attendance import bcrypt, db
 from Attendance.helpers import *
+from pandas import isnull
+from datetime import time
 
 
-class CRUDMixin(object):
+class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
     """
     __table_args__ = {'extend_existing': True}
-
+    __abstract__ = True
     id = db.Column(db.Integer, primary_key=True)
 
     @classmethod
     def get(cls, **kwargs):
-        return cls.query.filter_by(**kwargs, year=get_current_year(), studyperiod=get_current_studyperiod()).first()
+        return cls.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(), **kwargs).first()
 
     @classmethod
     def get_or_create(cls, **kwargs):
@@ -84,7 +86,7 @@ class CRUDMixin(object):
         return cls.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(), **kwargs).all()
 
 
-class Base(db.Model, CRUDMixin):
+class Base(CRUDMixin):
     '''
     Base class for the other models to inherit.
 
@@ -112,7 +114,7 @@ class User(Base):
     '''
     __tablename__ = "users"
     username = db.Column('username', db.String(40), index=True, nullable=False)
-    password = db.Column('password', db.String(50), nullable=False)
+    password = db.Column('password', db.String(100), nullable=False)
     email = db.Column('email', db.String(50))
     is_admin = db.Column('is_admin', db.String(10))
 
@@ -354,7 +356,7 @@ class Subject(Base):
 class Student(Base):
     __tablename__ = 'students'
     studentcode = db.Column(db.String(50), nullable=False)
-    name = db.Column(db.String(50), nullable=True)
+    name = db.Column(db.String(100), nullable=True)
     subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
     timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable,
                                         backref=db.backref('students'))

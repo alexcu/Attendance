@@ -13,3 +13,4 @@ sphinx
 docutils
 python-docx
 pymysql
+xlsxwriter

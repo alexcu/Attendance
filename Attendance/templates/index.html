@@ -65,12 +65,17 @@
                         var key = Object.keys(data)[k]
                         if (data[key]) {
                             labelsline.push(key);
-                            dataline.push(Math.round(data[key]["Attendance Rate"]));
+
                         }
                     };
-                    console.log(data)
-                    console.log(labelsline)
-                    console.log(dataline)
+                    labelsline.sort(function (a, b) {
+                        a = parseInt(a.split(' ')[1])
+                        b = parseInt(b.split(' ')[1])
+                        return a - b
+                    });
+                    for (var k = 0; k < labelsline.length; k++) {
+                        dataline.push(Math.round(data[labelsline[k]]["Attendance Rate"]));
+                    }
                     drawAttendanceChart();
                 }
             });
@@ -86,7 +91,15 @@
                         var key = Object.keys(data)[k]
                         if (data[key]) {
                         labelsroll.push(key);
-                            dataroll.push(Math.round(data[key]['Roll Marking']));
+
+                        }
+                        labelsroll.sort(function (a, b) {
+                            a = parseInt(a.split(' ')[1])
+                            b = parseInt(b.split(' ')[1])
+                            return a - b
+                        });
+                        for (var k = 0; k < labelsroll.length; k++) {
+                            dataroll.push(Math.round(data[labelsroll[k]]['Roll Marking']));
                         }
                     };
                     drawRollMarkingChart();

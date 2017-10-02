@@ -85,7 +85,7 @@
 
                     {% if current_user.tutor %}
                     <li><a href="/myclasses">My Classes</a></li>
-                    <li><a href="/myprofile">My Profile</a></li>
+                        <li><a href="{{ url_for('view_tutor', tutorid = current_user.tutor.id) }}">My Profile</a></li>
                     {% endif %}
 
                     {% if current_user.is_admin=='1' %}
