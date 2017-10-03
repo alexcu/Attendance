@@ -134,6 +134,7 @@
         }
 
         function runtimetable() {
+
             var x = document.getElementById('addnewtimetable');
             $.ajax({
                 url: "/runtimetableprogram",
@@ -141,7 +142,7 @@
                 type: "POST",
                 dataType: "json",
                 success: function (data) {
-
+                    alert('The Timetabler will run in the background and will take approximately 5 minutes. If it does not populate after this time, check that there are sufficient tutor availabilities for the number of tutorials assigned.')
                 },
                 error: function () {
 

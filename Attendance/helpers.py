@@ -551,3 +551,20 @@ def format_timetable_data_for_export():
     print(timetable)
 
     return timetable
+
+
+def collate_tutor_hours(minweek, maxweek):
+    tutors = Tutor.get_all()
+    data = set()
+    for tutor in tutors:
+        initials = 0
+        repeats = 0
+        tutorials = Tutorial.get_all(tutorid=tutor.id)
+        tutorials = [tutorial for tutorial in tutorials if
+                     int(tutorial.week) >= int(minweek) and int(tutorial.week) <= int(maxweek)]
+        initials = len(tutorials)
+        for tutorial in tutorials:
+            repeats += (int(tutorial.subject.repeats) - 1)
+        data.add((tutor, initials, repeats))
+
+    return data

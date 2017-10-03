@@ -51,7 +51,10 @@ class AddSubjectForm(FlaskForm):
 
 class StudentForm(NameForm):
     studentcode = StringField('Student Code', validators=[DataRequired()])
-
+    university = SelectField('University', validators=[Optional()],
+                             choices=[(-1, "")], coerce=int)
+    college = SelectField('College', validators=[Optional()],
+                          choices=[(-1, "")], coerce=int)
 
 class AddTimetableForm(FlaskForm):
     key = StringField('Timetable Name', validators=[DataRequired()])

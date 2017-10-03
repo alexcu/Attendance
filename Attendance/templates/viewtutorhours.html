@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>View Tutor Hours</h1>
+    From Week: <input type="number" id="minweek" value="1">
+    To Week: <input type="number" id="maxweek" value="12">
+    <button class="button" onclick="filterDataTable()">Filter</button>
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table" id="tutorhours">
+                <thead>
+                <td>Tutor</td>
+                <td>Number of Initials</td>
+                <td>Number of Repeats</td>
+                </thead>
+
+            </table>
+        </div>
+    </div>
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+    <script>
+        $(document).ready(function () {
+            datatable = $('#tutorhours').DataTable({
+                "ajax": {
+                    "url": '/gettutorhours',
+                    "data": {
+                        minweek: function (d) {
+                            return document.getElementById('minweek').value
+                        }, maxweek: function (d) {
+                            return document.getElementById('maxweek').value
+                        }
+                    },
+                    "type": 'POST'
+                },
+                "columns": [{
+                    "data": "studentcode", "render": function (data, type, row, meta) {
+                        return row.tutor.name;
+                    }
+                }, {"data": "initials"}, {"data": "repeats"}
+                ]
+            });
+        });
+        function filterDataTable() {
+
+
+            datatable.ajax.reload()
+        }
+
+
+    </script>
+{% endblock %}

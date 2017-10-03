@@ -275,6 +275,13 @@ def delete_user(username):
     return redirect('/users')
 
 
+@app.route('/deletestudent?studentid=<studentid>')
+@admin_permission.require()
+def delete_student(studentid):
+    student = Student.get(id=studentid)
+    student.delete()
+    return redirect('/students')
+
 @app.route('/removesubject?subcode=<subcode>')
 @admin_permission.require()
 def remove_subject(subcode):
@@ -468,6 +475,11 @@ def viewclashreport():
     return render_template("viewclashreport.html", nonattend=Subject.get_all_nonattending_students())
 
 
+@app.route('/tutorhoursreport')
+@admin_permission.require()
+def viewtutorhoursreport():
+    return render_template("viewtutorhours.html")
+
 @app.route('/timetable', methods=['GET', 'POST'])
 @login_required
 def view_timetable():
@@ -504,6 +516,16 @@ def managetutoravailability():
 @login_required
 def view_students():
     form = StudentForm()
+    colleges = College.query.all()
+    choices = [(-1, "")]
+    for college in colleges:
+        choices.append((int(college.id), college.name))
+    form.college.choices = choices
+    universities = University.query.all()
+    choices = [(-1, "")]
+    for university in universities:
+        choices.append((int(university.id), university.name))
+    form.university.choices = choices
     if request.method == 'GET':
         return render_template('viewstudents.html', form=form)
     elif request.method == 'POST':
@@ -511,7 +533,10 @@ def view_students():
             name = form.name.data
             studentcode = form.studentcode.data
             email = form.email.data
-            Student.create(name=name, studentcode=studentcode, email=email)
+            universityid = form.university.data
+            collegeid = form.college.data
+            Student.create(name=name, studentcode=studentcode, email=email, universityid=universityid,
+                           collegeid=collegeid)
             return redirect('/students')
         return render_template('viewstudents.html', form=form)
 
@@ -529,7 +554,7 @@ def view_users():
 @login_required
 def view_student(studentcode):
     student = Student.get(studentcode=studentcode)
-    form = EditStudentForm(obj=student)
+    form = StudentForm(obj=student)
     colleges = College.query.all()
     choices = [(-1, "")]
     for college in colleges:
@@ -548,8 +573,8 @@ def view_student(studentcode):
         return student.view_student_template(form)
     elif request.method == 'POST' and current_user.is_admin:
         if form.validate_on_submit():
-            form.populate_obj(student)
-            student.save()
+            student.update(name=form.name.data, email=form.email.data, studentcode=form.studentcode.data,
+                           universityid=form.university.data, collegeid=form.college.data)
             # student.update(name = form.name.data, studentcode = form.studentcode.data, university=form.university.data,college = form.college.data)
             redirect(url_for('view_student', studentcode=studentcode))
         return student.view_student_template(form)
@@ -649,6 +674,21 @@ def get_at_risk_classes():
         subject = Subject.query.get(row['id'])
         row['recentaverageattendance'] = subject.get_recent_average_attendance()
     return '{ "data": ' + json.dumps(subjects) + '}'
+
+
+@app.route('/gettutorhours', methods=['POST'])
+@admin_permission.require()
+def get_tutor_hours():
+    minweek = int(request.form['minweek'])
+    maxweek = int(request.form['maxweek'])
+    hours = collate_tutor_hours(minweek, maxweek)
+    data2 = []
+    for row in hours:
+        data2.append({'tutor': row[0].__dict__, 'initials': row[1], 'repeats': row[2]})
+    for row in data2:
+        row['tutor']['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
 
 
 @app.route('/getnonattendingstudentsajax', methods=['POST'])
