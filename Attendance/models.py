@@ -1,19 +1,21 @@
 from operator import attrgetter
-
-from Attendance import bcrypt
+from flask import render_template
+from Attendance import bcrypt, db
 from Attendance.helpers import *
+from pandas import isnull
+from datetime import time
 
 
-class CRUDMixin(object):
+class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
     """
     __table_args__ = {'extend_existing': True}
-
+    __abstract__ = True
     id = db.Column(db.Integer, primary_key=True)
 
     @classmethod
     def get(cls, **kwargs):
-        return cls.query.filter_by(**kwargs, year=get_current_year(), studyperiod=get_current_studyperiod()).first()
+        return cls.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(), **kwargs).first()
 
     @classmethod
     def get_or_create(cls, **kwargs):
@@ -84,7 +86,7 @@ class CRUDMixin(object):
         return cls.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(), **kwargs).all()
 
 
-class Base(db.Model, CRUDMixin):
+class Base(CRUDMixin):
     '''
     Base class for the other models to inherit.
 
@@ -112,7 +114,7 @@ class User(Base):
     '''
     __tablename__ = "users"
     username = db.Column('username', db.String(40), index=True, nullable=False)
-    password = db.Column('password', db.String(50), nullable=False)
+    password = db.Column('password', db.String(100), nullable=False)
     email = db.Column('email', db.String(50))
     is_admin = db.Column('is_admin', db.String(10))
 
@@ -218,6 +220,22 @@ tutoravailabilitymap = db.Table('tutoravailabilitymap',
                                 )
 
 
+class University(db.Model):
+    __tablename__ = 'university'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+
+    def __init__(self, name):
+        self.name = name
+
+
+class College(db.Model):
+    __tablename__ = 'colleges'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+
+    def __init__(self, name):
+        self.name = name
 
 
 class Subject(Base):
@@ -227,11 +245,9 @@ class Subject(Base):
     __tablename__ = 'subjects'
     subcode = db.Column(db.String(50), nullable=False)
     subname = db.Column(db.String(50), nullable=False)
-    classes = db.relationship("Tutorial", backref=db.backref('subject'), single_parent=True,
-                              cascade='all,delete-orphan')
     repeats = db.Column(db.Integer, default=1)
-    timetabledclasses = db.relationship("TimetabledClass", single_parent=True, cascade='all,delete-orphan')
     universityid = db.Column(db.Integer, db.ForeignKey('university.id'))
+    university = db.relationship("University", backref=db.backref('subjects'))
     def __init__(self, subcode, subname, repeats=1):
         super().__init__()
         self.subcode = subcode
@@ -354,19 +370,25 @@ class Subject(Base):
 class Student(Base):
     __tablename__ = 'students'
     studentcode = db.Column(db.String(50), nullable=False)
-    name = db.Column(db.String(50), nullable=True)
+    name = db.Column(db.String(100), nullable=True)
     subjects = db.relationship("Subject", secondary=substumap, backref=db.backref('students'))
     timetabledclasses = db.relationship("TimetabledClass", secondary=stutimetable,
                                         backref=db.backref('students'))
     universityid = db.Column(db.Integer, db.ForeignKey('university.id'))
+    university = db.relationship("University", backref=db.backref('students'))
     collegeid = db.Column(db.Integer, db.ForeignKey('colleges.id'))
+    college = db.relationship("College", backref=db.backref('students'))
     email = db.Column(db.String(50))
 
-    def __init__(self, studentcode, name, email=""):
+    def __init__(self, studentcode, name, email="",
+                 universityid=University.query.filter_by(name='University of Melbourne').first().id,
+                 collegeid=College.query.filter_by(name='International House').first().id):
         super().__init__()
         self.studentcode = studentcode
         self.name = name
         self.email = email
+        self.universityid = universityid
+        self.collegeid = collegeid
 
     def view_student_template(self, form, msg=""):
         return render_template('student.html', student=self, eligiblesubjects=Subject.get_all(),
@@ -398,10 +420,7 @@ class Tutor(Base):
                                backref=db.backref('tutor', uselist=False, lazy='joined'))
     availabletimes = db.relationship("Timeslot", secondary=tutoravailabilitymap,
                                      backref=db.backref('availabiletutors'))
-    timetabledclasses = db.relationship("TimetabledClass", single_parent=True, cascade="all,delete-orphan",
-                                        backref=db.backref('tutor'))
     email = db.Column(db.String(50), nullable=True)
-    classes = db.relationship("Tutorial", single_parent=True, cascade='all,delete-orphan', backref=db.backref('tutor'))
     userid = db.Column(db.Integer, db.ForeignKey('users.id'))
     user = db.relationship("User", backref=db.backref('tutor', uselist=False))
 
@@ -457,10 +476,11 @@ class TimetabledClass(Base):
     '''
     __tablename__ = 'timetabledclass'
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
-    subject = db.relationship("Subject")
+    subject = db.relationship("Subject", backref=db.backref('timetabledclasses'), single_parent=True)
     timetable = db.Column(db.Integer, db.ForeignKey('timetable.id'))
     time = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
+    tutor = db.relationship("Tutor", backref=db.backref('timetabledclasses'), single_parent=True)
     roomid = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     def __init__(self, subjectid, timetable, time, tutorid):
         super().__init__()
@@ -517,7 +537,9 @@ class Tutorial(Base):
     '''
     __tablename__ = 'tutorials'
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
+    subject = db.relationship("Subject", backref=db.backref('classes'), single_parent=True)
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
+    tutor = db.relationship("Tutor", backref=db.backref('classes'), single_parent=True)
     week = db.Column(db.Integer, nullable=False)
     attendees = db.relationship("Student", secondary=stuattendance)
     datetime = db.Column(db.DateTime)
@@ -529,25 +551,7 @@ class Tutorial(Base):
         self.week = week
 
 
-class College(db.Model):
-    __tablename__ = 'colleges'
-    id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    students = db.relationship("Student", single_parent=True, backref=db.backref('college'))
 
-    def __init__(self, name):
-        self.name = name
-
-
-class University(db.Model):
-    __tablename__ = 'university'
-    id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    students = db.relationship("Student", single_parent=True, backref=db.backref('university'))
-    subjects = db.relationship("Subject", single_parent=True, backref=db.backref('university'))
-
-    def __init__(self, name):
-        self.name = name
 
 
 

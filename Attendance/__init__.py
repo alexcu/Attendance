@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from logging.handlers import RotatingFileHandler
-
+from Attendance.config import *
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
@@ -11,11 +11,13 @@ from flask_sqlalchemy import *
 # DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+# app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+app.config['UPLOAD_FOLDER'] = appcfg['upload']
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database70.db'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database75.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = appcfg['dbstring']
 app.config.update(
-    SECRET_KEY='jemimaisababe'
+    SECRET_KEY=appcfg['secretkey']
 )
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -112,7 +114,7 @@ if Admin.query.filter_by(key='timetable').first() is None:
     db.session.commit()
 
 if User.query.filter_by(username='admin').first() is None:
-    user = User.create(username='admin', password='password')
+    user = User.create(username='admin', password=appcfg['adminpassword'])
     user.update(is_admin=True)
 
 if University.query.filter_by(name='University of Melbourne').first() is None:
@@ -125,8 +127,9 @@ if College.query.filter_by(name="International House").first() is None:
     db.session.add(college)
     db.session.commit()
 
+# Set up logging
+handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
+handler.setLevel(logging.INFO)
+app.logger.addHandler(handler)
 if __name__ == '__main__':
-    handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
-    handler.setLevel(logging.INFO)
-    app.logger.addHandler(handler)
     app.run(debug=True)

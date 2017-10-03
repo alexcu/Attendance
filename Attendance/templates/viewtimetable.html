@@ -43,8 +43,11 @@
             $.ajax({
                 url: "/deleteallclasses",
                 type: "GET",
+                success: function (data) {
+                    table.ajax.reload();
+                }
             });
-            table.ajax.reload();
+
         }
 
 

@@ -25,14 +25,13 @@ class EditStudentForm(NameForm):
     '''
         This form is for the Edit Student functionality of the app.
 
-        University and College are optional for the time being as they are currently not coded into the app.
+
     '''
     studentcode = StringField('Student Code', validators=[Optional()])
     university = SelectField('University', validators=[Optional()],
-                             choices=[("", ""), ('University of Melbourne', 'University of Melbourne'),
-                                      ('RMIT', 'RMIT'), ('Monash', 'Monash')])
+                             choices=[("", "")])
     college = SelectField('College', validators=[Optional()],
-                          choices=[("", ""), ('International House', 'International House'), ('Whitley', 'Whitley')])
+                          choices=[("", "")])
 
 class LoginForm(FlaskForm):
     '''
@@ -52,7 +51,10 @@ class AddSubjectForm(FlaskForm):
 
 class StudentForm(NameForm):
     studentcode = StringField('Student Code', validators=[DataRequired()])
-
+    university = SelectField('University', validators=[Optional()],
+                             choices=[(-1, "")], coerce=int)
+    college = SelectField('College', validators=[Optional()],
+                          choices=[(-1, "")], coerce=int)
 
 class AddTimetableForm(FlaskForm):
     key = StringField('Timetable Name', validators=[DataRequired()])
