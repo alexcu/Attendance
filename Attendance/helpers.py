@@ -521,7 +521,7 @@ def create_roll(students, subject, timeslot, room):
 
 def create_excel(data):
     writer = pandas.ExcelWriter(app.config['UPLOAD_FOLDER'] + '/timetable.xlsx', engine='xlsxwriter')
-    data.to_excel(writer, sheet_name='Timetable')
+    data.to_excel(writer, sheet_name='Timetable', index=False)
     writer.save()
     return app.config['UPLOAD_FOLDER'] + '/timetable.xlsx'
 
@@ -548,12 +548,11 @@ def format_timetable_data_for_export():
 
     timetable = pandas.DataFrame(timetable)
     timetable.columns = ['Time', 'Subject', 'Tutor', 'Room']
-    print(timetable)
 
     return timetable
 
 
-def collate_tutor_hours(minweek, maxweek):
+def collate_tutor_hours(minweek, maxweek, tutor_object=True):
     tutors = Tutor.get_all()
     data = set()
     for tutor in tutors:
@@ -565,6 +564,16 @@ def collate_tutor_hours(minweek, maxweek):
         initials = len(tutorials)
         for tutorial in tutorials:
             repeats += (int(tutorial.subject.repeats) - 1)
-        data.add((tutor, initials, repeats))
+        if tutor_object == True:
+            data.add((tutor, initials, repeats))
+        else:
+            data.add((tutor.name, initials, repeats))
 
     return data
+
+
+def format_tutor_hours_for_export(hours):
+    hours = list(hours)
+    hours = pandas.DataFrame(hours)
+    hours.columns = ['Name', 'Initial Tutorials', 'Repeat Tutorials']
+    return hours

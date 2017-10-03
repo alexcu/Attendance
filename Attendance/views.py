@@ -1,6 +1,6 @@
 import json
 
-from flask import request, redirect, current_app, url_for, send_file
+from flask import request, redirect, current_app, url_for, send_file, render_template
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
 from sqlalchemy.orm import joinedload
@@ -1243,3 +1243,15 @@ def download_timetable():
     timetable = format_timetable_data_for_export()
     timetable = create_excel(timetable)
     return send_file(timetable, as_attachment=True)
+
+
+@app.route('/downloadtutorhours', methods=['POST'])
+@admin_permission.require()
+def download_tutor_hours():
+    minweek = int(request.form['minweek'])
+    maxweek = int(request.form['maxweek'])
+    hours = collate_tutor_hours(minweek, maxweek, tutor_object=False)
+    hours = format_tutor_hours_for_export(hours)
+    hours = create_excel(hours)
+    return send_file(hours, as_attachment=True,
+                     attachment_filename='Tutor Hours Week ' + str(minweek) + ' to Week ' + str(maxweek) + '.xlsx')
