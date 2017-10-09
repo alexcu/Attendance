@@ -14,3 +14,5 @@ docutils
 python-docx
 pymysql
 xlsxwriter
+flask-migrate
+flask-script

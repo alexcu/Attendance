@@ -26,7 +26,7 @@
         <a href="/downloadtimetable">
             <button class="button">Download Timetable as Excel</button>
         </a>
-        <button onclick="deleteallclasses()" class="button-delete delete"
+        <button onclick="deleteallclasses()" class="button-delete delete" type="button"
                 data-confirm='Are you sure you want to delete all timetabled classes?'>Delete All Classes
         </button>
 
@@ -36,7 +36,7 @@
 
 
     {% include "mymodal.html" %}
-    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>
         function deleteallclasses() {
@@ -44,6 +44,9 @@
                 url: "/deleteallclasses",
                 type: "GET",
                 success: function (data) {
+                    table.ajax.reload();
+                },
+                failure: function (data) {
                     table.ajax.reload();
                 }
             });

@@ -218,8 +218,8 @@ class TimetableTests(BaseTest):
         self.assertDictEqual(TEACHERMAPPING, TEACHERMAPPINGTEST)
         self.assertDictEqual(TUTORAVAILABILITY, TUTORAVAILABILITYTEST)
 
-        result = runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                              TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
+        result = runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                               TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
         self.assertEqual(result, 'Optimal')
 
 

@@ -90,9 +90,10 @@
                     for (var k =0; k < Object.keys(data).length;k++) {
                         var key = Object.keys(data)[k]
                         if (data[key]) {
-                        labelsroll.push(key);
+                            labelsroll.push(key);
 
                         }
+                    }
                         labelsroll.sort(function (a, b) {
                             a = parseInt(a.split(' ')[1])
                             b = parseInt(b.split(' ')[1])
@@ -101,7 +102,7 @@
                         for (var k = 0; k < labelsroll.length; k++) {
                             dataroll.push(Math.round(data[labelsroll[k]]['Roll Marking']));
                         }
-                    };
+                    ;
                     drawRollMarkingChart();
                 }
             });

@@ -27,13 +27,25 @@ def login():
         return render_template("login.html", form=form)
     elif request.method == 'POST':
         if form.validate_on_submit():
-            if User.query.filter_by(username=form.user_id.data).first() is not None:
-                user = User.query.filter_by(username=form.user_id.data).first()
-                if bcrypt.check_password_hash(user.password, form.password.data):
-                    login_user(user)
-                    identity_changed.send(current_app._get_current_object(), identity=Identity(user.username))
-                    return redirect('/')
-            return render_template('login.html', form=form, msg="Username or Password was incorrect")
+            success = process_login(form.user_id.data, form.password.data, form)
+            if success:
+                return redirect('/')
+            else:
+                return render_template('login.html', form=form, msg="Username or Password was incorrect")
+        else:
+            return render_template('login.html', form=form, msg="Please enter username and password.")
+
+
+def process_login(user_id, password, form):
+    if User.query.filter_by(username=user_id).first() is not None:
+        user = User.query.filter_by(username=user_id).first()
+        if bcrypt.check_password_hash(user.password, password):
+            login_user(user)
+            identity_changed.send(current_app._get_current_object(), identity=Identity(user.username))
+            return True
+        else:
+            return False
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -44,11 +56,19 @@ def register():
         return render_template("register.html", form=form)
     elif request.method == 'POST':
         if form.validate_on_submit():
-            if User.query.filter_by(username=form.user_id.data).first() is None:
-                user = User(username=form.user_id.data, password=form.password.data)
-                db.session.add(user)
-                db.session.commit()
-            return redirect('/users')
+            template = add_user(form.user_id.data, form.password.data)
+            return template
+        else:
+            return render_template("register.html", form=form)
+
+
+def add_user(user_id, password):
+    if User.query.filter_by(username=user_id).first() is None:
+        user = User(username=user_id, password=password)
+        db.session.add(user)
+        db.session.commit()
+    return redirect('/users')
+
 
 
 @app.route('/logout')
@@ -65,8 +85,7 @@ def logout():
 def uploadstudentdata():
     if request.method == 'POST':
         try:
-            filename2 = upload(request.files['file'])
-            df = read_excel(filename2)
+            df = upload_and_return_df(request.files['file'])
             populate_students(df)
             return redirect("/students")
         except PermissionError as e:
@@ -83,14 +102,18 @@ def uploadstudentdata():
         return render_template('/uploadstudentdata.html')
 
 
+def upload_and_return_df(file):
+    filename2 = upload(file)
+    df = read_excel(filename2)
+    return df
+
+
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
 @admin_permission.require()
 def uploadtimetableclasslists():
     if request.method == 'POST':
-        filename2 = upload(request.files['file'])
-        df = read_excel(filename2)
+        df = upload_and_return_df(request.files['file'])
         populate_timetabledata(df)
-
         msg = "Completed Successfully"
     return render_template("uploadtimetabledata.html")
 
@@ -138,11 +161,8 @@ def uploadtutordata():
     if request.method == 'GET':
         return render_template('uploadtutordata.html')
     elif request.method == 'POST':
-        filename2 = upload(request.files['file'])
-        print("Uploaded Successfully")
-        df = read_excel(filename2)
+        df = upload_and_return_df(request.files['file'])
         populate_tutors(df)
-        print("Populated Tutors")
         # os.remove(filename2)
         msg = "Completed successfully"
         return render_template('uploadtutordata.html', msg=msg)
@@ -150,9 +170,7 @@ def uploadtutordata():
 @app.route('/uploadtutoravailabilities', methods=['POST'])
 @admin_permission.require()
 def upload_tutor_availabilities():
-    filename2 = upload(request.files['file'])
-    print("Uploaded Successfully")
-    df = read_excel(filename2)
+    df = upload_and_return_df(request.files['file'])
     populate_availabilities(df)
     msg2 = "Completed Successfully"
     return render_template("uploadtutordata.html",msg2=msg2)
@@ -161,13 +179,6 @@ def upload_tutor_availabilities():
 @admin_permission.require()
 def run_timetabler():
     return render_template("runtimetabler.html", tutors=Tutor.get_all(), timeslots=Timeslot.get_all())
-
-
-
-
-
-
-
 
 
 @app.route('/addsubjecttotutor?tutorid=<tutorid>', methods=['GET', 'POST'])
@@ -191,7 +202,7 @@ def add_timetabledclass_to_subject(subcode):
     if len(subject.timetabledclasses) == 1:
         timetabledclass.students = subject.students
         db.session.commit()
-    return redirect(url_for('view_subject', subcode=subcode))
+    return redirect(request.referrer)
 
 
 @app.route('/admin')
@@ -204,9 +215,9 @@ def admin():
 @admin_permission.require()
 def add_tutor_to_subject(subcode):
     if request.method == 'POST':
-        tutor = Tutor.query.get(request.form['tutor'])
-        tutor.addSubject(subcode=subcode)
-        return redirect(url_for('view_subject', subcode=subcode))
+        linksubjecttutor(request.form['tutor'], subcode)
+        return redirect(request.referrer)
+
 
 @app.route('/myclasses')
 @login_required
@@ -220,13 +231,6 @@ def view_my_profile():
     form = EditTutorForm(obj=tutor)
     return current_user.tutor.view_tutor_template(form=form)
 
-@app.route('/addtutortosubjecttimetabler?subcode=<subcode>', methods=['GET', 'POST'])
-@admin_permission.require()
-def add_tutor_to_subject_timetabler(subcode):
-    if request.method == 'POST':
-        tutorid = request.form['tutor']
-        msg = linksubjecttutor(tutorid, subcode)
-    return redirect("/runtimetabler")
 
 
 
@@ -244,26 +248,28 @@ def add_subject_to_student(studentcode):
 
 @app.route('/deleteallclasses')
 @admin_permission.require()
+def delete_all_classes_view():
+    delete_all_classes()
+    return "Done"
+
 def delete_all_classes():
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
                                                         timetable=get_current_timetable().id).all()
     for timeclass in timetabledclasses:
         db.session.delete(timeclass)
         db.session.commit()
-    timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(),
-                                                        studyperiod=get_current_studyperiod(),
-                                                        timetable=get_current_timetable().id).all()
-    return "Done"
 
 
 @app.route('/deletetutorial?tutorialid=<tutorialid>')
 @login_required
 def delete_tutorial(tutorialid):
     specificclass = Tutorial.query.get(tutorialid)
-    sub = Subject.query.get(specificclass.subjectid)
     db.session.delete(specificclass)
     db.session.commit()
-    return redirect(url_for('view_subject', subcode=sub.subcode))
+    return redirect(request.referrer)
+
+
+
 
 
 @app.route('/deleteuser?username=<username>')
@@ -304,28 +310,14 @@ def remove_tutor(tutorid):
 @admin_permission.require()
 def remove_subject_from_tutor(tutorid, subcode):
     msg = unlinksubjecttutor(tutorid, subcode)
-    return redirect(url_for('view_tutor', tutorid=tutorid))
-
-
-@app.route('/removesubjectfromtutortimetabler?tutorid=<tutorid>&subcode=<subcode>')
-@admin_permission.require()
-def remove_subject_from_tutor_timetabler(tutorid, subcode):
-    msg = unlinksubjecttutor(tutorid, subcode)
-    return redirect("/runtimetabler")
-
-
-@app.route('/removetutorfromsubject?tutorid=<tutorid>&subcode=<subcode>')
-@admin_permission.require()
-def remove_tutor_from_subject(tutorid, subcode):
-    msg = unlinksubjecttutor(tutorid, subcode)
-    return redirect(url_for('view_subject', subcode=subcode))
-
+    return redirect(request.referrer)
+    # return redirect(url_for('view_tutor', tutorid=tutorid))
 
 @app.route('/removesubjectfromstudent?studentcode=<studentcode>&subcode=<subcode>')
 @admin_permission.require()
 def remove_subject_from_student(studentcode, subcode):
     msg = unlinksubjectstudent(studentcode, subcode)
-    return redirect(url_for('view_student', studentcode=studentcode))
+    return redirect(request.referrer)
 
 
 @app.route('/removetimetabledclass?timetabledclassid=<timetabledclassid>')
@@ -340,29 +332,7 @@ def remove_timetabled_class(timetabledclassid):
             for tutorial in subject.timetabledclasses:
                 tutorial.students = subject.students
                 db.session.commit()
-    return redirect("/timetable")
-
-
-@app.route('/removetimetabledclasssubject?timetabledclassid=<timetabledclassid>')
-@admin_permission.require()
-def remove_timetabled_class_subject(timetabledclassid):
-    timetabledclass = TimetabledClass.query.get(timetabledclassid)
-    subject = timetabledclass.subject
-    db.session.delete(timetabledclass)
-    db.session.commit()
-    if len(subject.timetabledclasses) == 1:
-        for tutorial in subject.timetabledclasses:
-            tutorial.students = subject.students
-            db.session.commit()
-    return redirect(url_for('view_subject', subcode=subject.subcode))
-
-
-@app.route('/removestudentfromsubject?studentcode=<studentcode>&subcode=<subcode>')
-@admin_permission.require()
-def remove_student_from_subject(studentcode, subcode):
-    msg = unlinksubjectstudent(studentcode, subcode)
-    return redirect(url_for('view_subject', subcode=subcode))
-
+    return redirect(request.referrer)
 
 
 @app.route('/removetimeslot?timeslotid=<timeslotid>')
@@ -399,7 +369,7 @@ def view_tutors():
 def view_rooms():
     form = JustNameForm()
     if request.method == 'GET':
-        return render_template('viewrooms.html', form=form, rooms=Room.get_all(), timeslots=Timeslot.get_all())
+        return render_template('viewrooms.html', form=form, rooms=Room.get_all_sorted(), timeslots=Timeslot.get_all())
     else:
         if form.validate_on_submit():
             name = form.name.data
@@ -409,7 +379,7 @@ def view_rooms():
                 db.session.commit()
             msg = "Record successfully added"
             return redirect("/rooms")
-        return render_template('viewrooms.html', form=form, rooms=Room.get_all(), timeslots=Timeslot.get_all())
+        return render_template('viewrooms.html', form=form, rooms=Room.get_all_sorted(), timeslots=Timeslot.get_all())
 
 
 @app.route('/universities', methods=['GET', 'POST'])
@@ -665,7 +635,7 @@ def get_at_risk_classes():
     subjects = [subject.__dict__ for subject in Subject.query.filter(Subject.year == get_current_year(),
                                                                      Subject.studyperiod == get_current_studyperiod(),
                                                                      Subject.tutor != None).all() if
-                subject.is_at_risk()]
+                subject.is_at_risk(rate=int(request.form['averageattendancerate']))]
     for row in subjects:
         row['_sa_instance_state'] = ""
         row['tutor'] = row['tutor'].__dict__
@@ -832,7 +802,6 @@ def viewusers_ajax():
         if row['tutor'] is not None:
             row['tutor'] = row['tutor'].__dict__
             row['tutor']['_sa_instance_state'] = ""
-    print(data2)
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
 
@@ -1216,24 +1185,17 @@ def update_student_class_attendance_ajax():
         db.session.commit()
     return json.dumps("Done")
 
-
-@app.route('/document')
-@login_required
-def document_test():
-    subject = Subject.get(subcode='MAST10006')
-    students = subject.students
-    timeslot = subject.timetabledclasses[0].timeslot
-    print()
-    room = subject.timetabledclasses[0].room
-    print(room)
-    document = create_roll(students, subject, timeslot, room)
-    return send_file('../demo.docx')
-
-
 @app.route('/downloadroll?classid=<classid>')
 @login_required
 def download_roll(classid):
     document = get_roll(classid)
+    return send_file(document, as_attachment=True)
+
+
+@app.route('/downloadrolls')
+@login_required
+def download_all_rolls():
+    document = get_all_rolls()
     return send_file(document, as_attachment=True)
 
 

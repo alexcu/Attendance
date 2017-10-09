@@ -9,7 +9,6 @@ from datetime import time
 class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
     """
-    __table_args__ = {'extend_existing': True}
     __abstract__ = True
     id = db.Column(db.Integer, primary_key=True)
 
@@ -186,44 +185,38 @@ Association tables for the many-to-many relationships. These are the secondaries
 substumap = db.Table('substumap',
                      db.Column('id', db.Integer, primary_key=True),
                      db.Column('student_id', db.Integer, db.ForeignKey('students.id')),
-                     db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id')),
-                     )
+                     db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id')))
 
 subtutmap = db.Table('subtutmap',
                      db.Column('id', db.Integer, primary_key=True),
                      db.Column('tutor_id', db.Integer, db.ForeignKey('tutors.id')),
-                     db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id')),
-                     )
+                     db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id')))
 
 stuattendance = db.Table('stuattendance',
                          db.Column('id', db.Integer, primary_key=True),
                          db.Column('class_id', db.Integer, db.ForeignKey('tutorials.id')),
-                         db.Column('student_id', db.Integer, db.ForeignKey('students.id'))
-                         )
+                         db.Column('student_id', db.Integer, db.ForeignKey('students.id')))
 
 stutimetable = db.Table('stutimetable',
                         db.Column('id', db.Integer, primary_key=True),
                         db.Column('timetabledclass_id', db.Integer, db.ForeignKey('timetabledclass.id')),
-                        db.Column('student_id', db.Integer, db.ForeignKey('students.id'))
-                        )
+                        db.Column('student_id', db.Integer, db.ForeignKey('students.id')))
 
 timeslotclassesmap = db.Table('timeslotclassesmap',
                               db.Column('id', db.Integer, primary_key=True),
                               db.Column('timeslot_id', db.Integer, db.ForeignKey('timeslots.id')),
-                              db.Column('timetabledclass_id', db.Integer, db.ForeignKey('timetabledclass.id'))
-                              )
+                              db.Column('timetabledclass_id', db.Integer, db.ForeignKey('timetabledclass.id')))
 
 tutoravailabilitymap = db.Table('tutoravailabilitymap',
                                 db.Column('id', db.Integer, primary_key=True),
                                 db.Column('tutor_id', db.Integer, db.ForeignKey('tutors.id')),
-                                db.Column('timeslot_id', db.Integer, db.ForeignKey('timeslots.id'))
-                                )
+                                db.Column('timeslot_id', db.Integer, db.ForeignKey('timeslots.id')))
 
 
 class University(db.Model):
     __tablename__ = 'university'
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
+    name = db.Column('name', db.String(50), nullable=False)
 
     def __init__(self, name):
         self.name = name
@@ -232,7 +225,7 @@ class University(db.Model):
 class College(db.Model):
     __tablename__ = 'colleges'
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
+    name = db.Column('name', db.String(50), nullable=False)
 
     def __init__(self, name):
         self.name = name
@@ -270,7 +263,7 @@ class Subject(Base):
         else:
             return 100 * round(attendedstudents / totalstudents, 2)
 
-    def is_at_risk(self):
+    def is_at_risk(self, rate=3):
         '''
         Identify if a particular class is "at-risk".
 
@@ -280,7 +273,7 @@ class Subject(Base):
         averageattendance = self.get_recent_average_attendance()
         if averageattendance == 0:
             return False
-        elif averageattendance < 3:
+        elif averageattendance < rate:
             return True
         else:
             return False
@@ -380,9 +373,7 @@ class Student(Base):
     college = db.relationship("College", backref=db.backref('students'))
     email = db.Column(db.String(50))
 
-    def __init__(self, studentcode, name, email="",
-                 universityid=University.query.filter_by(name='University of Melbourne').first().id,
-                 collegeid=College.query.filter_by(name='International House').first().id):
+    def __init__(self, studentcode, name, universityid, collegeid, email=""):
         super().__init__()
         self.studentcode = studentcode
         self.name = name
@@ -391,13 +382,13 @@ class Student(Base):
         self.collegeid = collegeid
 
     def view_student_template(self, form, msg=""):
-        return render_template('student.html', student=self, eligiblesubjects=Subject.get_all(),
-                               subjects=self.subjects, msg=msg, form=form)
+        return get_student_template(self, form, msg)
 
     def addSubject(self, subject):
         if subject not in self.subjects:
             self.subjects.append(subject)
             db.session.commit()
+
 
 
 class Timetable(Base):
@@ -436,24 +427,16 @@ class Tutor(Base):
             teachingtimes.append(timeclass.timeslot)
         return teachingtimes
 
-    def view_tutor_template(self, form, msg="", msg2="", msg3=""):
-        return render_template('tutor.html', tutor=self, eligiblesubjects=Subject.get_all(),
-                               subjects=self.subjects, timeslots=Timeslot.get_all(),
-                               availability=self.availabletimes,
-                               msg=msg, msg2=msg2, msg3=msg3, form=form)
-
     def generate_user_for_tutor(self):
         if len(self.name.split(' ')) > 1:
             # What if someone doesn't have a family name? This has happened before.
             username = self.name.split(' ')[0][0] + self.name.split(' ')[1]
         else:
             username = self.name
-        if User.query.filter_by(username=username, year=get_current_year(),
-                                studyperiod=get_current_studyperiod()).first() is None:
-            user = User(username=username, password=username)
-            db.session.add(user)
-            user.tutor = self
-            db.session.commit()
+        create_user_with_tutor(username=username, password=username, tutor=self)
+
+    def view_tutor_template(self, form, msg="", msg2="", msg3=""):
+        return get_tutor_template(self, form, msg, msg2, msg3)
 
     def addAvailableTime(self, timeslot):
         if timeslot not in self.availabletimes:
@@ -461,7 +444,7 @@ class Tutor(Base):
             db.session.commit()
 
     def addSubject(self, **kwargs):
-        subject = Subject.get(**kwargs)
+        subject = getSubject(**kwargs)
         if subject not in self.subjects:
             self.subjects.append(subject)
             db.session.commit()
@@ -501,6 +484,12 @@ class Room(db.Model):
     @classmethod
     def get_all(cls):
         return cls.query.all()
+
+    @classmethod
+    def get_all_sorted(cls):
+        list = cls.get_all()
+        list.sort(key=lambda x: x.name)
+        return list
 
     def get_available_times(self):
         timeslots = Timeslot.get_all()
@@ -558,7 +547,13 @@ class Tutorial(Base):
 
 ##### MODELS HELPER FUNCTIONS
 
+def get_student_template(student, form, msg):
+    return render_template('student.html', student=student, eligiblesubjects=Subject.get_all(),
+                           subjects=student.subjects, msg=msg, form=form)
 
+
+def getSubject(**kwargs):
+    return Subject.get(**kwargs)
 # HELPER METHODS
 def unlinksubjecttutor(tutorid, subcode):
     subject = Subject.get(subcode=subcode)
@@ -595,6 +590,15 @@ def get_min_max_week():
     return [minweek, maxweek]
 
 
+def create_user_with_tutor(username, password, tutor):
+    if User.query.filter_by(username=username, year=get_current_year(),
+                            studyperiod=get_current_studyperiod()).first() is None:
+        user = User(username=username, password=username)
+        db.session.add(user)
+        db.session.commit()
+        user.tutor = tutor
+        db.session.commit()
+
 def getadmin():
     '''
     Get the current admin parameters.
@@ -618,7 +622,10 @@ def populate_students(df):
     for index, row in df.iterrows():
         if row['Study Period'] == studyperiod:
             student = Student.get_or_create(studentcode=str(int(row["Student Id"])),
-                                            name=row["Given Name"] + " " + row["Family Name"])
+                                            name=row["Given Name"] + " " + row["Family Name"],
+                                            universityid=University.query.filter_by(
+                                                name='University of Melbourne').first().id,
+                                            collegeid=College.query.filter_by(name="International House").first().id)
             subject = Subject.get_or_create(subcode=row["Component Study Package Code"],
                                             subname=row["Component Study Package Title"])
             student.addSubject(subject)
@@ -667,6 +674,14 @@ def populate_availabilities(df):
                                                   time=keysplit[1])
                 if row[key] == 1:
                     tutor.addAvailableTime(timeslot)
+
+
+def get_tutor_template(tutor, form, msg="", msg2="", msg3=""):
+    return render_template('tutor.html', tutor=tutor, eligiblesubjects=Subject.get_all(),
+                           subjects=tutor.subjects, timeslots=Timeslot.get_all(),
+                           availability=tutor.availabletimes,
+                           msg=msg, msg2=msg2, msg3=msg3, form=form)
+
 
 
 def populate_tutors(df):
@@ -790,3 +805,161 @@ def check_time(time2):
         time2 = time2 + "pm"
         time2 = time.strftime("%H:%M", time.strptime(time2, "%I:%M%p"))
     return time2
+
+
+def collate_tutor_hours(minweek, maxweek, tutor_object=True):
+    tutors = Tutor.get_all()
+    data = set()
+    for tutor in tutors:
+        initials = 0
+        repeats = 0
+        tutorials = Tutorial.get_all(tutorid=tutor.id)
+        tutorials = [tutorial for tutorial in tutorials if
+                     int(tutorial.week) >= int(minweek) and int(tutorial.week) <= int(maxweek)]
+        initials = len(tutorials)
+        for tutorial in tutorials:
+            repeats += (int(tutorial.subject.repeats) - 1)
+        if tutor_object == True:
+            data.add((tutor, initials, repeats))
+        else:
+            data.add((tutor.name, initials, repeats))
+
+    return data
+
+
+def get_timetabled_class(classid):
+    return TimetabledClass.get(id=classid)
+
+
+def get_all_subjects():
+    return Subject.get_all()
+
+
+def get_all_timeslots():
+    return Timeslot.get_all()
+
+
+def get_timetable_data():
+    '''
+    Get all required timetable data from the database
+    :return: All timetabling data as a tuple to the preparetimetable method.
+    '''
+    SUBJECTS = []
+    SUBJECTMAPPING = {}
+    STUDENTS = []
+    REPEATS = {}
+    TEACHERS = []
+    TUTORAVAILABILITY = {}
+    TEACHERMAPPING = {}
+    allsubjects = Subject.query.filter(Subject.year == get_current_year(),
+                                       Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
+    alltutors = []
+    for subject in allsubjects:
+        SUBJECTMAPPING[subject.subcode] = []
+        REPEATS[subject.subcode] = subject.repeats
+        SUBJECTS.append(subject.subcode)
+        TEACHERS.append(subject.tutor.name)
+        if subject.tutor not in alltutors:
+            alltutors.append(subject.tutor)
+        for student in subject.students:
+            STUDENTS.append(student.name)
+            SUBJECTMAPPING[subject.subcode].append(student.name)
+        SUBJECTMAPPING[subject.subcode] = set(SUBJECTMAPPING[subject.subcode])
+    STUDENTS = list(set(STUDENTS))
+    TEACHERS = list(set(TEACHERS))
+    for tutor in alltutors:
+        TUTORAVAILABILITY[tutor.name] = []
+        TEACHERMAPPING[tutor.name] = []
+        for timeslot in tutor.availabletimes:
+            TUTORAVAILABILITY[tutor.name].append(timeslot.day + " " + timeslot.time)
+        for subject in tutor.subjects:
+            TEACHERMAPPING[tutor.name].append(subject.subcode)
+        TUTORAVAILABILITY[tutor.name] = set(TUTORAVAILABILITY[tutor.name])
+        TEACHERMAPPING[tutor.name] = set(TEACHERMAPPING[tutor.name])
+
+    maxclasssize = 400
+    minclasssize = 1
+    nrooms = 12
+    TIMES = []
+    day = []
+    timeslots = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
+                                         timetable=get_current_timetable().id).all()
+    for timeslot in timeslots:
+        TIMES.append(timeslot.day + " " + timeslot.time)
+        day.append(timeslot.day)
+    day = list(set(day))
+    DAYS = {}
+    for d in day:
+        DAYS[d] = []
+    for timeslot in timeslots:
+        DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
+    for d in day:
+        DAYS[d] = set(DAYS[d])
+
+    return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+            TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
+
+
+def add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars, assign_vars):
+    for m in TEACHERS:
+        for j in TEACHERMAPPING[m]:
+            subject = Subject.get(subcode=j)
+            for k in TIMES:
+                timesplit = k.split(' ')
+                timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
+
+                tutor = Tutor.get(name=m)
+                if subject_vars[(j, k, m)].varValue == 1:
+                    timetabledclass = TimetabledClass.create(subjectid=subject.id, timetable=get_current_timetable().id,
+                                                             time=timeslot.id, tutorid=tutor.id)
+                    for i in SUBJECTMAPPING[j]:
+                        if assign_vars[(i, j, k, m)].varValue == 1:
+                            student = Student.get(name=i)
+                            timetabledclass.students.append(student)
+                            db.session.commit()
+
+
+def get_all_rolls():
+    subjects = get_all_subjects()
+    document = Document()
+    for subject in subjects:
+        for timetabledclass in subject.timetabledclasses:
+            timeslot = timetabledclass.timeslot
+            room = timetabledclass.room
+            students = timetabledclass.students
+            document.add_heading(subject.subname, 0)
+
+            document.add_paragraph('Timeslot: ' + timeslot.day + " " + timeslot.time)
+            if timetabledclass.room is not None:
+                document.add_paragraph('Room: ' + room.name)
+
+            table = document.add_table(rows=1, cols=12)
+            table.style = 'TableGrid'
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Name'
+            hdr_cells[1].text = '1'
+            hdr_cells[2].text = '2'
+            hdr_cells[3].text = '3'
+            hdr_cells[4].text = '4'
+            hdr_cells[5].text = '5'
+            hdr_cells[6].text = '6'
+            hdr_cells[7].text = '7'
+            hdr_cells[8].text = '8'
+            hdr_cells[9].text = '9'
+            hdr_cells[10].text = '10'
+            hdr_cells[11].text = '11'
+            for item in students:
+                row_cells = table.add_row().cells
+                row_cells[0].text = str(item.name)
+            document.add_page_break()
+    document.save(app.config['UPLOAD_FOLDER'] + '/rolls.docx')
+    return app.config['UPLOAD_FOLDER'] + '/rolls.docx'
+
+
+def get_roll(classid):
+    timeclass = get_timetabled_class(classid)
+    subject = timeclass.subject
+    students = subject.students
+    room = timeclass.room
+    timeslot = timeclass.timeslot
+    return create_roll(students, subject, timeslot, room)

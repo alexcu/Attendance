@@ -7,171 +7,10 @@ from pulp import LpProblem, LpMinimize, lpSum, LpVariable, LpStatus, LpInteger, 
 
 from Attendance import app, db, executor
 from Attendance.models import *
+import Attendance.models
 from Attendance.forms import AddTimetableForm
 
 #TIMETABLE CODE
-def runtimetable(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms):
-    '''
-    Run the timetabling process and input into the database.
-
-    This process calls the CBCSolver using the PuLP package and then adds the classes to the database.
-
-
-    :param STUDENTS: should be an array of student names
-    :param SUBJECTS: should be an array of subject codes
-    :param TIMES: an array of strings representing possible timeslots
-    :param day:
-    :param DAYS: the days corresponding to the timeslots above
-    :param TEACHERS: an array of the names of the tutors
-    :param SUBJECTMAPPING: This is a dictionary representing the subjects
-                            each tutor is taking
-    :param REPEATS: A dictionary of how many repeats each subject has
-    :param TEACHERMAPPING: A dictionary of what subject each tutor teachers
-    :param TUTORAVAILABILITY:
-    :param maxclasssize: An integer representing the maximum class size
-    :param minclasssize: An integer representing the minimum class size
-    :param nrooms: An integer representing the max allowable concurrent classes
-    :return: A string representing model status.
-    '''
-    print("Running solver")
-    model = LpProblem('Timetabling', LpMinimize)
-    #Create Variables
-    print("Creating Variables")
-    app.logger.info('Assignment Variables')
-    assign_vars = LpVariable.dicts("StudentVariables",[(i, j,k,m) for i in STUDENTS for j in SUBJECTS for k in TIMES for m in TEACHERS], 0, 1, LpBinary)
-    app.logger.info('Subject Variables')
-    subject_vars = LpVariable.dicts("SubjectVariables",[(j,k,m) for j in SUBJECTS for k in TIMES for m in TEACHERS], 0, 1, LpBinary)
-
-    #c
-    app.logger.info('9:30 classes')
-    num930classes = LpVariable.dicts("930Classes", [(i) for i in TIMES], lowBound = 0, cat = LpInteger)
-    #w
-    app.logger.info('Days for teachers')
-    daysforteachers = LpVariable.dicts("numdaysforteachers", [(i,j) for i in TEACHERS for j in range(len(DAYS))], 0,1,LpBinary)
-    #p
-    daysforteacherssum = LpVariable.dicts("numdaysforteacherssum", [(i) for i in TEACHERS],0,cat = LpInteger)
-    #variables for student clashes
-    studenttime = LpVariable.dicts("StudentTime", [(i,j) for i in STUDENTS for j in TIMES],lowBound=0,upBound=1,cat=LpBinary)
-    studentsum = LpVariable.dicts("StudentSum", [(i) for i in STUDENTS],0,cat = LpInteger)
-
-    #Count the days that a teacher is rostered on. Make it bigger than a small number times the sum
-    #for that particular day.
-    for m in TEACHERS:
-        app.logger.info('Counting Teachers for ' + m)
-        for d in range(len(day)):
-            model += daysforteachers[(m, d)] >= 0.1 * lpSum(
-                subject_vars[(j, k, m)] for j in SUBJECTS for k in DAYS[day[d]])
-            model += daysforteachers[(m, d)] <= lpSum(subject_vars[(j, k, m)] for j in SUBJECTS for k in DAYS[day[d]])
-    for m in TEACHERS:
-        model += daysforteacherssum[(m)] == lpSum(daysforteachers[(m, d)] for d in range(len(day)))
-
-    print("Constraining tutor availability")
-    #This bit of code puts in the constraints for the tutor availability.
-    #It reads in the 0-1 matrix of tutor availability and constrains that no classes
-    # can be scheduled when a tutor is not available.
-    #The last column of the availabilities is the tutor identifying number, hence why we have
-    #used a somewhat convoluted idea down here.
-    for m in TEACHERS:
-        for k in TIMES:
-            if k not in TUTORAVAILABILITY[m]:
-                model += lpSum(subject_vars[(j,k,m)] for j in SUBJECTS) == 0
-
-
-    #Constraints on subjects for each students
-    print("Constraining student subjects")
-    for i in STUDENTS:
-        for j in SUBJECTS:
-            if i in SUBJECTMAPPING[j]:
-                model += lpSum(assign_vars[(i,j,k,m)] for k in TIMES for m in TEACHERS) == 1
-            else:
-                model += lpSum(assign_vars[(i,j,k,m)] for k in TIMES for m in TEACHERS) == 0
-
-
-
-    #This code means that students cannot attend a tute when a tute is not running
-    #But can not attend a tute if they attend a repeat.
-    for i in STUDENTS:
-        for j in SUBJECTS:
-            for k in TIMES:
-                for m in TEACHERS:
-                    model += assign_vars[(i,j,k,m)] <= subject_vars[(j,k,m)]
-
-
-    #Constraints on which tutor can take each class
-    #This goes through each list and either constrains it to 1 or 0 depending if
-    #the teacher needs to teach that particular class.
-    print("Constraining tutor classes")
-    for m in TEACHERS:
-        for j in SUBJECTS:
-            if j in TEACHERMAPPING[m]:
-                #THIS WILL BE CHANGED TO NUMBER OF REPEATS
-                model+= lpSum(subject_vars[(j,k,m)] for k in TIMES) == REPEATS[j]
-            else:
-                model += lpSum(subject_vars[(j,k,m)] for k in TIMES) == 0
-
-    #General Constraints on Rooms etc.
-    print("Constraining times")
-    # For each time cannot exceed number of rooms
-    for k in TIMES:
-        model += lpSum(subject_vars[(j,k,m)] for j in SUBJECTS for m in TEACHERS) <= nrooms
-
-    #Teachers can only teach one class at a time
-    for k in TIMES:
-        for m in TEACHERS:
-            model += lpSum(subject_vars[(j,k,m)] for j in SUBJECTS) <= 1
-
-    #STUDENT CLASHES
-    for i in STUDENTS:
-        for k in TIMES:
-            model += studenttime[(i,k)] <= lpSum(assign_vars[(i,j,k,m)] for j in SUBJECTS for m in TEACHERS)/2
-            model += studenttime[(i, k)] >= 0.3*(0.5*lpSum(assign_vars[(i, j, k, m)] for j in SUBJECTS for m in TEACHERS) -0.5)
-
-    for i in STUDENTS:
-        model += studentsum[(i)] == lpSum(studenttime[(i,k)] for k in TIMES)
-
-    #This minimizes the number of 9:30 classes.
-    for i in TIMES:
-        if i.find('21:30') != -1:
-            model += num930classes[(i)] == lpSum(subject_vars[(j,i,m)] for j in SUBJECTS for m in TEACHERS)
-
-        else:
-            model += num930classes[(i)] == 0
-
-    print("Setting objective function")
-
-    #Class size constraint
-    for j in SUBJECTS:
-        for k in TIMES:
-            for m in TEACHERS:
-                model +=lpSum(assign_vars[(i,j,k,m)] for i in STUDENTS) >= minclasssize*subject_vars[(j,k,m)]
-                model += lpSum(assign_vars[(i,j,k,m)] for i in STUDENTS) <= maxclasssize
-
-    #Solving the model
-    model += (100*lpSum(studentsum[(i)] for i in STUDENTS) + lpSum(num930classes[(i)] for i in TIMES) + 500*lpSum(daysforteacherssum[(m)] for m in TEACHERS))
-    print("Solving Model")
-    model.solve()
-    print("Status:", LpStatus[model.status])
-    print("Complete")
-    for j in SUBJECTS:
-        subject = Subject.get(subcode=j)
-        for k in TIMES:
-            timesplit = k.split(' ')
-            timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
-            for m in TEACHERS:
-                tutor = Tutor.get(name=m)
-                if subject_vars[(j, k, m)].varValue == 1:
-                    timetabledclass = TimetabledClass.create(subjectid=subject.id, timetable=get_current_timetable().id,
-                                                             time=timeslot.id, tutorid=tutor.id)
-                    for i in STUDENTS:
-                        if assign_vars[(i, j, k, m)].varValue == 1:
-                            student = Student.get(name=i)
-                            timetabledclass.students.append(student)
-                            db.session.commit()
-    print("Status:", LpStatus[model.status])
-    return LpStatus[model.status]
-
-
 def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                   TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms):
     '''
@@ -282,13 +121,11 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
     print("Constraint: Minimize student clashes")
     # STUDENT CLASHES
     for i in STUDENTS:
-        print(i)
         for k in TIMES:
             model += studenttime[(i, k)] <= lpSum(
                 assign_vars[(i, j, k, m)] for m in TEACHERS for j in TEACHERMAPPING[m] if i in SUBJECTMAPPING[j]) / 2
             model += studenttime[(i, k)] >= 0.3 * (0.5 * lpSum(
                 assign_vars[(i, j, k, m)] for m in TEACHERS for j in TEACHERMAPPING[m] if i in SUBJECTMAPPING[j]) - 0.5)
-    print("I'm here!")
     for i in STUDENTS:
         model += studentsum[(i)] == lpSum(studenttime[(i, k)] for k in TIMES)
 
@@ -317,25 +154,10 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
     model.solve()
     print("Status:", LpStatus[model.status])
     print("Complete")
-
-    for m in TEACHERS:
-        for j in TEACHERMAPPING[m]:
-            subject = Subject.get(subcode=j)
-            for k in TIMES:
-                timesplit = k.split(' ')
-                timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
-
-                tutor = Tutor.get(name=m)
-                if subject_vars[(j, k, m)].varValue == 1:
-                    timetabledclass = TimetabledClass.create(subjectid=subject.id, timetable=get_current_timetable().id,
-                                                             time=timeslot.id, tutorid=tutor.id)
-                    for i in SUBJECTMAPPING[j]:
-                        if assign_vars[(i, j, k, m)].varValue == 1:
-                            student = Student.get(name=i)
-                            timetabledclass.students.append(student)
-                            db.session.commit()
+    add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars, assign_vars)
     print("Status:", LpStatus[model.status])
     return LpStatus[model.status]
+
 
 
 def preparetimetable(addtonewtimetable=False):
@@ -354,73 +176,12 @@ def preparetimetable(addtonewtimetable=False):
     #    db.session.commit()
     print("Preparing Timetable")
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-     TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = get_timetable_data()
+     TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = Attendance.models.get_timetable_data()
     print("Everything ready")
     executor.submit(runtimetable2, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                     TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
     form = AddTimetableForm()
     return render_template("viewtimetable.html", form=form)
-
-
-def get_timetable_data():
-    '''
-    Get all required timetable data from the database
-    :return: All timetabling data as a tuple to the preparetimetable method.
-    '''
-    SUBJECTS = []
-    SUBJECTMAPPING = {}
-    STUDENTS = []
-    REPEATS = {}
-    TEACHERS = []
-    TUTORAVAILABILITY = {}
-    TEACHERMAPPING = {}
-    allsubjects = Subject.query.filter(Subject.year == get_current_year(),
-                                       Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
-    alltutors = []
-    for subject in allsubjects:
-        SUBJECTMAPPING[subject.subcode] = []
-        REPEATS[subject.subcode] = subject.repeats
-        SUBJECTS.append(subject.subcode)
-        TEACHERS.append(subject.tutor.name)
-        if subject.tutor not in alltutors:
-            alltutors.append(subject.tutor)
-        for student in subject.students:
-            STUDENTS.append(student.name)
-            SUBJECTMAPPING[subject.subcode].append(student.name)
-        SUBJECTMAPPING[subject.subcode] = set(SUBJECTMAPPING[subject.subcode])
-    STUDENTS = list(set(STUDENTS))
-    TEACHERS = list(set(TEACHERS))
-    for tutor in alltutors:
-        TUTORAVAILABILITY[tutor.name] = []
-        TEACHERMAPPING[tutor.name] = []
-        for timeslot in tutor.availabletimes:
-            TUTORAVAILABILITY[tutor.name].append(timeslot.day + " " + timeslot.time)
-        for subject in tutor.subjects:
-            TEACHERMAPPING[tutor.name].append(subject.subcode)
-        TUTORAVAILABILITY[tutor.name] = set(TUTORAVAILABILITY[tutor.name])
-        TEACHERMAPPING[tutor.name] = set(TEACHERMAPPING[tutor.name])
-
-    maxclasssize = 400
-    minclasssize = 1
-    nrooms = 12
-    TIMES = []
-    day = []
-    timeslots = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                         timetable=get_current_timetable().id).all()
-    for timeslot in timeslots:
-        TIMES.append(timeslot.day + " " + timeslot.time)
-        day.append(timeslot.day)
-    day = list(set(day))
-    DAYS = {}
-    for d in day:
-        DAYS[d] = []
-    for timeslot in timeslots:
-        DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
-    for d in day:
-        DAYS[d] = set(DAYS[d])
-
-    return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-            TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
 
 
 
@@ -477,16 +238,6 @@ def read_excel(filename):
     return df
 
 
-def get_roll(classid):
-    timeclass = TimetabledClass.get(id=classid)
-    subject = timeclass.subject
-    students = subject.students
-    room = timeclass.room
-    timeslot = timeclass.timeslot
-    return create_roll(students, subject, timeslot, room)
-
-
-
 def create_roll(students, subject, timeslot, room):
     document = Document()
 
@@ -527,7 +278,7 @@ def create_excel(data):
 
 
 def format_timetable_data_for_export():
-    timeslots = Timeslot.get_all()
+    timeslots = Attendance.models.get_all_timeslots()
     timeslots = sorted(timeslots, key=attrgetter('daynumeric', 'time'))
     timetable = []
     for i in range(len(timeslots)):
@@ -548,28 +299,9 @@ def format_timetable_data_for_export():
 
     timetable = pandas.DataFrame(timetable)
     timetable.columns = ['Time', 'Subject', 'Tutor', 'Room']
-
     return timetable
 
 
-def collate_tutor_hours(minweek, maxweek, tutor_object=True):
-    tutors = Tutor.get_all()
-    data = set()
-    for tutor in tutors:
-        initials = 0
-        repeats = 0
-        tutorials = Tutorial.get_all(tutorid=tutor.id)
-        tutorials = [tutorial for tutorial in tutorials if
-                     int(tutorial.week) >= int(minweek) and int(tutorial.week) <= int(maxweek)]
-        initials = len(tutorials)
-        for tutorial in tutorials:
-            repeats += (int(tutorial.subject.repeats) - 1)
-        if tutor_object == True:
-            data.add((tutor, initials, repeats))
-        else:
-            data.add((tutor.name, initials, repeats))
-
-    return data
 
 
 def format_tutor_hours_for_export(hours):

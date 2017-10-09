@@ -78,13 +78,16 @@ def current_privileges():
     return (('{method} : {value}').format(method=n.method, value=n.value)
             for n in apps_needs if n in g.identity.provides)
 
-import Attendance.views
 from Attendance.models import *
+# db.create_all()
+# db.session.commit()
+import Attendance.views
+
 from Attendance.helpers import *
 from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
 # DATABASE METHODS
-db.create_all()
+
 #db.mapper(SubStuMap, substumap)
 #db.mapper(SubTutMap, subtutmap)
 #db.mapper(StuAttendance, stuattendance)
@@ -93,39 +96,43 @@ db.create_all()
 #db.mapper(TutorAvailability, tutoravailabilitymap)
 
 
+def init_db():
+    if Admin.query.filter_by(key='currentyear').first() == None:
+        admin = Admin(key='currentyear', value=2017)
+        db.session.add(admin)
+        db.session.commit()
+    if Admin.query.filter_by(key='studyperiod').first() == None:
+        study = Admin(key='studyperiod', value='Semester 2')
+        db.session.add(study)
+        db.session.commit()
+
+    if Admin.query.filter_by(key='timetable').first() is None:
+        timetable = Timetable(key="default")
+        db.session.add(timetable)
+        db.session.commit()
+        timetableadmin = Admin(key='timetable', value=timetable.id)
+        db.session.add(timetableadmin)
+        db.session.commit()
+
+    if User.query.filter_by(username='admin').first() is None:
+        user = User.create(username='admin', password=appcfg['adminpassword'])
+        user.update(is_admin=True)
+
+    if University.query.filter_by(name='University of Melbourne').first() is None:
+        uni = University(name='University of Melbourne')
+        db.session.add(uni)
+        db.session.commit()
+
+    if College.query.filter_by(name="International House").first() is None:
+        college = College(name='International House')
+        db.session.add(college)
+        db.session.commit()
 
 
-
-if Admin.query.filter_by(key='currentyear').first() == None:
-    admin = Admin(key='currentyear', value=2017)
-    db.session.add(admin)
-    db.session.commit()
-if Admin.query.filter_by(key='studyperiod').first() == None:
-    study = Admin(key='studyperiod', value='Semester 2')
-    db.session.add(study)
-    db.session.commit()
-
-if Admin.query.filter_by(key='timetable').first() is None:
-    timetable = Timetable(key="default")
-    db.session.add(timetable)
-    db.session.commit()
-    timetableadmin = Admin(key='timetable', value=timetable.id)
-    db.session.add(timetableadmin)
-    db.session.commit()
-
-if User.query.filter_by(username='admin').first() is None:
-    user = User.create(username='admin', password=appcfg['adminpassword'])
-    user.update(is_admin=True)
-
-if University.query.filter_by(name='University of Melbourne').first() is None:
-    uni = University(name='University of Melbourne')
-    db.session.add(uni)
-    db.session.commit()
-
-if College.query.filter_by(name="International House").first() is None:
-    college = College(name='International House')
-    db.session.add(college)
-    db.session.commit()
+try:
+    init_db()
+except:
+    db.session.rollback()
 
 # Set up logging
 handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)

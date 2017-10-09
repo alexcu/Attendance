@@ -41,7 +41,8 @@
             </a>{% endif %}
             {% if tutor != None %}
                        {% if current_user.is_admin == '1' %}
-                           <a href="{{ url_for('remove_tutor_from_subject', subcode = subject["subcode"], tutorid = tutor["id"]) }}" class="delete" data-confirm="Are you sure you want to delete this item?">
+                           <a href="{{ url_for('remove_subject_from_tutor', subcode = subject["subcode"], tutorid = tutor["id"]) }}"
+                              class="delete" data-confirm="Are you sure you want to delete this item?">
                             <button type="button" class="button-delete">Remove Tutor From Subject</button>
                         </a>{% endif %}{% endif %}
             <div id="popup" style="display: none">
@@ -120,7 +121,7 @@
                             </td>
                         <td>
                             {% if current_user.is_admin == '1' %}
-                                <a href="{{ url_for('remove_student_from_subject', studentcode = student.studentcode, subcode = subject["subcode"]) }}"
+                                <a href="{{ url_for('remove_subject_from_student', studentcode = student.studentcode, subcode = subject["subcode"]) }}"
                                    class="delete" data-confirm="Are you sure you want to delete this item?"><img
                                         src='../static/img/removeSymbol.png' class='deleteIcon'/></a>{% endif %}
                         </td>
@@ -233,7 +234,8 @@
                             <tr>
                                 <td>{{ timeclass.timeslot.day }}</td>
                                 <td>{{ timeclass.timeslot.time }}</td>
-                                <td><select id="classroom" onchange="updateClassRoom({{ timeclass.id }})">
+                                <td>{% if current_user.is_admin == '1' %}<select id="classroom/{{ timeclass.id }}"
+                                                                                 onchange="updateClassRoom({{ timeclass.id }})">
                                     <option value="-1"></option>
                                     {% for room in rooms %}
                                         {% if room.id == timeclass.room.id %}
@@ -242,7 +244,7 @@
                                             <option value="{{ room.id }}">{{ room.name }}</option>
                                         {% endif %}
                                     {% endfor %}
-                                </select></td>
+                                </select> {% else %} {{ timeclass.room.name }}{% endif %}</td>
                                 <td><a href="/downloadroll%3Fclassid%3D{{ timeclass.id }}">
                                     <button class="button">Download Roll</button>
                                 </a></td>
@@ -254,7 +256,10 @@
 <thead>
 <td>Student</td>
 {% for timeclass in timetabledclasses %}
-<td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}<a href="{{ url_for('remove_timetabled_class_subject',timetabledclassid = timeclass.id) }}" class="delete" data-confirm="Are you sure you want to delete this item?"><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a></td>
+    <td>{{ timeclass.timeslot.day }} {{ timeclass.timeslot.time }}<a
+            href="{{ url_for('remove_timetabled_class',timetabledclassid = timeclass.id) }}" class="delete"
+            data-confirm="Are you sure you want to delete this item?"><img src='../static/img/removeSymbol.png'
+                                                                           class='deleteIcon'/></a></td>
 {% endfor %}
 </thead>
     {% for student in subject.students %}
@@ -389,7 +394,7 @@
 
 
         function updateClassRoom(timeclassid) {
-            var x = document.getElementById('classroom');
+            var x = document.getElementById('classroom/' + timeclassid.toString());
             var y = x.options[x.selectedIndex].value;
             $.ajax({
                 url: "/updateclassroomajax",

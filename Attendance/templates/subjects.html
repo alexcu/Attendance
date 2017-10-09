@@ -4,6 +4,14 @@
     <h1>Subjects</h1>
     {{ msg }}
     <div class="row">
+        <div class="col-md-2">
+            <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Subject</button>
+            <a href="/downloadrolls">
+                <button type='button' class="button">Download All Rolls</button>
+            </a>
+        </div>
+    </div>
+    <div class="row">
         <div class="col-md-12">
             <table class="table" , id="subjects">
                 <thead>
@@ -28,15 +36,11 @@
 
 
     </div>
-    <div class="row">
-        <div class="col-md-2">
-            <button type="button" class="button" data-toggle="modal" data-target="#addModal">Add Subject</button>
-        </div>
-    </div>
+
     {% include 'mymodal.html' %}
 
 
-    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
 
 

@@ -20,6 +20,9 @@
     <div class="row">
         <h1>Subjects At Risk</h1>
     <div class ="col-md-12">
+        Please choose a recent average attendance rate for "at risk" classes: <input type="number" value="3"
+                                                                                     id="atriskattendancerate"/>
+        <button class="button" type="button" onclick="updateDataTable()">Update</button>
         <table class="table" id="atrisk">
                 <thead>
                 <td>Subject Code</td>
@@ -55,7 +58,7 @@
 
         </div>
     </div>
-    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>
 
@@ -91,21 +94,32 @@
                     }]
             });
 
-            $('#atrisk').DataTable({
+            datatable = $('#atrisk').DataTable({
                 "ajax": {
                     "url": '/getatriskclassesajax',
-                    "type": 'GET'
+                    "data": {
+                        averageattendancerate: function (d) {
+                            return document.getElementById('atriskattendancerate').value
+                        }
+                    },
+                    "type": 'POST'
                 },
                 "columns": [{
                     "data": "subcode"
                 }, {
                     "data": "subcode", "render": function (data, type, row, meta) {
-                        return "<a href='/viewsubject%3Fsubcode%3D" + row.subcode + "'>" + row.subname+ "</a>";
+                        return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + row.subname + "</a>";
                     }
                 }, {
                     "data": "recentaverageattendance"
                 }]
             });
         });
+
+        function updateDataTable() {
+
+
+            datatable.ajax.reload()
+        }
     </script>
 {% endblock %}

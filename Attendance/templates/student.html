@@ -129,35 +129,7 @@
                     } );
                     attendancelabels.sort(function(a,b) {
                         a = parseInt(a.split(' ')[1]);
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
                         b = parseInt(b.split(' ')[1]);
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
-                        ;
                         return a-b
                     });
                     for(var k=0; k<attendancelabels.length; k++) {
@@ -169,51 +141,7 @@
         }
 
         function drawStudentAttendanceChart() {
-            console.log(attendancedata);
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            console.log(cumattendancedata);
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            console.log(attendancelabels);
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
-            ;
+
             var myStudentAttendanceChart = new Chart(ctx, {
                 type: 'line',
                 data: {
