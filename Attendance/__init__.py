@@ -129,10 +129,7 @@ def init_db():
         db.session.commit()
 
 
-try:
-    init_db()
-except:
-    db.session.rollback()
+init_db()
 
 # Set up logging
 handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)

@@ -4,7 +4,7 @@ import pandas
 from docx import Document
 from pandas import ExcelFile
 from pulp import LpProblem, LpMinimize, lpSum, LpVariable, LpStatus, LpInteger, LpBinary
-
+import datetime
 from Attendance import app, db, executor
 from Attendance.models import *
 import Attendance.models
@@ -309,3 +309,7 @@ def format_tutor_hours_for_export(hours):
     hours = pandas.DataFrame(hours)
     hours.columns = ['Name', 'Initial Tutorials', 'Repeat Tutorials']
     return hours
+
+
+def convert_to_datetime(value):
+    return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')

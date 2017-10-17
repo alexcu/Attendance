@@ -382,6 +382,13 @@ def view_rooms():
         return render_template('viewrooms.html', form=form, rooms=Room.get_all_sorted(), timeslots=Timeslot.get_all())
 
 
+@app.route('/addtutorial', methods=['POST'])
+def add_tutorial():
+    return redirect(request.referrer)
+
+
+
+
 @app.route('/universities', methods=['GET', 'POST'])
 @login_required
 def view_universities():
@@ -641,7 +648,7 @@ def get_at_risk_classes():
         row['tutor'] = row['tutor'].__dict__
         row['tutor']['_sa_instance_state'] = ""
         row['classes'] = []
-        subject = Subject.query.get(row['id'])
+        subject = Subject.query.get(int(row['id']))
         row['recentaverageattendance'] = subject.get_recent_average_attendance()
     return '{ "data": ' + json.dumps(subjects) + '}'
 
@@ -649,9 +656,9 @@ def get_at_risk_classes():
 @app.route('/gettutorhours', methods=['POST'])
 @admin_permission.require()
 def get_tutor_hours():
-    minweek = int(request.form['minweek'])
-    maxweek = int(request.form['maxweek'])
-    hours = collate_tutor_hours(minweek, maxweek)
+    minweek = convert_to_datetime(request.form['minweek'])
+    maxweek = convert_to_datetime(request.form['maxweek'])
+    hours = collate_tutor_hours_dates(minweek, maxweek)
     data2 = []
     for row in hours:
         data2.append({'tutor': row[0].__dict__, 'initials': row[1], 'repeats': row[2]})
@@ -1071,6 +1078,27 @@ def update_class_time_ajax():
     return json.dumps("Done")
 
 
+@app.route('/updatetutorialhours', methods=['POST'])
+@login_required
+def update_tutorial_hours():
+    hours = request.form['hours']
+    tutorial = Tutorial.get(id=int(request.form['timeclassid']))
+    tutorial.update(hours=int(hours))
+    return json.dumps("Done")
+
+
+@app.route('/updatetutorialdatetime', methods=['POST'])
+@login_required
+def update_tutorial_datetime():
+    dateandtime = request.form['datetime']
+    tutorial = Tutorial.get(id=int(request.form['tutorialid']))
+    dateandtime = convert_to_datetime(dateandtime)
+    tutorial.update(dateandtime=dateandtime)
+    return json.dumps("Done")
+
+
+
+
 @app.route('/getsubjectattendancerate?subjectid=<subjectid>')
 @login_required
 def get_subject_attendance_rate_ajax(subjectid):
@@ -1210,10 +1238,10 @@ def download_timetable():
 @app.route('/downloadtutorhours', methods=['POST'])
 @admin_permission.require()
 def download_tutor_hours():
-    minweek = int(request.form['minweek'])
-    maxweek = int(request.form['maxweek'])
-    hours = collate_tutor_hours(minweek, maxweek, tutor_object=False)
+    minweek = convert_to_datetime(request.form['minweek'])
+    maxweek = convert_to_datetime(request.form['maxweek'])
+    hours = collate_tutor_hours_dates(minweek, maxweek, tutor_object=False)
     hours = format_tutor_hours_for_export(hours)
     hours = create_excel(hours)
     return send_file(hours, as_attachment=True,
-                     attachment_filename='Tutor Hours Week ' + str(minweek) + ' to Week ' + str(maxweek) + '.xlsx')
+                     attachment_filename='Tutor Hours ' + str(minweek) + ' to ' + str(maxweek) + '.xlsx')

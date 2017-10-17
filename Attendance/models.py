@@ -4,6 +4,7 @@ from Attendance import bcrypt, db
 from Attendance.helpers import *
 from pandas import isnull
 from datetime import time
+import datetime
 
 
 class CRUDMixin(db.Model):
@@ -321,7 +322,7 @@ class Subject(Base):
         :return: List of times in which all students in a particular subject have no timetabled classes.
         '''
         students = self.students
-        times = Timeslot.get_all()
+        times = get_all_timeslots()
         for student in students:
             for classes in student.timetabledclasses:
                 timeslot = classes.timeslot
@@ -531,13 +532,19 @@ class Tutorial(Base):
     tutor = db.relationship("Tutor", backref=db.backref('classes'), single_parent=True)
     week = db.Column(db.Integer, nullable=False)
     attendees = db.relationship("Student", secondary=stuattendance)
-    datetime = db.Column(db.DateTime)
+    dateandtime = db.Column('dateandtime', db.DateTime)
+    hours = db.Column('Hours', db.Integer)
 
-    def __init__(self, subjectid, tutorid, week):
+    def __init__(self, subjectid, tutorid, week, hours=1, dateandtime=datetime.datetime.now()):
         super().__init__()
         self.subjectid = subjectid
         self.tutorid = tutorid
         self.week = week
+        self.hours = hours
+        self.dateandtime = dateandtime
+
+    def get_datetime_html(self):
+        return self.dateandtime.strftime('%Y-%m-%dT%H:%M')
 
 
 
@@ -826,6 +833,24 @@ def collate_tutor_hours(minweek, maxweek, tutor_object=True):
 
     return data
 
+
+def collate_tutor_hours_dates(minweek, maxweek, tutor_object=True):
+    tutors = Tutor.get_all()
+    data = set()
+    for tutor in tutors:
+        initials = 0
+        repeats = 0
+        tutorials = Tutorial.get_all(tutorid=tutor.id)
+        tutorials = [tutorial for tutorial in tutorials if
+                     tutorial.dateandtime >= minweek and tutorial.dateandtime <= maxweek]
+        initials = len(tutorials)
+        for tutorial in tutorials:
+            repeats += (int(tutorial.hours) - 1)
+        if tutor_object == True:
+            data.add((tutor, initials, repeats))
+        else:
+            data.add((tutor.name, initials, repeats))
+    return data
 
 def get_timetabled_class(classid):
     return TimetabledClass.get(id=classid)

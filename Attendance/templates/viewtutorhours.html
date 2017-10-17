@@ -2,8 +2,8 @@
 {% block content %}
     <h1>View Tutor Hours</h1>
     <form method="post" action="downloadtutorhours">
-        From Week: <input type="number" id="minweek" name="minweek" value="1">
-        To Week: <input type="number" id="maxweek" name="maxweek" value="12">
+        From Week: <input type="datetime-local" id="minweek" name="minweek" value='2017-01-01T00:00'>
+        To Week: <input type="datetime-local" id="maxweek" name="maxweek" value='2017-12-31T00:00'>
         <button class="button" type="button" onclick="filterDataTable()">Filter</button>
     <div class="row">
         <div class="col-md-12">
@@ -21,6 +21,7 @@
     </form>
     <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
     <script>
+
         $(document).ready(function () {
             datatable = $('#tutorhours').DataTable({
                 "ajax": {
