@@ -16,6 +16,15 @@
 
             </table>
             <button class="button" action="submit">Download as Excel</button>
+            <table class="table" id="tutorhoursextended">
+                <thead>
+                <td>Tutor</td>
+                <td>Subject Name</td>
+                <td>Date</td>
+                <td>Hours</td>
+                </thead>
+
+            </table>
         </div>
     </div>
     </form>
@@ -42,11 +51,32 @@
                 }, {"data": "initials"}, {"data": "repeats"}
                 ]
             });
+
+            datatable2 = $('#tutorhoursextended').DataTable({
+                "ajax": {
+                    "url": '/gettutorhoursextended',
+                    "data": {
+                        minweek: function (d) {
+                            return document.getElementById('minweek').value
+                        }, maxweek: function (d) {
+                            return document.getElementById('maxweek').value
+                        }
+                    },
+                    "type": 'POST'
+                },
+                "columns": [{
+                    "data": "studentcode", "render": function (data, type, row, meta) {
+                        return row.tutor.name;
+                    }
+                }, {"data": "subname"}, {"data": "dateandtime"}, {"data": "hours"}
+                ]
+            });
         });
         function filterDataTable() {
 
 
             datatable.ajax.reload()
+            datatable2.ajax.reload()
         }
 
 

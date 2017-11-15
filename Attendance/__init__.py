@@ -128,7 +128,6 @@ def init_db():
         db.session.add(college)
         db.session.commit()
 
-
 init_db()
 
 # Set up logging

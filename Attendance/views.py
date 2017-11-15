@@ -241,7 +241,7 @@ def view_my_profile():
 def add_subject_to_student(studentcode):
     subcode = request.form['subject']
     msg = linksubjectstudent(studentcode, subcode)
-    return redirect(url_for('view_student', studentcode=studentcode))
+    return redirect(request.referrer)
 
 
 #DELETION ROUTES
@@ -251,6 +251,47 @@ def add_subject_to_student(studentcode):
 def delete_all_classes_view():
     delete_all_classes()
     return "Done"
+
+
+@app.route('/deleteallstudentsajax', methods=['POST'])
+@admin_permission.require()
+def delete_all_students_view():
+    delete_all_students()
+    return "Done"
+
+
+def delete_all_students():
+    students = Student.get_all()
+    for student in students:
+        student.delete()
+    db.session.commit()
+
+
+@app.route('/deleteallsubjectsajax', methods=['POST'])
+@admin_permission.require()
+def delete_all_subjects_view():
+    delete_all_subjects()
+    return "Done"
+
+
+def delete_all_subjects():
+    subjects = Subject.get_all()
+    for subject in subjects:
+        subject.delete()
+
+
+@app.route('/deletealltutorsajax', methods=['POST'])
+@admin_permission.require()
+def delete_all_tutors_view():
+    delete_all_tutors()
+    return "Done"
+
+
+def delete_all_tutors():
+    tutors = Tutor.get_all()
+    for tutor in tutors:
+        tutor.delete()
+
 
 def delete_all_classes():
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
@@ -639,17 +680,12 @@ def internal_server_error(error):
 @app.route('/getatriskclassesajax', methods=['GET', 'POST'])
 @admin_permission.require()
 def get_at_risk_classes():
-    subjects = [subject.__dict__ for subject in Subject.query.filter(Subject.year == get_current_year(),
-                                                                     Subject.studyperiod == get_current_studyperiod(),
-                                                                     Subject.tutor != None).all() if
+    subjects = [{'subcode': subject.subcode, 'subname': subject.subname,
+                 'recentaverageattendance': subject.get_recent_average_attendance()} for subject in
+                Subject.query.filter(Subject.year == get_current_year(),
+                                     Subject.studyperiod == get_current_studyperiod(),
+                                     Subject.tutor != None).all() if
                 subject.is_at_risk(rate=int(request.form['averageattendancerate']))]
-    for row in subjects:
-        row['_sa_instance_state'] = ""
-        row['tutor'] = row['tutor'].__dict__
-        row['tutor']['_sa_instance_state'] = ""
-        row['classes'] = []
-        subject = Subject.query.get(int(row['id']))
-        row['recentaverageattendance'] = subject.get_recent_average_attendance()
     return '{ "data": ' + json.dumps(subjects) + '}'
 
 
@@ -668,13 +704,32 @@ def get_tutor_hours():
     return '{ "data" : ' + data + '}'
 
 
-@app.route('/getnonattendingstudentsajax', methods=['POST'])
+@app.route('/gettutorhoursextended', methods=['POST'])
+@admin_permission.require()
+def get_tutor_hours_extended():
+    minweek = convert_to_datetime(request.form['minweek'])
+    maxweek = convert_to_datetime(request.form['maxweek'])
+    hours = collate_tutor_hours_dates(minweek, maxweek, extended=True)
+    data2 = []
+    for row in hours:
+        data2.append({'tutor': row[0].__dict__, 'subname': row[1], 'dateandtime': row[2], 'hours': row[3]})
+    for row in data2:
+        row['tutor']['_sa_instance_state'] = ""
+    data = json.dumps(data2)
+    return '{ "data" : ' + data + '}'
+
+
+@app.route('/getnonattendingstudentsajax', methods=['GET', 'POST'])
 @admin_permission.require()
 def get_nonattending_students_ajax():
-    subject = Subject.get(id=int(request.form['subjectid']))
-    nonattend = subject.get_nonattending_students()
+    nonattend = Subject.get_all_nonattending_students()
+    data = []
     if len(nonattend) > 0:
-        print(nonattend)
+        for (student, subject) in nonattend:
+            data.append({'subcode': subject.subcode, 'subname': subject.subname, 'name': student.name,
+                         'studentcode': student.studentcode})
+        data = json.dumps(data)
+        return '{ "data" : ' + data + '}'
     else:
         return '{"data": {}}'
 
@@ -852,6 +907,24 @@ def viewcurrentmappedsubjects_ajax():
         row['tutor']['_sa_instance_state'] = ""
     data = json.dumps(data2)
     return '{ "data" : ' + data + '}'
+
+
+@app.route('/updatepreferredtimeslot', methods=['POST'])
+@admin_permission.require()
+def update_preferred_timeslot():
+    id = int(request.form['id'])
+    preferred = int(request.form['preferred'])
+    Attendance.models.change_preferred_timeslot(id, preferred)
+    return "Done"
+
+
+@app.route('/updateroomprojector', methods=['POST'])
+@admin_permission.require()
+def update_room_projector():
+    roomid = int(request.form['roomid'])
+    value = int(request.form['value'])
+    Attendance.models.change_room_projector(roomid, value)
+    return "Done"
 
 
 @app.route('/vieweligiblesubjectsajax')
@@ -1234,6 +1307,13 @@ def download_timetable():
     timetable = create_excel(timetable)
     return send_file(timetable, as_attachment=True)
 
+
+@app.route('/downloadindividualtimetables')
+@login_required
+def download_individual_student_timetables():
+    timetable = format_student_timetable_data_for_export()
+    timetable = create_excel(timetable)
+    return send_file(timetable, as_attachment=True)
 
 @app.route('/downloadtutorhours', methods=['POST'])
 @admin_permission.require()

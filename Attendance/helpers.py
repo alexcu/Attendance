@@ -12,7 +12,7 @@ from Attendance.forms import AddTimetableForm
 
 #TIMETABLE CODE
 def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                  TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms):
+                  TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms, non_preferred_times=[]):
     '''
     Run the timetabling process and input into the database.
 
@@ -34,6 +34,8 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
     :param minclasssize: An integer representing the minimum class size
     :param nrooms: An integer representing the max allowable concurrent classes
     :return: A string representing model status.
+
+    TESTED
     '''
     print("Running solver")
     model = LpProblem('Timetabling', LpMinimize)
@@ -50,7 +52,8 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
 
     # c
     app.logger.info('9:30 classes')
-    num930classes = LpVariable.dicts("930Classes", [(i) for i in TIMES], lowBound=0, cat=LpInteger)
+    num_non_preferred_classes = LpVariable.dicts("NonPreferredClasses", [(i) for i in non_preferred_times], lowBound=0,
+                                                 cat=LpInteger)
     # w
     app.logger.info('Days for teachers')
     daysforteachers = LpVariable.dicts("numdaysforteachers", [(i, j) for i in TEACHERS for j in range(len(DAYS))], 0, 1,
@@ -130,12 +133,10 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
         model += studentsum[(i)] == lpSum(studenttime[(i, k)] for k in TIMES)
 
     # This minimizes the number of 9:30 classes.
-    for i in TIMES:
-        if i.find('21:30') != -1:
-            model += num930classes[(i)] == lpSum(subject_vars[(j, i, m)] for m in TEACHERS for j in TEACHERMAPPING[m])
+    for i in non_preferred_times:
+        model += num_non_preferred_classes[(i)] == lpSum(
+            subject_vars[(j, i, m)] for m in TEACHERS for j in TEACHERMAPPING[m])
 
-        else:
-            model += num930classes[(i)] == 0
 
     print("Setting objective function")
 
@@ -148,13 +149,16 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
                 model += lpSum(assign_vars[(i, j, k, m)] for i in SUBJECTMAPPING[j]) <= maxclasssize
 
     # Solving the model
-    model += (100 * lpSum(studentsum[(i)] for i in STUDENTS) + lpSum(num930classes[(i)] for i in TIMES) + 500 * lpSum(
+    # Objective Function
+    model += (100 * lpSum(studentsum[(i)] for i in STUDENTS) + lpSum(
+        num_non_preferred_classes[(i)] for i in non_preferred_times) + 500 * lpSum(
         daysforteacherssum[(m)] for m in TEACHERS))
     print("Solving Model")
     model.solve()
     print("Status:", LpStatus[model.status])
     print("Complete")
-    add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars, assign_vars)
+    Attendance.models.add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars,
+                                               assign_vars)
     print("Status:", LpStatus[model.status])
     return LpStatus[model.status]
 
@@ -166,6 +170,8 @@ def preparetimetable(addtonewtimetable=False):
 
     :param addtonewtimetable: Whether this should be added to a new timetable and set as default.
     :return: The view timetable page.
+
+    TESTED
     '''
     # if addtonewtimetable == "true":
     #    timetable = Timetable(get_current_year(),get_current_studyperiod())
@@ -174,12 +180,14 @@ def preparetimetable(addtonewtimetable=False):
     #    admin = Admin.query.filter_by(key="timetable").first()
     #    admin.value = timetable.id
     #    db.session.commit()
+
     print("Preparing Timetable")
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-     TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = Attendance.models.get_timetable_data()
+     TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms,
+     non_preferred_times) = Attendance.models.get_timetable_data()
     print("Everything ready")
     executor.submit(runtimetable2, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                    TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
+                    TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms, non_preferred_times)
     form = AddTimetableForm()
     return render_template("viewtimetable.html", form=form)
 
@@ -191,6 +199,8 @@ def allowed_file(filename):
     Checks whether the uploaded file has an allowed extension.
     :param filename: The filename to check
     :return: True/False
+
+    TESTED
     '''
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
@@ -219,6 +229,8 @@ def checkboxvalue(checkbox):
 
     :param checkbox: Input from request.form
     :return: 1 if ticked, 0 if not.
+
+    TESTED
     '''
     if (checkbox != None):
         return 1
@@ -267,7 +279,6 @@ def create_roll(students, subject, timeslot, room):
         row_cells[0].text = str(item.name)
     document.save(app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx')
     return app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx'
-    # document.save('demo.docx')
 
 
 def create_excel(data):
@@ -302,6 +313,25 @@ def format_timetable_data_for_export():
     return timetable
 
 
+def format_student_timetable_data_for_export():
+    students = Attendance.models.Student.get_all()
+    timetable = []
+    for student in students:
+        for timeclass in student.timetabledclasses:
+            if timeclass.room is not None:
+                room = timeclass.room.name
+            else:
+                room = ""
+            if timeclass.tutor is not None:
+                tutor = timeclass.tutor.name
+            else:
+                tutor = ""
+            timetable.append((student.name, timeclass.subject.subname,
+                              timeclass.timeslot.day + ' ' + timeclass.timeslot.time, tutor, room))
+
+    timetable = pandas.DataFrame(timetable)
+    timetable.columns = ['Student', 'Subject', 'Time', 'Tutor', 'Room']
+    return timetable
 
 
 def format_tutor_hours_for_export(hours):
@@ -313,3 +343,7 @@ def format_tutor_hours_for_export(hours):
 
 def convert_to_datetime(value):
     return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
+
+
+def convert_datetime_to_string(value):
+    return value.strftime('%d-%m-%Y %H:%M')
