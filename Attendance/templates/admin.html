@@ -31,13 +31,39 @@
     </select>
     </form>
     <h2>Delete From Database</h2>
-    <button class="button">Delete All Students</button>
-    <button class="button">Delete All Subjects</button>
-    <button class="button">Delete All Tutors</button>
+    <button class="button" onclick="deleteallstudents()">Delete All Students</button>
+    <button class="button" onclick="deleteallsubjects()">Delete All Subjects</button>
+    <button class="button" onclick="deletealltutors()">Delete All Tutors</button>
 
 
 
+    <script>
+        function deleteallstudents() {
+            $.ajax({
+                type: 'POST',
+                url: '/deleteallstudentsajax',
+                dataType: 'json',
+            });
+        }
 
+        function deleteallsubjects() {
+            $.ajax({
+                type: 'POST',
+                url: '/deleteallsubjectsajax',
+                dataType: 'json',
+            });
+        }
+
+        function deletealltutors() {
+            $.ajax({
+                type: 'POST',
+                url: '/deletealltutorsajax',
+                dataType: 'json',
+            });
+        }
+
+
+    </script>
 
 
 {% endblock %}

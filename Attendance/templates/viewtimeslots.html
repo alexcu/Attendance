@@ -37,9 +37,9 @@
                 "columns": [{"data": "day"}, {"data": "time"}, {
                     "data": "preferredtime", "render": function (data, type, row, meta) {
                         if (row.preferredtime == true) {
-                            return "Yes"
+                            return "<select onchange='updatePreferred(" + row.id + ", this.value)' ><option value = '1' selected>Yes</option><option value = '0'>No</option> </select>"
                         } else {
-                            return "No"
+                            return "<select onchange='updatePreferred(" + row.id + ", this.value)' ><option value = '1'>Yes</option><option value = '0' selected>No</option> </select>"
                         }
                     }
                 }, {
@@ -54,5 +54,17 @@
                 ]
             });
         });
+
+        function updatePreferred(id, preferred) {
+            $.ajax({
+                type: 'POST',
+                url: '/updatepreferredtimeslot',
+                dataType: 'json',
+                data: {id: id, preferred: preferred},
+            });
+        }
+
+
+
     </script>
 {% endblock %}
