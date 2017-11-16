@@ -465,12 +465,15 @@ class TimetabledClass(Base):
     tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
     tutor = db.relationship("Tutor", backref=db.backref('timetabledclasses'), single_parent=True)
     roomid = db.Column(db.Integer, db.ForeignKey('rooms.id'))
-    def __init__(self, subjectid, timetable, time, tutorid):
+
+    def __init__(self, subjectid, timetable, time, tutorid, roomid=None):
         super().__init__()
         self.subjectid = subjectid
         self.timetable = timetable
         self.time = time
         self.tutorid = tutorid
+        if roomid is not None:
+            self.roomid = roomid
 
 
 class Room(db.Model):
@@ -839,7 +842,7 @@ def get_all_timeslots():
     return Timeslot.get_all()
 
 
-def get_timetable_data():
+def get_timetable_data(rooms=False):
     '''
     Get all required timetable data from the database
     :return: All timetabling data as a tuple to the preparetimetable method.
@@ -847,6 +850,7 @@ def get_timetable_data():
     SUBJECTS = []
     SUBJECTMAPPING = {}
     STUDENTS = []
+    ROOMS = []
     REPEATS = {}
     TEACHERS = []
     TUTORAVAILABILITY = {}
@@ -877,9 +881,13 @@ def get_timetable_data():
         TUTORAVAILABILITY[tutor.name] = set(TUTORAVAILABILITY[tutor.name])
         TEACHERMAPPING[tutor.name] = set(TEACHERMAPPING[tutor.name])
 
+    allrooms = Room.query.all()
+    for room in allrooms:
+        ROOMS.append(room.name)
+
     maxclasssize = 400
     minclasssize = 1
-    nrooms = 12
+    nrooms = len(ROOMS)
     TIMES = []
     day = []
     timeslots = Timeslot.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
@@ -895,29 +903,58 @@ def get_timetable_data():
         DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
     for d in day:
         DAYS[d] = set(DAYS[d])
+    if rooms == True:
+        return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS)
+    else:
+        return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
+                TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
 
-    return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-            TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
 
-
-def add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars, assign_vars):
+def add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars, assign_vars, ROOMS):
+    print(ROOMS)
     for m in TEACHERS:
         for j in TEACHERMAPPING[m]:
             subject = Subject.get(subcode=j)
             for k in TIMES:
-                timesplit = k.split(' ')
-                timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
+                for n in ROOMS:
+                    print(n)
+                    timesplit = k.split(' ')
+                    timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
+                    tutor = Tutor.get(name=m)
+                    room = Room.query.filter_by(name=n).first()
+                    print(room.id)
+                    if subject_vars[(j, k, m, n)].varValue == 1:
+                        timetabledclass = TimetabledClass.create(subjectid=subject.id,
+                                                                 timetable=get_current_timetable().id, time=timeslot.id,
+                                                                 tutorid=tutor.id, roomid=room.id)
+                        for i in SUBJECTMAPPING[j]:
+                            if assign_vars[(i, j, k, m, n)].varValue == 1:
+                                student = Student.get(name=i)
+                                timetabledclass.students.append(student)
+                                db.session.commit()
 
-                tutor = Tutor.get(name=m)
-                if subject_vars[(j, k, m)].varValue == 1:
-                    timetabledclass = TimetabledClass.create(subjectid=subject.id, timetable=get_current_timetable().id,
-                                                             time=timeslot.id, tutorid=tutor.id)
-                    for i in SUBJECTMAPPING[j]:
-                        if assign_vars[(i, j, k, m)].varValue == 1:
-                            student = Student.get(name=i)
-                            timetabledclass.students.append(student)
-                            db.session.commit()
 
+def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars_with_rooms,
+                                     assign_vars, ROOMS):
+    for m in TEACHERS:
+        for j in TEACHERMAPPING[m]:
+            subject = Subject.get(subcode=j)
+            for k in TIMES:
+                for n in ROOMS:
+                    timesplit = k.split(' ')
+                    timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
+                    tutor = Tutor.get(name=m)
+                    room = Room.query.filter_by(name=n).first()
+                    if subject_vars_with_rooms[(j, k, m, n)].varValue == 1:
+                        timetabledclass = TimetabledClass.create(subjectid=subject.id,
+                                                                 timetable=get_current_timetable().id, time=timeslot.id,
+                                                                 tutorid=tutor.id, roomid=room.id)
+                        for i in SUBJECTMAPPING[j]:
+                            if assign_vars[(i, j, k, m)].varValue == 1:
+                                student = Student.get(name=i)
+                                timetabledclass.students.append(student)
+                                db.session.commit()
 
 def get_all_rolls():
     subjects = get_all_subjects()
