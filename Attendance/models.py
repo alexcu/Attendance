@@ -4,7 +4,7 @@ from Attendance import bcrypt, db
 from Attendance.helpers import *
 from pandas import isnull
 from datetime import time
-
+from Attendance.config import appcfg
 
 class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
@@ -239,6 +239,7 @@ class Subject(Base):
     subcode = db.Column(db.String(50), nullable=False)
     subname = db.Column(db.String(50), nullable=False)
     repeats = db.Column(db.Integer, default=1)
+    needsprojector = db.Column(db.Boolean, nullable=True)
     universityid = db.Column(db.Integer, db.ForeignKey('university.id'))
     university = db.relationship("University", backref=db.backref('subjects'))
     def __init__(self, subcode, subname, repeats=1):
@@ -855,6 +856,9 @@ def get_timetable_data(rooms=False):
     TEACHERS = []
     TUTORAVAILABILITY = {}
     TEACHERMAPPING = {}
+    PROJECTORS = []
+    PROJECTORROOMS = []
+    NONPREFERREDTIMES = []
     allsubjects = Subject.query.filter(Subject.year == get_current_year(),
                                        Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
     alltutors = []
@@ -869,6 +873,8 @@ def get_timetable_data(rooms=False):
             STUDENTS.append(student.name)
             SUBJECTMAPPING[subject.subcode].append(student.name)
         SUBJECTMAPPING[subject.subcode] = set(SUBJECTMAPPING[subject.subcode])
+        if subject.needsprojector is True:
+            PROJECTORS.append(subject.subcode)
     STUDENTS = list(set(STUDENTS))
     TEACHERS = list(set(TEACHERS))
     for tutor in alltutors:
@@ -884,7 +890,9 @@ def get_timetable_data(rooms=False):
     allrooms = Room.query.all()
     for room in allrooms:
         ROOMS.append(room.name)
-
+        if room.projector is True:
+            PROJECTORROOMS.append(room.name)
+    numroomsprojector = len(PROJECTORROOMS)
     maxclasssize = 400
     minclasssize = 1
     nrooms = len(ROOMS)
@@ -895,6 +903,8 @@ def get_timetable_data(rooms=False):
     for timeslot in timeslots:
         TIMES.append(timeslot.day + " " + timeslot.time)
         day.append(timeslot.day)
+        if timeslot.preferredtime is False:
+            NONPREFERREDTIMES.append(timeslot.day + " " + timeslot.time)
     day = list(set(day))
     DAYS = {}
     for d in day:
@@ -905,7 +915,7 @@ def get_timetable_data(rooms=False):
         DAYS[d] = set(DAYS[d])
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS)
+                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
     else:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
@@ -1000,3 +1010,37 @@ def get_roll(classid):
     room = timeclass.room
     timeslot = timeclass.timeslot
     return create_roll(students, subject, timeslot, room)
+
+
+
+def init_db():
+    if Admin.query.filter_by(key='currentyear').first() is None:
+        admin = Admin(key='currentyear', value=2017)
+        db.session.add(admin)
+        db.session.commit()
+    if Admin.query.filter_by(key='studyperiod').first() is None:
+        study = Admin(key='studyperiod', value='Semester 2')
+        db.session.add(study)
+        db.session.commit()
+
+    if Admin.query.filter_by(key='timetable').first() is None:
+        timetable = Timetable(key="default")
+        db.session.add(timetable)
+        db.session.commit()
+        timetableadmin = Admin(key='timetable', value=timetable.id)
+        db.session.add(timetableadmin)
+        db.session.commit()
+
+    if User.query.filter_by(username='admin').first() is None:
+        user = User.create(username='admin', password=appcfg['adminpassword'])
+        user.update(is_admin=True)
+
+    if University.query.filter_by(name='University of Melbourne').first() is None:
+        uni = University(name='University of Melbourne')
+        db.session.add(uni)
+        db.session.commit()
+
+    if College.query.filter_by(name="International House").first() is None:
+        college = College(name='International House')
+        db.session.add(college)
+        db.session.commit()
