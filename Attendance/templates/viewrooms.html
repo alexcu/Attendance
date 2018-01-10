@@ -22,7 +22,11 @@
                 {% for timeslot in timeslots %}
                     <td>{{ timeslot.day }} {{ timeslot.time }}</td>
                 {% endfor %}
+<<<<<<< HEAD
                 <td>Projector</td>
+=======
+                <td>Has Projector?</td>
+>>>>>>> c0ba13e1e13a4b447802a33a14af52a065d1e203
                 </thead>
                 {% for room in rooms %}
                     <tr>
@@ -34,6 +38,7 @@
                                 <td class="notattended"></td>
                             {% endif %}
                         {% endfor %}
+<<<<<<< HEAD
                         <td><select onchange="changeProjector({{ room.id }},this.value)">{% if room.projector == True %}
                             <option value="-1"></option>
                             <option value="1" selected>Yes</option>
@@ -44,6 +49,32 @@
                             <option value="-1" selected></option>
                             <option value="1">Yes</option>
                             <option value="0">No</option> {% endif %} </select></td>
+=======
+                    <td>
+                        <select id="hasprojector" onchange="updateroomprojector({{ room.id }}, this.value)">
+                            {% if room.projector == True %}
+                            <option value = '-1'></option>
+                                <option value = '1' selected>Yes</option>
+                                <option value = '0'>No</option>
+
+
+                            {% elif room.projector == False %}
+                                <option value = '1'>Yes</option>
+                                <option value = '0' selected>No</option>
+
+                            {% else %}
+                                <option value = '-1' selected></option>
+                                <option value = '1'>Yes</option>
+                                <option value = '0'>No</option>
+                            {% endif %}
+
+
+
+                        </select>
+
+
+                    </td>
+>>>>>>> c0ba13e1e13a4b447802a33a14af52a065d1e203
                     </tr>
                 {% endfor %}
             </table>
@@ -56,6 +87,7 @@
     <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
     <script>
+<<<<<<< HEAD
         function changeProjector(roomid, value) {
             console.log(roomid)
             console.log(value)
@@ -77,5 +109,18 @@
 
     </script>
 
+=======
+    function updateroomprojector(roomid, value) {
+        $.ajax({
+            url: "/updateroomprojector",
+                data: {roomid: roomid, value: value},
+                type: "POST",
+                dataType: "json"
+        })
+    }
+
+
+    </script>
+>>>>>>> c0ba13e1e13a4b447802a33a14af52a065d1e203
 
 {% endblock %}

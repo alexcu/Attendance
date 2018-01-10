@@ -13,6 +13,7 @@
                 <td>Study Period</td>
                 <td>Tutor</td>
                 <td>Repeats</td>
+                <td>Needs Projector</td>
                 <td>Attendance Rate</td>
                 </thead>
                 <tr>
@@ -29,6 +30,20 @@
                             {% endif %}
                         {% endfor %}
                     </select>{% else %}{{ subject["repeats"] }}{% endif %}</td>
+                    <td><select id="needsprojector" onchange="needsprojectorchange({{ subject.id }},this.value)">{% if subject["needsprojector"] == True %}
+                        <option value="-1"></option>
+                        <option value="1" selected>Yes</option>
+                        <option value="0">No</option>
+                        {% elif subject["needsprojector"] == False %}
+                        <option value="-1"></option>
+                        <option value="1">Yes</option>
+                        <option value="0" selected>No</option>
+                        {% else %}
+                        <option value="-1" selected></option>
+                        <option value="1">Yes</option>
+                        <option value="0">No</option>
+                        {% endif %}
+                    </select></td>
                     <td id="parent">{{ subject.get_attendance_rate() }}%
                         <button id="showhidebutton" class="button">Show Graph</button>
                     </td>
@@ -580,6 +595,17 @@
                 }
             });
         }
+
+
+        function needsprojectorchange(subjectid,selectedvalue) {
+            $.ajax({
+                type: 'POST',
+                data: {subjectid: subjectid, value: selectedvalue},
+                url: '/needsprojectorchange',
+                dataType: 'json'
+            });
+        }
+
 
         function drawSubjectAttendanceChart() {
             var mySubjectAttendanceChart = new Chart(ctx, {

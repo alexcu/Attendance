@@ -109,5 +109,17 @@
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$USER_HOME$/Dropbox/Justin/Documents/Python/database66.db</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="app.db" uuid="6bb68f22-2f4e-4b4c-8709-78bad172e3ec">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/app.db</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="app.db [2]" uuid="abd90991-c72e-4bc8-beba-94028b43a490">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/Attendance/app.db</jdbc-url>
+    </data-source>
   </component>
 </project>

@@ -1074,6 +1074,44 @@ def update_subject_repeats():
     subject.update(repeats=int(request.form['repeats']))
     return "Done"
 
+@app.route('/needsprojectorchange', methods=['POST'])
+@admin_permission.require()
+def update_needsprojector():
+    subject = Subject.query.get(int(request.form['subjectid']))
+    value = int(request.form['value'])
+    if value == 1:
+        subject.needsprojector = True
+        db.session.commit()
+    elif value == 0:
+        subject.needsprojector = False
+        db.session.commit()
+    return "Done"
+
+@app.route('/changepreferredtime', methods=['POST'])
+@admin_permission.require()
+def change_preferred_time():
+    timeslot = Timeslot.query.get(int(request.form['timeslotid']))
+    value = int(request.form['value'])
+    if value == 1:
+        timeslot.update(preferredtime = True)
+    elif value == 0:
+        timeslot.update(preferredtime=False)
+    return "Done"
+
+
+@app.route('/updateroomprojector', methods=['POST'])
+@admin_permission.require()
+def update_room_projector():
+    room = Room.query.get(int(request.form['roomid']))
+    value = int(request.form['value'])
+    if value == 1:
+        room.projector = True
+        db.session.commit()
+    elif value ==0:
+        room.projector = False
+        db.session.commit()
+    return "Done"
+
 
 @app.route('/viewsubjectsajax')
 @login_required
