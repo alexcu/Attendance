@@ -1,5 +1,5 @@
 import json
-
+import os
 from flask import request, redirect, current_app, url_for, send_file, render_template
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
@@ -103,9 +103,11 @@ def uploadstudentdata():
 
 
 def upload_and_return_df(file):
-    filename2 = upload(file)
-    df = read_excel(filename2)
-    return df
+    path_to_file = upload(file)
+    if os.path.splitext(path_to_file)[1] == "csv":
+        return read_csv(path_to_file)
+    else:
+        return read_excel(path_to_file)
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])

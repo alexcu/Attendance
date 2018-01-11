@@ -997,6 +997,7 @@ def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, T
                                 db.session.commit()
 
 def get_all_rolls():
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls ' + ' ' + time.strftime("%c") + '.docx'
     subjects = get_all_subjects()
     document = Document()
     for subject in subjects:
@@ -1029,8 +1030,8 @@ def get_all_rolls():
                 row_cells = table.add_row().cells
                 row_cells[0].text = str(item.name)
             document.add_page_break()
-    document.save(app.config['UPLOAD_FOLDER'] + '/rolls.docx')
-    return app.config['UPLOAD_FOLDER'] + '/rolls.docx'
+    document.save(path_to_file)
+    return path_to_file
 
 
 def get_roll(classid):

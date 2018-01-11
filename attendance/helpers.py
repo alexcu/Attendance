@@ -1,10 +1,10 @@
 import os
-
 import pandas
 from docx import Document
 from pandas import ExcelFile
 from pulp import LpProblem, LpMinimize, lpSum, LpVariable, LpStatus, LpInteger, LpBinary
 import datetime
+import time
 from attendance import app, db, executor
 from attendance.models import *
 import attendance.models
@@ -439,11 +439,13 @@ def upload(file):
     if file and allowed_file(file.filename):
         # Make the filename safe, remove unsupported chars
         filename = file.filename
+        # Ensure unique filename
+        unique_filename = time.strftime("%c") + filename
         # Move the file form the temporal folder to
         # the upload folder we setup
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        filename2 = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        return filename2
+        path_to_file = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(path_to_file)
+        return path_to_file
 
 
 def checkboxvalue(checkbox):
@@ -472,8 +474,20 @@ def read_excel(filename):
     df = xl.parse(xl.sheet_names[0])
     return df
 
+def read_csv(filename):
+    '''
+    Read CSV File provided by filename.
+
+    :param filename - path to an CSV file:
+    :return: pandas dataframe
+    '''
+    return pandas.read_csv(filename)
+
 
 def create_roll(students, subject, timeslot, room):
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/roll ' + \
+        subject.subcode + ' ' + time.strftime("%c") + '.docx'
+
     document = Document()
 
     document.add_heading(subject.subname, 0)
@@ -500,15 +514,16 @@ def create_roll(students, subject, timeslot, room):
     for item in students:
         row_cells = table.add_row().cells
         row_cells[0].text = str(item.name)
-    document.save(app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx')
-    return app.config['UPLOAD_FOLDER'] + '/' + subject.subcode + '.docx'
+    document.save(path_to_file)
+    return path_to_file
 
 
 def create_excel(data):
-    writer = pandas.ExcelWriter(app.config['UPLOAD_FOLDER'] + '/timetable.xlsx', engine='xlsxwriter')
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/timetable ' + time.strftime("%c") + '.xlsx'
+    writer = pandas.ExcelWriter(path_to_file, engine='xlsxwriter')
     data.to_excel(writer, sheet_name='Timetable', index=False)
     writer.save()
-    return app.config['UPLOAD_FOLDER'] + '/timetable.xlsx'
+    return path_to_file
 
 
 def format_timetable_data_for_export():
