@@ -6,5 +6,7 @@ appcfg = {
     # Secret key for password hashing
     "secretkey": 'internationalhouseattendanceprogram',
     # Administrator password
-    "adminpassword": 'password'
+    "adminpassword": 'password',
+    # Logging file
+    "log": '/path/to/log.log'
 }

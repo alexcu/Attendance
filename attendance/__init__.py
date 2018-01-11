@@ -10,6 +10,7 @@ from flask_sqlalchemy import *
 
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
+app.config['LOGGING_FILE'] = appcfg['log']
 app.config['UPLOAD_FOLDER'] = appcfg['upload']
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
 app.config['SQLALCHEMY_DATABASE_URI'] = appcfg['dbstring']
@@ -98,7 +99,8 @@ except:
     db.session.rollback()
 
 # Set up logging
-handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
+handler = RotatingFileHandler(
+    app.config['LOGGING_FILE'], maxBytes=10000, backupCount=10)
 handler.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 if __name__ == '__main__':
