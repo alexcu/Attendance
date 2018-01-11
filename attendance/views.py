@@ -104,7 +104,7 @@ def uploadstudentdata():
 
 def upload_and_return_df(file):
     path_to_file = upload(file)
-    if os.path.splitext(path_to_file)[1] == "csv":
+    if os.path.splitext(path_to_file)[1] == ".csv":
         return read_csv(path_to_file)
     else:
         return read_excel(path_to_file)
