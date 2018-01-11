@@ -37,15 +37,9 @@
                 "columns": [{"data": "day"}, {"data": "time"}, {
                     "data": "preferredtime", "render": function (data, type, row, meta) {
                         if (row.preferredtime == true) {
-<<<<<<< HEAD
                             return "<select onchange='updatePreferred(" + row.id + ", this.value)' ><option value = '1' selected>Yes</option><option value = '0'>No</option> </select>"
                         } else {
                             return "<select onchange='updatePreferred(" + row.id + ", this.value)' ><option value = '1'>Yes</option><option value = '0' selected>No</option> </select>"
-=======
-                            return "<select onchange='changepreferredtime("+row.id+",this.value)'><option value='1' selected>Yes</option><option value='0'>No</option></select>"
-                        } else {
-                            return "<select onchange='changepreferredtime("+row.id+",this.value)'><option value='1'>Yes</option><option value='0' selected>No</option></select>"
->>>>>>> c0ba13e1e13a4b447802a33a14af52a065d1e203
                         }
                     }
                 }, {
@@ -61,7 +55,7 @@
             });
         });
 
-<<<<<<< HEAD
+
         function updatePreferred(id, preferred) {
             $.ajax({
                 type: 'POST',
@@ -71,18 +65,5 @@
             });
         }
 
-
-
-=======
-
-        function changepreferredtime(timeslotid,value) {
-            $.ajax({
-                url: "/changepreferredtime",
-                data: {timeslotid: timeslotid, value: value},
-                type: "POST",
-                dataType: "json"
-            })
-        }
->>>>>>> c0ba13e1e13a4b447802a33a14af52a065d1e203
     </script>
 {% endblock %}

@@ -79,6 +79,7 @@ def current_privileges():
             for n in apps_needs if n in g.identity.provides)
 
 from Attendance.models import *
+from Attendance.models import init_db
 # db.create_all()
 # db.session.commit()
 import Attendance.views
@@ -96,9 +97,13 @@ from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, 
 #db.mapper(TutorAvailability, tutoravailabilitymap)
 
 try:
-    Attendance.models.init_db()
+    print("Initialising database")
+    # COMMENT THIS LINE OUT WHEN YOU ARE RUNNING FIRST-TIME DB COMMANDS
+    init_db()
+    # END COMMENT OUT
+    print("SUCCESS!")
 except:
-    print("Rolling Back")
+    print("FAILED... Rolling Back")
     db.session.rollback()
 
 # Set up logging

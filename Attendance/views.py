@@ -918,15 +918,6 @@ def update_preferred_timeslot():
     return "Done"
 
 
-@app.route('/updateroomprojector', methods=['POST'])
-@admin_permission.require()
-def update_room_projector():
-    roomid = int(request.form['roomid'])
-    value = int(request.form['value'])
-    Attendance.models.change_room_projector(roomid, value)
-    return "Done"
-
-
 @app.route('/vieweligiblesubjectsajax')
 @admin_permission.require()
 def vieweligiblesubjects_ajax():

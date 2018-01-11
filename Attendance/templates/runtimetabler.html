@@ -106,13 +106,9 @@
                 },
                     {
                         "data": "addtutor", "render": function (data, type, row, meta) {
-<<<<<<< HEAD
                         return "<form action='/addtutortosubject%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'><option value=''>--Please Select a Tutor--</option>
                             {% for temptutor in tutors %} <option value={{ temptutor['id'] }}>{{ temptutor['name'] }}
                                  </option> {% endfor %} </select> <input type='submit' class='button' value='Add Tutor to Subject'/> </form>";
-=======
-                        return "<form action='/addtutortosubject%3Fsubcode%3D" + row.subcode + "' method='POST'> <select name='tutor'><option value=''>--Please Select a Tutor--</option>{% for temptutor in tutors %} <option value={{ temptutor['id'] }}>{{ temptutor['name'] }} </option>{% endfor %} </select> <input type='submit' class='button' value='Add Tutor to Subject'/> </form>";
->>>>>>> c0ba13e1e13a4b447802a33a14af52a065d1e203
                     }
                     }]
             });

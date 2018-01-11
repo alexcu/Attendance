@@ -1053,11 +1053,11 @@ def change_preferred_timeslot(id, preferred):
 
 def init_db():
     if Admin.query.filter_by(key='currentyear').first() is None:
-        admin = Admin(key='currentyear', value=2017)
+        admin = Admin(key='currentyear', value=2018)
         db.session.add(admin)
         db.session.commit()
     if Admin.query.filter_by(key='studyperiod').first() is None:
-        study = Admin(key='studyperiod', value='Semester 2')
+        study = Admin(key='studyperiod', value='Semester 1')
         db.session.add(study)
         db.session.commit()
 
