@@ -1,17 +1,34 @@
-# Attendance
+# Attendance and Timetabling System
 
-# Overview
-This project started as a way to make my job easier. I was in charge of timetabling classes at a college, and had 400 students, 35 tutors, 9 timeslots and almost 80 subjects to timetable, all while respecting teacher's availabilities and ensuring no clashes for the students.
+This is the attendance and timetabling system for International House, the
+University of Melbourne.
 
-# Main Components of this App
-1. Student, Subject and Tutor Management. Easy to use UI with Excel import options to make management easy.
-2. Timetabling. After entering data, you can generate a timetable using linear programming - all point and click.
-3. Class Management. You can use this to keep track of the tutorial program, see how attendance rates are going with charts and graphics.
+## Setup
 
+1. Install Python v3.4.3 or greater.
+2. Install dependencies using pip:
 
-# Setting up the database
+    ```
+    $ pip install -r requirements.txt
+    ```
 
-We use Flask-Migrate to create the database, run the following:
-$ python manage.py db init
-$ python manage.py db migrate
-$ python manage.py db upgrade
+3. Make your configurations in `attendance/config.py`.
+4. Open `attendance/__init__.py` in a text editor.
+5. Comment out the `init_db` function call on line 87.
+6. Run the following commands to create and migrate the database:
+
+    ```
+    $ python manage.py db init
+    $ python manage.py db migrate
+    $ python manage.py db upgrade
+    ```
+
+7. Uncomment out line 87 as you did in step 5.
+
+## Run
+
+To run, use:
+
+```
+$ python manage.py runserver
+```
