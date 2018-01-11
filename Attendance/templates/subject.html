@@ -114,7 +114,15 @@
                                                                           style="width: 35px"
                                                                           onchange="changeClassTime({{ class.id }})"/><a
                             href='{{ url_for('delete_tutorial',tutorialid=class.id) }}' class="delete" data-confirm="Are you sure you want to delete this item?"><img
-                            src='../static/img/removeSymbol.png' class='deleteIcon'/></a>
+                            src='../static/img/removeSymbol.png' class='deleteIcon'/></a><a data-toggle="collapse"
+                                                                                            href="#demo{{ class.id }}">Show</a>
+                        <div id="demo{{ class.id }}" class="collapse">
+                            Date: <input type="datetime-local" id="datetime/{{ class.id }}"
+                                         {% if class.dateandtime %}value = '{{ class.get_datetime_html() }}'{% endif %}
+                                         onchange="updatedatetime({{ class.id }},this.value)"><br># of hours: <input
+                                type="number" id="numofhours/{{ class.id }}" value="{{ class.hours }}"
+                                onchange="updatenumofhours({{ class.id }},this.value)">
+                        </div>
                     </td>
                 {% endfor %}
                 </thead>
@@ -354,7 +362,31 @@
             {% endif %}
     {% include "mymodal.html" %}
 
+
+    <div class="container">
+        <div class="row">
+            <div class='col-sm-6'>
+                <div class="form-group">
+                    <div class='input-group date' id='datetimepicker1'>
+                        <input type='text' class="form-control"/>
+                        <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                    </div>
+                </div>
+            </div>
+            <script>
+
+                $(function () {
+                    $('#datetimepicker1').datetimepicker();
+                });
+            </script>
+        </div>
+    </div>
     <script src="../static/js/Chart.bundle.js"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.7.1/css/bootstrap-datepicker.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.7.1/js/bootstrap-datepicker.js"></script>
     <script>
 
         var ctx = document.getElementById("SubjectAttendanceRate");
@@ -407,6 +439,42 @@
 
     }
 
+
+        function updatenumofhours(timeclassid, value) {
+
+
+            $.ajax({
+                url: "/updatetutorialhours",
+                data: {timeclassid: timeclassid, hours: value},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+
+                },
+                error: function () {
+
+                }
+            });
+
+        }
+
+        function updatedatetime(classid, value) {
+
+
+            $.ajax({
+                url: "/updatetutorialdatetime",
+                data: {tutorialid: classid, datetime: value},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+
+                },
+                error: function () {
+
+                }
+            });
+
+        }
 
         function updateClassRoom(timeclassid) {
             var x = document.getElementById('classroom/' + timeclassid.toString());
@@ -477,7 +545,7 @@
                         var trow = tbl.rows[i];
                         if (i == 0) {
                             var y = document.createElement('td');
-                            y.innerHTML = "Week <input type='number' id='classweek/" + data + "' value='3' onchange ='changeClassTime(" + data + ")' style = 'width: 35px' /><a href='deletetutorial%3Ftutorialid%3D" + data + "' class='delete' data-confirm='Are you sure you want to delete this item?'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a>"
+                            y.innerHTML = "Week <input type='number' id='classweek/" + data + "' value='3' onchange ='changeClassTime(" + data + ")' style = 'width: 35px' /><a href='deletetutorial%3Ftutorialid%3D" + data + "' class='delete' data-confirm='Are you sure you want to delete this item?'><img src='../static/img/removeSymbol.png' class='deleteIcon' /></a><a data-toggle='collapse' href='#demo" + data + "'>Show</a><div id='demo" + data + "' class='collapse in'> Date: <input type='datetime-local' id='datetime/" + data + "'  onchange='updatedatetime(" + data + ",this.value)'><br># of hours: <input type='number' id='numofhours/" + data + "' value='1' onchange='updatenumofhours(" + data + ",this.value)'> </div>"
                             trow.appendChild(y);
                         } else {
                             var studentid;

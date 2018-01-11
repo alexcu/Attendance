@@ -96,12 +96,12 @@ from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, 
 #db.mapper(TutorAvailability, tutoravailabilitymap)
 
 
-#init_db()
 try:
     Attendance.models.init_db()
 except:
     print("Rolling Back")
     db.session.rollback()
+
 
 # Set up logging
 handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)

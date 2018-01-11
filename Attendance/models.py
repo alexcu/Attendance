@@ -4,7 +4,9 @@ from Attendance import bcrypt, db
 from Attendance.helpers import *
 from pandas import isnull
 from datetime import time
+
 from Attendance.config import appcfg
+
 
 class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
@@ -322,7 +324,7 @@ class Subject(Base):
         :return: List of times in which all students in a particular subject have no timetabled classes.
         '''
         students = self.students
-        times = Timeslot.get_all()
+        times = get_all_timeslots()
         for student in students:
             for classes in student.timetabledclasses:
                 timeslot = classes.timeslot
@@ -535,13 +537,22 @@ class Tutorial(Base):
     tutor = db.relationship("Tutor", backref=db.backref('classes'), single_parent=True)
     week = db.Column(db.Integer, nullable=False)
     attendees = db.relationship("Student", secondary=stuattendance)
-    datetime = db.Column(db.DateTime)
+    dateandtime = db.Column('dateandtime', db.DateTime)
+    hours = db.Column('Hours', db.Integer)
 
-    def __init__(self, subjectid, tutorid, week):
+    def __init__(self, subjectid, tutorid, week, hours=1, dateandtime=""):
         super().__init__()
         self.subjectid = subjectid
         self.tutorid = tutorid
         self.week = week
+        self.hours = hours
+        if dateandtime == "":
+            self.dateandtime = datetime.datetime.now()
+        else:
+            self.dateandtime = dateandtime
+
+    def get_datetime_html(self):
+        return self.dateandtime.strftime('%Y-%m-%dT%H:%M')
 
 
 
@@ -691,7 +702,8 @@ def get_tutor_template(tutor, form, msg="", msg2="", msg3=""):
 def populate_tutors(df):
     for index, row in df.iterrows():
         tutor = Tutor.get_or_create(name=row['Tutor'])
-        subject = Subject.get_or_create(subcode=row["Subject Code"])
+        subject = Subject.get(subcode=row["Subject Code"])
+        subject.update(repeats=row["Repeats"])
         if subject not in tutor.subjects:
             subject.addTutor(tutor)
 
@@ -811,25 +823,41 @@ def check_time(time2):
     return time2
 
 
-def collate_tutor_hours(minweek, maxweek, tutor_object=True):
+def change_room_projector(roomid, value):
+    room = Room.query.filter_by(id=roomid).first()
+    if value == 1:
+        room.projector = True
+        db.session.commit()
+    elif value == 0:
+        room.projector = False
+        db.session.commit()
+
+
+def collate_tutor_hours_dates(minweek, maxweek, tutor_object=True, extended=False):
     tutors = Tutor.get_all()
     data = set()
     for tutor in tutors:
-        initials = 0
-        repeats = 0
         tutorials = Tutorial.get_all(tutorid=tutor.id)
         tutorials = [tutorial for tutorial in tutorials if
-                     int(tutorial.week) >= int(minweek) and int(tutorial.week) <= int(maxweek)]
-        initials = len(tutorials)
-        for tutorial in tutorials:
-            repeats += (int(tutorial.subject.repeats) - 1)
-        if tutor_object == True:
-            data.add((tutor, initials, repeats))
+                     tutorial.dateandtime >= minweek and tutorial.dateandtime <= maxweek]
+        if extended == False:
+            repeats = 0
+            initials = len(tutorials)
+            for tutorial in tutorials:
+                repeats += (int(tutorial.hours) - 1)
+            if tutor_object == True:
+                data.add((tutor, initials, repeats))
+            else:
+                data.add((tutor.name, initials, repeats))
         else:
-            data.add((tutor.name, initials, repeats))
-
+            for tutorial in tutorials:
+                if tutor_object == True:
+                    data.add((tutor, tutorial.subject.subname, convert_datetime_to_string(tutorial.dateandtime),
+                              tutorial.hours))
+                else:
+                    data.add((tutor.name, tutorial.subject.subname, convert_datetime_to_string(tutorial.dateandtime),
+                              tutorial.hours))
     return data
-
 
 def get_timetabled_class(classid):
     return TimetabledClass.get(id=classid)
@@ -859,6 +887,7 @@ def get_timetable_data(rooms=False):
     PROJECTORS = []
     PROJECTORROOMS = []
     NONPREFERREDTIMES = []
+
     allsubjects = Subject.query.filter(Subject.year == get_current_year(),
                                        Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
     alltutors = []
@@ -905,6 +934,7 @@ def get_timetable_data(rooms=False):
         day.append(timeslot.day)
         if timeslot.preferredtime is False:
             NONPREFERREDTIMES.append(timeslot.day + " " + timeslot.time)
+
     day = list(set(day))
     DAYS = {}
     for d in day:
@@ -913,12 +943,14 @@ def get_timetable_data(rooms=False):
         DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
     for d in day:
         DAYS[d] = set(DAYS[d])
+
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
     else:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
+
 
 
 def add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars, assign_vars, ROOMS):
@@ -1013,6 +1045,7 @@ def get_roll(classid):
 
 
 
+
 def init_db():
     if Admin.query.filter_by(key='currentyear').first() is None:
         admin = Admin(key='currentyear', value=2017)
@@ -1044,3 +1077,12 @@ def init_db():
         college = College(name='International House')
         db.session.add(college)
         db.session.commit()
+
+def change_preferred_timeslot(id, preferred):
+    timeslot = Timeslot.query.get(id)
+    if preferred == 1:
+        timeslot.preferredtime = True
+    else:
+        timeslot.preferredtime = False
+    db.session.commit()
+

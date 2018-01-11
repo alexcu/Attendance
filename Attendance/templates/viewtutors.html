@@ -45,7 +45,6 @@
                 }, {
                     "data": "assignedtutes", "render": function (data, type, row, meta) {
                         var sum = 0;
-                        console.log(row)
                         for (var j = 0; j < row['subjects'].length; j++) {
                             sub = row['subjects'][j]
                             sum = sum + sub['repeats']
@@ -57,7 +56,19 @@
                         var sum = row['availabletimes'].length
                         return sum;
                     }
-                }]
+                }],
+                "createdRow": function (row, data, index) {
+                    var sum = 0;
+                    for (var j = 0; j < data['subjects'].length; j++) {
+                        sub = data['subjects'][j]
+                        sum = sum + sub['repeats']
+                    }
+                    console.log(data)
+                    if (data['availabletimes'].length < sum) {
+                        $('td', row).eq(1).addClass('notattended');
+                        $('td', row).eq(2).addClass('notattended');
+                    }
+                }
             });
         });
     </script>
