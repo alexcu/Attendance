@@ -5,10 +5,10 @@ from docx import Document
 from pandas import ExcelFile
 from pulp import LpProblem, LpMinimize, lpSum, LpVariable, LpStatus, LpInteger, LpBinary
 import datetime
-from Attendance import app, db, executor
-from Attendance.models import *
-import Attendance.models
-from Attendance.forms import AddTimetableForm
+from attendance import app, db, executor
+from attendance.models import *
+import attendance.models
+from attendance.forms import AddTimetableForm
 
 #TIMETABLE CODE
 def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
@@ -157,7 +157,7 @@ def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING
     model.solve()
     print("Status:", LpStatus[model.status])
     print("Complete")
-    Attendance.models.add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars,
+    attendance.models.add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars,
                                                assign_vars)
     print("Status:", LpStatus[model.status])
     return LpStatus[model.status]
@@ -377,7 +377,7 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         if LpStatus[model2.status] == 'Optimal':
             print("Complete")
             print("Adding to Database")
-            Attendance.models.add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES,
+            attendance.models.add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES,
                                                                subject_vars_rooms, assign_vars, ROOMS)
             print("Status:", LpStatus[model2.status])
     return LpStatus[model.status]
@@ -403,10 +403,10 @@ def preparetimetable(addtonewtimetable=False):
 
     print("Preparing Timetable")
     # (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-    #TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = Attendance.models.get_timetable_data()
+    #TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = attendance.models.get_timetable_data()
 
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES) = Attendance.models.get_timetable_data(rooms=True)
+     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES) = attendance.models.get_timetable_data(rooms=True)
     print("Everything ready")
     executor.submit(runtimetable_with_rooms_two_step, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                     REPEATS, TEACHERMAPPING,
@@ -512,7 +512,7 @@ def create_excel(data):
 
 
 def format_timetable_data_for_export():
-    timeslots = Attendance.models.get_all_timeslots()
+    timeslots = attendance.models.get_all_timeslots()
     timeslots = sorted(timeslots, key=attrgetter('daynumeric', 'time'))
     timetable = []
     for i in range(len(timeslots)):
@@ -537,7 +537,7 @@ def format_timetable_data_for_export():
 
 
 def format_student_timetable_data_for_export():
-    students = Attendance.models.Student.get_all()
+    students = attendance.models.Student.get_all()
     timetable = []
     for student in students:
         for timeclass in student.timetabledclasses:

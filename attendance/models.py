@@ -1,11 +1,11 @@
 from operator import attrgetter
 from flask import render_template
-from Attendance import bcrypt, db
-from Attendance.helpers import *
+from attendance import bcrypt, db
+from attendance.helpers import *
 from pandas import isnull
 from datetime import time
 import datetime
-from Attendance.config import appcfg
+from attendance.config import appcfg
 
 class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.

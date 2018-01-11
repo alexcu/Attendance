@@ -5,11 +5,11 @@ from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
 from sqlalchemy.orm import joinedload
 import pandas
-from Attendance import admin_permission
-from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
+from attendance import admin_permission
+from attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
     EditStudentForm, AddTimetableForm, JustNameForm
-from Attendance.helpers import *
-from Attendance.models import *
+from attendance.helpers import *
+from attendance.models import *
 
 
 ### APP ROUTES
@@ -914,7 +914,7 @@ def viewcurrentmappedsubjects_ajax():
 def update_preferred_timeslot():
     id = int(request.form['id'])
     preferred = int(request.form['preferred'])
-    Attendance.models.change_preferred_timeslot(id, preferred)
+    attendance.models.change_preferred_timeslot(id, preferred)
     return "Done"
 
 
