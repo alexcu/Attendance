@@ -22,7 +22,9 @@
                 {% for timeslot in timeslots %}
                     <td>{{ timeslot.day }} {{ timeslot.time }}</td>
                 {% endfor %}
+
                 <td>Has Projector?</td>
+
                 </thead>
                 {% for room in rooms %}
                     <tr>
@@ -34,6 +36,7 @@
                                 <td class="notattended"></td>
                             {% endif %}
                         {% endfor %}
+
                     <td>
                         <select id="hasprojector" onchange="updateroomprojector({{ room.id }}, this.value)">
                             {% if room.projector == True %}
@@ -58,6 +61,7 @@
 
 
                     </td>
+
                     </tr>
                 {% endfor %}
             </table>

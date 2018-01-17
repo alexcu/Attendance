@@ -942,6 +942,8 @@ def get_timetable_data(rooms=False):
         DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
     for d in day:
         DAYS[d] = set(DAYS[d])
+
+
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
@@ -1043,15 +1045,6 @@ def get_roll(classid):
     return create_roll(students, subject, timeslot, room)
 
 
-def change_preferred_timeslot(id, preferred):
-    timeslot = Timeslot.query.get(id)
-    if preferred == 1:
-        timeslot.preferredtime = True
-    else:
-        timeslot.preferredtime = False
-    db.session.commit()
-
-
 def init_db():
     if Admin.query.filter_by(key='currentyear').first() is None:
         admin = Admin(key='currentyear', value=2018)
@@ -1083,3 +1076,12 @@ def init_db():
         college = College(name='International House')
         db.session.add(college)
         db.session.commit()
+
+
+def change_preferred_timeslot(id, preferred):
+    timeslot = Timeslot.query.get(id)
+    if preferred == 1:
+        timeslot.preferredtime = True
+    else:
+        timeslot.preferredtime = False
+    db.session.commit()

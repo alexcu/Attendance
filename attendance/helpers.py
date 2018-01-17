@@ -411,6 +411,8 @@ def preparetimetable(addtonewtimetable=False):
     executor.submit(runtimetable_with_rooms_two_step, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                     REPEATS, TEACHERMAPPING,
                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
+
+
     form = AddTimetableForm()
     return render_template("viewtimetable.html", form=form)
 
