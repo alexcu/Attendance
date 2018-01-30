@@ -920,7 +920,7 @@ def update_preferred_timeslot():
 
 @app.route('/updateroomprojector', methods=['POST'])
 @admin_permission.require()
-def update_room_projector():
+def update_room_projector2():
     roomid = int(request.form['roomid'])
     value = int(request.form['value'])
     Attendance.models.change_room_projector(roomid, value)

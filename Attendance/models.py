@@ -1045,8 +1045,7 @@ def get_roll(classid):
 
 
 
-
-def init_db():
+def init_db_studyperiod():
     if Admin.query.filter_by(key='currentyear').first() is None:
         admin = Admin(key='currentyear', value=2017)
         db.session.add(admin)
@@ -1056,6 +1055,7 @@ def init_db():
         db.session.add(study)
         db.session.commit()
 
+def init_db_timetable():
     if Admin.query.filter_by(key='timetable').first() is None:
         timetable = Timetable(key="default")
         db.session.add(timetable)
@@ -1064,19 +1064,35 @@ def init_db():
         db.session.add(timetableadmin)
         db.session.commit()
 
+def init_db_users():
     if User.query.filter_by(username='admin').first() is None:
         user = User.create(username='admin', password=appcfg['adminpassword'])
         user.update(is_admin=True)
 
+def init_db_uni():
     if University.query.filter_by(name='University of Melbourne').first() is None:
         uni = University(name='University of Melbourne')
         db.session.add(uni)
         db.session.commit()
 
+def init_db_college():
     if College.query.filter_by(name="International House").first() is None:
         college = College(name='International House')
         db.session.add(college)
         db.session.commit()
+
+def init_db():
+   print("Importing study period and year")
+   init_db_studyperiod()
+   print("Creating Timetable")
+   init_db_timetable()
+   print("Creating admin user")
+   init_db_users()
+   print("Creating University")
+   init_db_uni()
+   print("Creating College")
+   init_db_college()
+
 
 def change_preferred_timeslot(id, preferred):
     timeslot = Timeslot.query.get(id)
