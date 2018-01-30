@@ -8,13 +8,11 @@ from flask_login import LoginManager, current_user
 from flask_principal import Principal, RoleNeed, ActionNeed, Permission, identity_loaded
 from flask_sqlalchemy import *
 
-# DOCS https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
-# app.config['UPLOAD_FOLDER'] = 'C:/Users/justi/Downloads/uploads/'
+
 app.config['UPLOAD_FOLDER'] = appcfg['upload']
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/justi/Dropbox/Justin/Documents/Python/database75.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = appcfg['dbstring']
 app.config.update(
     SECRET_KEY=appcfg['secretkey']
@@ -24,11 +22,6 @@ bcrypt = Bcrypt(app)
 principals = Principal(app, skip_static=True)
 login_manager = LoginManager()
 login_manager.init_app(app)
-
-# WINDOWS
-# app.config['UPLOAD_FOLDER'] = 'D:/Downloads/uploads/'
-# LINUX
-
 
 
 '''
@@ -79,29 +72,13 @@ def current_privileges():
             for n in apps_needs if n in g.identity.provides)
 
 from Attendance.models import *
-# db.create_all()
-# db.session.commit()
 import Attendance.views
 
 from Attendance.helpers import *
 from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
 # DATABASE METHODS
-
-#db.mapper(SubStuMap, substumap)
-#db.mapper(SubTutMap, subtutmap)
-#db.mapper(StuAttendance, stuattendance)
-#db.mapper(StuTimetable, stutimetable)
-#db.mapper(TimeslotClasses, timeslotclassesmap)
-#db.mapper(TutorAvailability, tutoravailabilitymap)
-
-
-#try:
 Attendance.models.init_db()
-#except:
-#    print("Rolling Back")
-#    db.session.rollback()
-
 
 # Set up logging
 handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
