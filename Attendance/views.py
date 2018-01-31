@@ -1,15 +1,15 @@
 import json
-
+import os
 from flask import request, redirect, current_app, url_for, send_file, render_template
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_principal import identity_changed, Identity
 from sqlalchemy.orm import joinedload
 import pandas
-from Attendance import admin_permission
-from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
+from attendance import admin_permission
+from attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm, EditTutorForm, \
     EditStudentForm, AddTimetableForm, JustNameForm
-from Attendance.helpers import *
-from Attendance.models import *
+from attendance.helpers import *
+from attendance.models import *
 
 
 ### APP ROUTES
@@ -103,9 +103,11 @@ def uploadstudentdata():
 
 
 def upload_and_return_df(file):
-    filename2 = upload(file)
-    df = read_excel(filename2)
-    return df
+    path_to_file = upload(file)
+    if os.path.splitext(path_to_file)[1] == ".csv":
+        return read_csv(path_to_file)
+    else:
+        return read_excel(path_to_file)
 
 
 @app.route('/uploadtimetableclasslists', methods=['GET', 'POST'])
@@ -145,7 +147,7 @@ def updateadminsettings():
     timetable = Timetable.get_or_create(key='default')
     admin = Admin.get(key='timetable')
     admin.update(value=timetable.id)
-    Attendance.models.init_db()
+    attendance.models.init_db()
     return redirect('/admin')
 
 
@@ -251,7 +253,7 @@ def add_subject_to_student(studentcode):
 @admin_permission.require()
 def delete_all_timetabled_classes_view():
     delete_all_timetabled_classes()
-    return "Done"
+    return redirect('/timetable')
 
 
 @app.route('/deleteallstudentsajax', methods=['POST'])
@@ -825,7 +827,7 @@ def viewcurrentmappedsubjects_ajax():
 def update_preferred_timeslot():
     id = int(request.form['id'])
     preferred = int(request.form['preferred'])
-    Attendance.models.change_preferred_timeslot(id, preferred)
+    attendance.models.change_preferred_timeslot(id, preferred)
     return "Done"
 
 
@@ -834,7 +836,7 @@ def update_preferred_timeslot():
 def update_room_projector2():
     roomid = int(request.form['roomid'])
     value = int(request.form['value'])
-    Attendance.models.change_room_projector(roomid, value)
+    attendance.models.change_room_projector(roomid, value)
     return "Done"
 
 

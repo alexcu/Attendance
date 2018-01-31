@@ -3,9 +3,9 @@ import abc
 from pandas import DataFrame
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from Attendance import app
-from Attendance.models import *
-from Attendance.views import *
+from attendance import app
+from attendance.models import *
+from attendance.views import *
 
 TEST_DB = 'test.db'
 
@@ -27,7 +27,7 @@ class BaseTest(unittest.TestCase):
         db.drop_all()
         db.create_all()
         # populate_admin_table()
-        Attendance.init_db()
+        attendance.init_db()
         populate_database()
         self.setUpTestData()
 

@@ -1,12 +1,11 @@
 from operator import attrgetter
 from flask import render_template
-from Attendance import bcrypt, db
-from Attendance.helpers import *
+from attendance import bcrypt, db
+from attendance.helpers import *
 from pandas import isnull
 from datetime import time
-
-from Attendance.config import appcfg
-
+import datetime
+from attendance.config import appcfg
 
 class CRUDMixin(db.Model):
     """A simple CRUD interface for other classes to inherit. Provides the basic functionality.
@@ -744,8 +743,8 @@ def get_timetable_data(rooms=False):
         if room.projector is True:
             PROJECTORROOMS.append(room.name)
     numroomsprojector = len(PROJECTORROOMS)
-    maxclasssize = 400
-    minclasssize = 1
+    maxclasssize = 20
+    minclasssize = 3
     nrooms = len(ROOMS)
     TIMES = []
     day = []
@@ -765,6 +764,7 @@ def get_timetable_data(rooms=False):
         DAYS[timeslot.day].append(timeslot.day + " " + timeslot.time)
     for d in day:
         DAYS[d] = set(DAYS[d])
+
 
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
@@ -821,6 +821,7 @@ def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, T
                                 db.session.commit()
 
 def get_all_rolls():
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls ' + ' ' + datetime.datetime.now().strftime("%c").replace(":","") + '.docx'
     subjects = get_all_subjects()
     document = Document()
     for subject in subjects:
@@ -853,8 +854,8 @@ def get_all_rolls():
                 row_cells = table.add_row().cells
                 row_cells[0].text = str(item.name)
             document.add_page_break()
-    document.save(app.config['UPLOAD_FOLDER'] + '/rolls.docx')
-    return app.config['UPLOAD_FOLDER'] + '/rolls.docx'
+    document.save(path_to_file)
+    return path_to_file
 
 
 def get_roll(classid):
@@ -864,7 +865,6 @@ def get_roll(classid):
     room = timeclass.room
     timeslot = timeclass.timeslot
     return create_roll(students, subject, timeslot, room)
-
 
 
 def init_db_studyperiod():
@@ -937,7 +937,6 @@ def init_db():
    print("Creating Rooms")
    init_db_rooms()
 
-
 def change_preferred_timeslot(id, preferred):
     timeslot = Timeslot.query.get(id)
     if preferred == 1:
@@ -945,4 +944,3 @@ def change_preferred_timeslot(id, preferred):
     else:
         timeslot.preferredtime = False
     db.session.commit()
-
