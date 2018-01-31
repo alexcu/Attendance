@@ -743,8 +743,8 @@ def get_timetable_data(rooms=False):
         if room.projector is True:
             PROJECTORROOMS.append(room.name)
     numroomsprojector = len(PROJECTORROOMS)
-    maxclasssize = 400
-    minclasssize = 1
+    maxclasssize = 20
+    minclasssize = 3
     nrooms = len(ROOMS)
     TIMES = []
     day = []
@@ -821,7 +821,7 @@ def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, T
                                 db.session.commit()
 
 def get_all_rolls():
-    path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls ' + ' ' + time.strftime("%c") + '.docx'
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls' + time.strftime("%Y-%m-%d_%H%M%S") + '.docx'
     subjects = get_all_subjects()
     document = Document()
     for subject in subjects:

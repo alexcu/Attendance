@@ -8,7 +8,6 @@ University of Melbourne.
 1. Install Python v3.4.3 or greater.
 2. Install dependencies using pip:
 
-<<<<<<< HEAD
     ```
     $ pip install -r requirements.txt
     ```

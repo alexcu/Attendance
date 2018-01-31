@@ -280,7 +280,7 @@ def upload(file):
         # Make the filename safe, remove unsupported chars
         filename = file.filename
         # Ensure unique filename
-        unique_filename = time.strftime("%c") + filename
+        unique_filename = time.strftime("%Y-%m-%d_%H%M%S") + filename
         # Move the file form the temporal folder to
         # the upload folder we setup
         path_to_file = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
@@ -325,8 +325,8 @@ def read_csv(filename):
 
 
 def create_roll(students, subject, timeslot, room):
-    path_to_file = app.config['UPLOAD_FOLDER'] + '/roll ' + \
-        subject.subcode + ' ' + time.strftime("%c") + '.docx'
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/roll_' + \
+        subject.subcode + '_' + time.strftime("%Y-%m-%d_%H%M%S") + '.docx'
 
     document = Document()
 
@@ -359,7 +359,7 @@ def create_roll(students, subject, timeslot, room):
 
 
 def create_excel(data):
-    path_to_file = app.config['UPLOAD_FOLDER'] + '/timetable ' + time.strftime("%c") + '.xlsx'
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/timetable' + time.strftime("%Y-%m-%d_%H%M%S") + '.xlsx'
     writer = pandas.ExcelWriter(path_to_file, engine='xlsxwriter')
     data.to_excel(writer, sheet_name='Timetable', index=False)
     writer.save()

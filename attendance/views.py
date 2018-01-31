@@ -147,7 +147,7 @@ def updateadminsettings():
     timetable = Timetable.get_or_create(key='default')
     admin = Admin.get(key='timetable')
     admin.update(value=timetable.id)
-    Attendance.models.init_db()
+    attendance.models.init_db()
     return redirect('/admin')
 
 
@@ -253,7 +253,7 @@ def add_subject_to_student(studentcode):
 @admin_permission.require()
 def delete_all_timetabled_classes_view():
     delete_all_timetabled_classes()
-    return "Done"
+    return redirect('/timetable')
 
 
 @app.route('/deleteallstudentsajax', methods=['POST'])

@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from logging.handlers import RotatingFileHandler
-from Attendance.config import appcfg
+from attendance.config import appcfg
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, current_user
@@ -71,14 +71,14 @@ def current_privileges():
     return (('{method} : {value}').format(method=n.method, value=n.value)
             for n in apps_needs if n in g.identity.provides)
 
-from Attendance.models import *
-import Attendance.views
+from attendance.models import *
+import attendance.views
 
-from Attendance.helpers import *
-from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
+from attendance.helpers import *
+from attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
 # DATABASE METHODS - This method should be commented when creating the database.
-Attendance.models.init_db()
+attendance.models.init_db()
 
 # Set up logging
 handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
