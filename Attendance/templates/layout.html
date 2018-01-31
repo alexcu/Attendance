@@ -67,8 +67,6 @@
                             <li><a href="users">Users</a></li>
                         <li><a href="students">Students</a></li>
                         <li><a href="rooms">Rooms</a></li>
-                        <li><a href="universities">Universities</a></li>
-                        <li><a href="colleges">Colleges</a></li>
                     </ul>
                 </li>
                     {% endif %}
@@ -79,7 +77,6 @@
                     <ul class="dropdown-menu">
                         <li><a href="uploadstudentdata">Student Data</a></li>
                         <li><a href="uploadtutordata">Tutor Data</a></li>
-                        <li><a href="uploadtimetableclasslists">Timetable Data</a></li>
                     </ul>
                         </li>{% endif %}
 
@@ -89,18 +86,15 @@
                     {% endif %}
 
                     {% if current_user.is_admin=='1' %}
-                        <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                       aria-expanded="false">Reports<span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="viewclashreport">Analysis</a></li>
-                        <li><a href="tutorhoursreport">Tutor Hours Worked</a></li>
-                    </ul>
-                        </li>{% endif %}
+
+
+                        <li><a href="viewclashreport">View Clash Report</a></li>
+
+                        {% endif %}
                     {% if current_user.is_admin=='1' %}
                         <li><a href="admin">Admin</a></li>{% endif %}
                     {% if current_user.is_admin=='1' %}
-                        <li><a href="runtimetabler">Run Timetabler</a></li>{% endif %}
+                        <li><a href="runtimetabler">Run Timetabling Program</a></li>{% endif %}
                 {% endif %}
                 {% if current_user.is_authenticated %}
                     {% if current_user.tutor %}

@@ -77,7 +77,7 @@ import Attendance.views
 from Attendance.helpers import *
 from Attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
-# DATABASE METHODS
+# DATABASE METHODS - This method should be commented when creating the database.
 Attendance.models.init_db()
 
 # Set up logging
