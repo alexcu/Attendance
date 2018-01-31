@@ -251,7 +251,6 @@ class Subject(Base):
     def view_subject_template(self, form, msg=""):
         return render_template("subject.html", subject=self, students=self.students,
                                tutor=self.tutor, tutors=Tutor.get_all(),
-                               attendees=get_attendees_for_subject(self.subcode),
                                msg=msg, times=self.find_possible_times(),
                                timeslots=Timeslot.get_all(), rooms=Room.get_all(),
                                timetabledclasses=self.timetabledclasses, form=form)

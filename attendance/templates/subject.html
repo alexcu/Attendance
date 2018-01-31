@@ -14,7 +14,7 @@
                 <td>Tutor</td>
                 <td>Repeats</td>
                 <td>Needs Projector</td>
-                <td>Attendance Rate</td>
+
                 </thead>
                 <tr>
                     <td>{{ subject["subcode"] }}</td>
@@ -44,9 +44,7 @@
                         <option value="0">No</option>
                         {% endif %}
                     </select></td>
-                    <td id="parent">{{ subject.get_attendance_rate() }}%
-                        <button id="showhidebutton" class="button">Show Graph</button>
-                    </td>
+
                 </tr>
             </table>
             {% if current_user.is_admin == '1' %}
@@ -288,12 +286,9 @@
                         <input type="submit" class="button" value="Timetable Class"/>
                     </form>
 {% endif %}
-
-
-        {% endif %}
-        </div>
                     </div>
-    {% endif %}
+                    </div>
+{% endif %}
 
 
 
@@ -301,7 +296,12 @@
 
 
 
-</div>
+
+
+
+
+
+
 
             {% endif %}
     {% include "mymodal.html" %}
