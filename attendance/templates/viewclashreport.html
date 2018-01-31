@@ -17,38 +17,6 @@
         </div>
     </div>
 
-    <div class="row">
-        <h1>Subjects At Risk</h1>
-    <div class ="col-md-12">
-        Please choose a recent average attendance rate for "at risk" classes: <input type="number" value="3"
-                                                                                     id="atriskattendancerate"/>
-        <button class="button" type="button" onclick="updateDataTable()">Update</button>
-        <table class="table" id="atrisk">
-                <thead>
-                <td>Subject Code</td>
-                <td>Subject Name</td>
-                <td>Recent Average Attendance</td>
-                </thead>
-
-
-            </table>
-    </div>
-    </div>
-
-    <div class="row">
-        <h1>Non-Attending</h1>
-        <div class="col-md-12">
-            <table class="table" id="nonattending">
-                <thead>
-                <td>Student Name</td>
-                <td>Subject Name</td>
-                </thead>
-
-
-            </table>
-        </div>
-    </div>
-
 
     <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.15/css/jquery.dataTables.css">
 
@@ -85,49 +53,8 @@
                     }
                     }]
             });
-
-            datatable = $('#atrisk').DataTable({
-                "ajax": {
-                    "url": '/getatriskclassesajax',
-                    "data": {
-                        averageattendancerate: function (d) {
-                            return document.getElementById('atriskattendancerate').value
-                        }
-                    },
-                    "type": 'POST'
-                },
-                "columns": [{
-                    "data": "subcode"
-                }, {
-                    "data": "subcode", "render": function (data, type, row, meta) {
-                        return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + row.subname + "</a>";
-                    }
-                }, {
-                    "data": "recentaverageattendance"
-                }]
-            });
-
-
-            $('#nonattending').DataTable({
-                "ajax": {
-                    "url": '/getnonattendingstudentsajax',
-                    "type": 'GET'
-                },
-                "columns": [{
-                    "data": "name", "render": function (data, type, row, meta) {
-                        return "<a href='/viewstudent%3Fstudentcode%3D" + row.studentcode + "'>" + row.name + "</a>";
-                    }
-                }, {
-                    "data": "subcode", "render": function (data, type, row, meta) {
-                        return "<a href='/subject%3Fsubcode%3D" + row.subcode + "'>" + row.subname + "</a>";
-                    }
-                }]
-            });
-        });
-
+    });
         function updateDataTable() {
-
-
             datatable.ajax.reload()
         }
     </script>

@@ -144,7 +144,10 @@ def updateadminsettings():
     admin.update(value=studyperiod)
     for user in User.get_all(is_admin=True):
         user.update(year=year, studyperiod=studyperiod)
-    Timetable.get_or_create(key='default')
+    timetable = Timetable.get_or_create(key='default')
+    admin = Admin.get(key='timetable')
+    admin.update(value=timetable.id)
+    Attendance.models.init_db()
     return redirect('/admin')
 
 
@@ -236,8 +239,6 @@ def view_my_profile():
 
 
 
-
-
 @app.route('/addsubjecttostudent?studentcode=<studentcode>', methods=['POST'])
 @admin_permission.require()
 def add_subject_to_student(studentcode):
@@ -250,8 +251,8 @@ def add_subject_to_student(studentcode):
 
 @app.route('/deleteallclasses')
 @admin_permission.require()
-def delete_all_classes_view():
-    delete_all_classes()
+def delete_all_timetabled_classes_view():
+    delete_all_timetabled_classes()
     return "Done"
 
 
@@ -295,24 +296,12 @@ def delete_all_tutors():
         tutor.delete()
 
 
-def delete_all_classes():
+def delete_all_timetabled_classes():
     timetabledclasses = TimetabledClass.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
                                                         timetable=get_current_timetable().id).all()
     for timeclass in timetabledclasses:
         db.session.delete(timeclass)
         db.session.commit()
-
-
-@app.route('/deletetutorial?tutorialid=<tutorialid>')
-@login_required
-def delete_tutorial(tutorialid):
-    specificclass = Tutorial.query.get(tutorialid)
-    db.session.delete(specificclass)
-    db.session.commit()
-    return redirect(request.referrer)
-
-
-
 
 
 @app.route('/deleteuser?username=<username>')
@@ -492,13 +481,7 @@ def view_subjects():
 @app.route('/viewclashreport')
 @admin_permission.require()
 def viewclashreport():
-    return render_template("viewclashreport.html", nonattend=Subject.get_all_nonattending_students())
-
-
-@app.route('/tutorhoursreport')
-@admin_permission.require()
-def viewtutorhoursreport():
-    return render_template("viewtutorhours.html")
+    return render_template("viewclashreport.html")
 
 @app.route('/timetable', methods=['GET', 'POST'])
 @login_required
@@ -595,7 +578,6 @@ def view_student(studentcode):
         if form.validate_on_submit():
             student.update(name=form.name.data, email=form.email.data, studentcode=form.studentcode.data,
                            universityid=form.university.data, collegeid=form.college.data)
-            # student.update(name = form.name.data, studentcode = form.studentcode.data, university=form.university.data,college = form.college.data)
             redirect(url_for('view_student', studentcode=studentcode))
         return student.view_student_template(form)
 
@@ -658,8 +640,6 @@ def view_user(username):
 @app.route('/runtimetableprogram', methods=['GET', 'POST'])
 @admin_permission.require()
 def run_timetable_program():
-    # addnewtimetable = request.form['addtonewtimetable']
-    # print(addnewtimetable == "true")
     preparetimetable()
     return "Done"
 
@@ -678,64 +658,6 @@ def internal_server_error(error):
 
 
 # AJAX ROUTES
-
-@app.route('/getatriskclassesajax', methods=['GET', 'POST'])
-@admin_permission.require()
-def get_at_risk_classes():
-    subjects = [{'subcode': subject.subcode, 'subname': subject.subname,
-                 'recentaverageattendance': subject.get_recent_average_attendance()} for subject in
-                Subject.query.filter(Subject.year == get_current_year(),
-                                     Subject.studyperiod == get_current_studyperiod(),
-                                     Subject.tutor != None).all() if
-                subject.is_at_risk(rate=int(request.form['averageattendancerate']))]
-    return '{ "data": ' + json.dumps(subjects) + '}'
-
-
-@app.route('/gettutorhours', methods=['POST'])
-@admin_permission.require()
-def get_tutor_hours():
-    minweek = convert_to_datetime(request.form['minweek'])
-    maxweek = convert_to_datetime(request.form['maxweek'])
-    hours = collate_tutor_hours_dates(minweek, maxweek)
-    data2 = []
-    for row in hours:
-        data2.append({'tutor': row[0].__dict__, 'initials': row[1], 'repeats': row[2]})
-    for row in data2:
-        row['tutor']['_sa_instance_state'] = ""
-    data = json.dumps(data2)
-    return '{ "data" : ' + data + '}'
-
-
-@app.route('/gettutorhoursextended', methods=['POST'])
-@admin_permission.require()
-def get_tutor_hours_extended():
-    minweek = convert_to_datetime(request.form['minweek'])
-    maxweek = convert_to_datetime(request.form['maxweek'])
-    hours = collate_tutor_hours_dates(minweek, maxweek, extended=True)
-    data2 = []
-    for row in hours:
-        data2.append({'tutor': row[0].__dict__, 'subname': row[1], 'dateandtime': row[2], 'hours': row[3]})
-    for row in data2:
-        row['tutor']['_sa_instance_state'] = ""
-    data = json.dumps(data2)
-    return '{ "data" : ' + data + '}'
-
-
-@app.route('/getnonattendingstudentsajax', methods=['GET', 'POST'])
-@admin_permission.require()
-def get_nonattending_students_ajax():
-    nonattend = Subject.get_all_nonattending_students()
-    data = []
-    if len(nonattend) > 0:
-        for (student, subject) in nonattend:
-            data.append({'subcode': subject.subcode, 'subname': subject.subname, 'name': student.name,
-                         'studentcode': student.studentcode})
-        data = json.dumps(data)
-        return '{ "data" : ' + data + '}'
-    else:
-        return '{"data": {}}'
-
-
 @app.route('/viewtimeslotsajax')
 @admin_permission.require()
 def viewtimeslots_ajax():
@@ -883,17 +805,6 @@ def viewstudents_ajax():
     return '{ "data" : ' + data + '}'
 
 
-@app.route('/createnewclassajax', methods=['POST'])
-@login_required
-def create_new_class_ajax():
-    subjectid = int(request.form['subjectid'])
-    subject = Subject.query.get(subjectid)
-    tutorial = Tutorial(subjectid=subjectid, week=3, tutorid=subject.tutor.id)
-    db.session.add(tutorial)
-    db.session.commit()
-    return json.dumps(tutorial.id)
-
-
 @app.route('/viewcurrentmappedsubjectsajax')
 @admin_permission.require()
 def viewcurrentmappedsubjects_ajax():
@@ -920,6 +831,15 @@ def update_preferred_timeslot():
     return "Done"
 
 
+@app.route('/updateroomprojector', methods=['POST'])
+@admin_permission.require()
+def update_room_projector2():
+    roomid = int(request.form['roomid'])
+    value = int(request.form['value'])
+    attendance.models.change_room_projector(roomid, value)
+    return "Done"
+
+
 @app.route('/vieweligiblesubjectsajax')
 @admin_permission.require()
 def vieweligiblesubjects_ajax():
@@ -939,65 +859,6 @@ def vieweligiblesubjects_ajax():
     data = json.dumps(data3)
     return '{ "data" : ' + data + '}'
 
-
-@app.route('/getrollmarkingajax')
-@login_required
-def get_roll_marking_ajax():
-    weeks = get_min_max_week()
-    minweek = weeks[0]
-    maxweek = weeks[1]
-    alltutorials = Subject.query.filter(Subject.year == get_current_year(),
-                                        Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
-    data = {}
-    for i in range(minweek, maxweek + 1):
-        week = i
-        tutorials = Tutorial.query.filter(Tutorial.year == get_current_year(),
-                                          Tutorial.studyperiod == get_current_studyperiod(),
-                                          Tutorial.week == week).all()
-        key = "Week " + str(week)
-        data[key] = {}
-        if len(tutorials) == 0:
-            data[key]['Roll Marking'] = 0
-        else:
-            data[key]['Roll Marking'] = 100 * round(len(tutorials) / len(alltutorials), 2)
-    print(data)
-    return json.dumps(data)
-
-
-@app.route('/getstudentattendancerate?studentid=<studentid>')
-@login_required
-def get_student_attendance_rate_ajax(studentid):
-    student = Student.query.get(studentid)
-    subjects = [subject for subject in student.subjects if subject.tutor is not None]
-    weeks = get_min_max_week()
-    minweek = weeks[0]
-    maxweek = weeks[1]
-    data = {}
-    cumtotalclasses = 0
-    cumattendedclasses = 0
-    for i in range(minweek, maxweek + 1):
-        week = i
-        key = "Week " + str(week)
-        data[key] = {}
-        totalclasses = 0
-        attendedclasses = 0
-        for subject in subjects:
-            for tutorial in subject.classes:
-                if tutorial.week == i:
-                    totalclasses += 1
-                    cumtotalclasses += 1
-                    if student in tutorial.attendees:
-                        attendedclasses += 1
-                        cumattendedclasses += 1
-        if totalclasses == 0:
-            data[key]["Attendance Rate"] = 0
-        else:
-            data[key]["Attendance Rate"] = 100 * round(attendedclasses / totalclasses, 2)
-        if cumtotalclasses == 0:
-            data[key]["Cum. Attendance Rate"] = 0
-        else:
-            data[key]["Cum. Attendance Rate"] = 100 * round(cumattendedclasses / cumtotalclasses, 2)
-    return json.dumps(data)
 
 
 @app.route('/numbereligiblesubjectsmappedajax')
@@ -1171,93 +1032,6 @@ def user_tutor_mapping():
     return "Done"
 
 
-@app.route('/updateclasstimeajax', methods=['POST'])
-@login_required
-def update_class_time_ajax():
-    classid = int(request.form['classid'])
-    week = int(request.form['week'])
-    tutorial = Tutorial.query.get(classid)
-    tutorial.week = week
-    db.session.commit()
-    return json.dumps("Done")
-
-
-@app.route('/updatetutorialhours', methods=['POST'])
-@login_required
-def update_tutorial_hours():
-    hours = request.form['hours']
-    tutorial = Tutorial.get(id=int(request.form['timeclassid']))
-    tutorial.update(hours=int(hours))
-    return json.dumps("Done")
-
-
-@app.route('/updatetutorialdatetime', methods=['POST'])
-@login_required
-def update_tutorial_datetime():
-    dateandtime = request.form['datetime']
-    tutorial = Tutorial.get(id=int(request.form['tutorialid']))
-    dateandtime = convert_to_datetime(dateandtime)
-    tutorial.update(dateandtime=dateandtime)
-    return json.dumps("Done")
-
-
-
-
-@app.route('/getsubjectattendancerate?subjectid=<subjectid>')
-@login_required
-def get_subject_attendance_rate_ajax(subjectid):
-    subject = Subject.query.get(subjectid)
-    weeks = get_min_max_week()
-    minweek = weeks[0]
-    maxweek = weeks[1]
-    data = {}
-    totalstudents = 0
-    attendedstudents = 0
-    for i in range(minweek, maxweek + 1):
-        tutorials = Tutorial.query.filter_by(year=get_current_year(), studyperiod=get_current_studyperiod(),
-                                             subjectid=subject.id, week=i).options(joinedload('attendees')).all()
-        week = i
-        key = "Week " + str(week)
-        data[key] = {}
-        if len(tutorials) > 0:
-            totalstudents += len(subject.students)
-        for tutorial in tutorials:
-            attendedstudents += len(tutorial.attendees)
-        if totalstudents == 0:
-            data[key]["Attendance Rate"] = 0
-        else:
-            data[key]["Attendance Rate"] = 100 * round(attendedstudents / totalstudents, 2)
-
-    return json.dumps(data)
-
-
-@app.route('/getattendanceajax')
-@login_required
-def get_attendance_ajax():
-    weeks = get_min_max_week()
-    minweek = weeks[0]
-    maxweek = weeks[1]
-    data = {}
-    for i in range(minweek, maxweek + 1):
-        week = i
-        tutorials = Tutorial.query.filter(Tutorial.year == get_current_year(),
-                                          Tutorial.studyperiod == get_current_studyperiod(),
-                                          Tutorial.week == week).all()
-        key = "Week " + str(week)
-        numstudents = 0
-        numattended = 0
-        for tutorial in tutorials:
-            numstudents += len(tutorial.subject.students)
-            numattended += len(tutorial.attendees)
-        data[key] = {}
-        if numstudents > 0:
-            data[key]['Attendance Rate'] = 100 * round(numattended / numstudents, 2)
-        else:
-            data[key]['Attendance Rate'] = 0
-
-    return json.dumps(data)
-
-
 @app.route('/updatetutoravailabilityajax', methods=['POST'])
 @login_required
 def update_tutor_availability_ajax():
@@ -1302,21 +1076,6 @@ def update_student_scheduled_class_ajax():
     return json.dumps("Done")
 
 
-@app.route('/updatestudentclassattendanceajax', methods=['POST'])
-@login_required
-def update_student_class_attendance_ajax():
-    classid = int(request.form['classid'])
-    studentid = int(request.form['studentid'])
-    tutorial = Tutorial.query.get(classid)
-    student = Student.query.get(studentid)
-    if student not in tutorial.attendees:
-        tutorial.attendees.append(student)
-        db.session.commit()
-    else:
-        tutorial.attendees.remove(student)
-        db.session.commit()
-    return json.dumps("Done")
-
 @app.route('/downloadroll?classid=<classid>')
 @login_required
 def download_roll(classid):
@@ -1345,14 +1104,3 @@ def download_individual_student_timetables():
     timetable = format_student_timetable_data_for_export()
     timetable = create_excel(timetable)
     return send_file(timetable, as_attachment=True)
-
-@app.route('/downloadtutorhours', methods=['POST'])
-@admin_permission.require()
-def download_tutor_hours():
-    minweek = convert_to_datetime(request.form['minweek'])
-    maxweek = convert_to_datetime(request.form['maxweek'])
-    hours = collate_tutor_hours_dates(minweek, maxweek, tutor_object=False)
-    hours = format_tutor_hours_for_export(hours)
-    hours = create_excel(hours)
-    return send_file(hours, as_attachment=True,
-                     attachment_filename='Tutor Hours ' + str(minweek) + ' to ' + str(maxweek) + '.xlsx')
