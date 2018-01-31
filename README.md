@@ -58,7 +58,7 @@ This can be troubleshooted from the `Manage` > `Tutors` tab.
 # Settings
 Create a `config.py` under `attendance` like the following and update the settings as desired:
 
-```json
+```python
 appcfg = {
     "upload" : '/path/to/upload/directory',
     "dbstring" : 'sqlite:////database.db',
