@@ -235,7 +235,7 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         print("Accomodating Capacities")
         for k in TIMES:
             for n in ROOMS:
-                model2 += populationovershoot[(k,n)] == (lpSum(classpop(j,k,m)*subject_vars_rooms(j,k,m,n)) - CAPACITIES[n])
+                model2 += populationovershoot[(k,n)] == (lpSum(classpop(j,k,m)*subject_vars_rooms(j,k,m,n) for m in TEACHERS for j in TEACHERMAPPING[m]) - CAPACITIES[n])
                 model2 += poppositive[(k,n)] >= populationovershoot[(k,n)]
                 model2 += poppositive[(k,n)] >= 0
 
