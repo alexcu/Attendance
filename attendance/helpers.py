@@ -13,7 +13,7 @@ from attendance.forms import AddTimetableForm
 #TIMETABLE CODE
 def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS,
                                      TEACHERMAPPING,
-                                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES):
+                                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES):
     '''
     Run the timetabling process and input into the database.
 
@@ -154,6 +154,10 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         else:
             model += num930classes[(i)] == 0
 
+
+    for tutorial in PREARRANGEDCLASSES:
+        model += subject_vars[(tutorial['Subject'], tutorial['Time'], tutorial['Teacher'])] == 1
+
     print("Setting objective function")
 
     # Class size constraint
@@ -251,6 +255,12 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
                 model2 += poppositive[(k,n)] >= 0
 
 
+        #PREARRANGED CLASSES
+        for tutorial in PREARRANGEDCLASSES:
+            if tutorial['Room'] is not None:
+                print(tutorial)
+                model2 += subject_vars_rooms[(tutorial['Subject'], tutorial['Time'], tutorial['Teacher'], tutorial['Room'])] == 1
+
 
         print("Setting Objective Function")
         model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS) +10 * lpSum(poppositive[(k,n)] for k in TIMES for n in SMALLROOMS)
@@ -279,11 +289,11 @@ def preparetimetable(addtonewtimetable=False):
     print("Preparing Timetable")
 
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES) = attendance.models.get_timetable_data(rooms=True)
+     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES) = attendance.models.get_timetable_data(rooms=True)
     print("Everything ready")
     executor.submit(runtimetable_with_rooms_two_step, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                     REPEATS, TEACHERMAPPING,
-                    TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES,CAPACITIES)
+                    TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES,CAPACITIES, PREARRANGEDCLASSES)
 
 
     form = AddTimetableForm()

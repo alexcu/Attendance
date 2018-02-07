@@ -771,10 +771,24 @@ def get_timetable_data(rooms=False):
     for d in day:
         DAYS[d] = set(DAYS[d])
 
+    PREARRANGEDCLASSES = []
+    timetabledclasses = TimetabledClass.get_all()
+    for tutorial in timetabledclasses:
+        dic = {}
+        dic['Subject'] = tutorial.subject.subcode
+        dic['Teacher'] = tutorial.tutor.name
+        dic['Time'] = tutorial.timeslot.day + " " + tutorial.timeslot.time
+        if tutorial.room is not None:
+            dic['Room'] = tutorial.room.name
+        else:
+            dic['Room'] = None
+        PREARRANGEDCLASSES.append(dic)
+
+
 
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES)
+                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES)
     else:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
@@ -818,9 +832,17 @@ def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, T
                     room = Room.query.filter_by(name=n).first()
                     if (j,k,m,n) in subject_vars_with_rooms:
                         if subject_vars_with_rooms[(j, k, m, n)].varValue == 1:
-                            timetabledclass = TimetabledClass.create(subjectid=subject.id,
+                            if TimetabledClass.get(subjectid=subject.id,
+                                                                     timetable=get_current_timetable().id, time=timeslot.id,
+                                                                     tutorid=tutor.id) is None:
+                                timetabledclass = TimetabledClass.create(subjectid=subject.id,
                                                                      timetable=get_current_timetable().id, time=timeslot.id,
                                                                      tutorid=tutor.id, roomid=room.id)
+                            else:
+                                timetabledclass = TimetabledClass.get(subjectid=subject.id,
+                                                                     timetable=get_current_timetable().id, time=timeslot.id,
+                                                                     tutorid=tutor.id)
+                                timetabledclass.update(roomid = room.id)
                             for i in SUBJECTMAPPING[j]:
                                 if assign_vars[(i, j, k, m)].varValue == 1:
                                     student = Student.get(name=i)

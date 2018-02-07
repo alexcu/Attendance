@@ -316,6 +316,24 @@
             });
         }
 
+
+
+    function updateClassRoom(timeclassid) {
+            var x = document.getElementById('classroom/' + timeclassid.toString());
+            var y = x.options[x.selectedIndex].value;
+            $.ajax({
+                url: "/updateclassroomajax",
+                data: {timeclassid: timeclassid, roomid: y},
+                type: "POST",
+                dataType: "json",
+                success: function (data) {
+
+                },
+                error: function () {
+
+                }
+            });
+        }
 </script>
 
 
