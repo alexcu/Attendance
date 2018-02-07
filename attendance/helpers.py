@@ -37,6 +37,9 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
     :param CAPACITIES: A dictionary indexed by room name with the amount of people that each room can contain
     :return: A string representing model status.
     '''
+    SMALLROOMS = ["Library Project Room"]
+
+
     print("Running solver")
     model = LpProblem('Timetabling', LpMinimize)
     # Create Variables
@@ -174,15 +177,14 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         for j in TEACHERMAPPING[m]:
             for k in TIMES:
                 if subject_vars[(j,k,m)].varValue == 1:
-                    classpop[(j,k,m)] = sum(assign_vars[(i,j,k,m)].varValue for i in SUBJECTMAPPING[j])
-    print(classpop)
+                    classpop[(j,k,m)] = int(sum(assign_vars[(i,j,k,m)].varValue for i in SUBJECTMAPPING[j]))
     if LpStatus[model.status] == "Optimal":
         print("Allocating Rooms")
         model2 = LpProblem('RoomAllocation', LpMinimize)
         print("Defining Variables")
         subject_vars_rooms = LpVariable.dicts("SubjectVariablesRooms",
                                               [(j, k, m, n) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES for
-                                               n in ROOMS], 0, 1, LpBinary)
+                                               n in ROOMS if subject_vars[(j,k,m)].varValue==1], 0, 1, LpBinary)
 
         teacher_number_rooms = LpVariable.dicts("NumberRoomsTeacher", [(m, n) for m in TEACHERS for n in ROOMS], 0, 1,
                                                 LpBinary)
@@ -190,20 +192,20 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
 
         projector_rooms_sum = LpVariable.dicts("ProjectorRooms", [(j) for j in PROJECTORS])
 
-        populationovershoot = LpVariable.dicts("ProjectorRooms", [(k,n) for k in TIMES for n in ROOMS])
+        #populationovershoot = LpVariable.dicts("PopulationOvershoot", [(k,n) for k in TIMES for n in SMALLROOMS], LpInteger)
 
-        poppositive = LpVariable.dicts("PopulationPositivePart", [(k, n) for k in TIMES for n in ROOMS], LpInteger)
+        poppositive = LpVariable.dicts("PopulationPositivePart", [(k, n) for k in TIMES for n in SMALLROOMS])
 
-
+        #roompopulation = LpVariable.dicts("RoomPopulation", [(j,k,m,n) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES for n in SMALLROOMS if subject_vars[(j,k,m)].varValue==1], LpInteger)
 
 
         print("Minimizing number of rooms for each tutor")
         for m in TEACHERS:
             for n in ROOMS:
                 model2 += teacher_number_rooms[(m, n)] >= 0.01 * lpSum(
-                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
+                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES if subject_vars[(j,k,m)].varValue==1)
                 model2 += teacher_number_rooms[(m, n)] <= lpSum(
-                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
+                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES if subject_vars[(j,k,m)].varValue==1)
         for m in TEACHERS:
             model2 += teacher_number_rooms_sum[(m)] == lpSum(teacher_number_rooms[(m, n)] for n in ROOMS)
 
@@ -216,33 +218,42 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         for m in TEACHERS:
             for j in TEACHERMAPPING[m]:
                 for k in TIMES:
-                    model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for n in ROOMS) == subject_vars[(j, k, m)].varValue
+                    if subject_vars[(j, k, m)].varValue == 1:
+                        model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for n in ROOMS) == subject_vars[(j, k, m)].varValue
 
 
 
         for m in TEACHERS:
             for j in TEACHERMAPPING[m]:
                 if j in PROJECTORS:
-                    model2 += projector_rooms_sum[(j)] == lpSum(subject_vars_rooms[(j,k,m,n)] for n in PROJECTORROOMS for k in TIMES)
+                    model2 += projector_rooms_sum[(j)] == lpSum(subject_vars_rooms[(j,k,m,n)] for n in PROJECTORROOMS for k in TIMES if subject_vars[(j,k,m)].varValue == 1)
 
         print("Ensuring Uniqueness")
         # Can only have one class in each room at a time.
         for k in TIMES:
             for n in ROOMS:
-                model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m]) <= 1
+                model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m] if subject_vars[(j,k,m)].varValue==1) <= 1
 
 
         print("Accomodating Capacities")
+     #   for m in TEACHERS:
+    #        for j in TEACHERMAPPING[m]:
+   #             for k in TIMES:
+  #                  if subject_vars[(j, k, m)].varValue == 1:
+ #                       for n in SMALLROOMS:
+#                            model2 += roompopulation[(j, k, m, n)] == int(classpop[(j, k, m)]) * subject_vars_rooms[(j, k, m, n)]
+
+        print("Calculating")
         for k in TIMES:
-            for n in ROOMS:
-                model2 += populationovershoot[(k,n)] == (lpSum(classpop[(j,k,m)]*subject_vars_rooms[(j,k,m,n)] for m in TEACHERS for j in TEACHERMAPPING[m]) - CAPACITIES[n])
-                model2 += poppositive[(k,n)] >= populationovershoot[(k,n)]
+            for n in SMALLROOMS:
+                #model2 += populationovershoot[(k,n)] == (lpSum(roompopulation[(j,k,m,n)] for m in TEACHERS for j in TEACHERMAPPING[m] if subject_vars[(j,k,m)].varValue == 1) - CAPACITIES[n])
+                model2 += poppositive[(k,n)] >= (lpSum(int(classpop[(j, k, m)]) * subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m] if subject_vars[(j, k, m)].varValue == 1) - int(CAPACITIES[n]))
                 model2 += poppositive[(k,n)] >= 0
 
 
 
         print("Setting Objective Function")
-        model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS) +10 * lpSum(poppositive[(k,n)] for k in TIMES for n in ROOMS)
+        model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS) +10 * lpSum(poppositive[(k,n)] for k in TIMES for n in SMALLROOMS)
         print("Solve Room Allocation")
         model2.solve()
         print(LpStatus[model2.status])

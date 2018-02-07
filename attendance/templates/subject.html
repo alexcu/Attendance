@@ -306,7 +306,17 @@
             {% endif %}
     {% include "mymodal.html" %}
 
+<script>
+      function needsprojectorchange(subjectid,selectedvalue) {
+            $.ajax({
+                type: 'POST',
+                data: {subjectid: subjectid, value: selectedvalue},
+                url: '/needsprojectorchange',
+                dataType: 'json'
+            });
+        }
 
+</script>
 
 
 {% endblock %}

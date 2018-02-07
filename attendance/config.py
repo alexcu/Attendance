@@ -1,8 +1,8 @@
 appcfg = {
     # Path to upload files directory
-    "upload": '/path/to/uploads/directory',
+    "upload": 'C:/Users/justi/Downloads/uploads',
     # Database string
-    "dbstring": 'sqlite:////path/to/database.db',
+    "dbstring": 'sqlite:////Users/justi/database4440.db',
     # Secret key for password hashing
     "secretkey": 'internationalhouseattendanceprogram',
     # Administrator password
@@ -22,7 +22,7 @@ appcfg = {
         ['Ronald Cowan', True,20],
         ['Frank Larkins', False,20],
         ['Mavis Jackson', True,20],
-        ['Library Project Room', False,5]
+        ['Library Project Room', False,4]
     ],
     "timeslots": [
         ['Monday 19:30', True],
