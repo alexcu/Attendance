@@ -173,7 +173,7 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
     for m in TEACHERS:
         for j in TEACHERMAPPING[m]:
             for k in TIMES:
-                if subject_vars[(j,k,m)] == 1:
+                if subject_vars[(j,k,m)].varValue == 1:
                     classpop[(j,k,m)] = sum(assign_vars[(i,j,k,m)].varValue for i in SUBJECTMAPPING[j])
     print(classpop)
     if LpStatus[model.status] == "Optimal":
