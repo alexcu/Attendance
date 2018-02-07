@@ -13,7 +13,7 @@ from attendance.forms import AddTimetableForm
 #TIMETABLE CODE
 def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS,
                                      TEACHERMAPPING,
-                                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES):
+                                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES):
     '''
     Run the timetabling process and input into the database.
 
@@ -34,6 +34,7 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
     :param maxclasssize: An integer representing the maximum class size
     :param minclasssize: An integer representing the minimum class size
     :param nrooms: An integer representing the max allowable concurrent classes
+    :param CAPACITIES: A dictionary indexed by room name with the amount of people that each room can contain
     :return: A string representing model status.
     '''
     print("Running solver")
@@ -184,6 +185,12 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
 
         projector_rooms_sum = LpVariable.dicts("ProjectorRooms", [(j) for j in PROJECTORS])
 
+        populationovershoot = LpVariable.dicts("ProjectorRooms", [(k,n) for k in TIMES for n in ROOMS])
+
+        poppositive = LpVariable.dicts("PopulationPositivePart", [(k, n) for k in TIMES for n in ROOMS], LpInteger)
+
+
+
 
         print("Minimizing number of rooms for each tutor")
         for m in TEACHERS:
@@ -217,8 +224,18 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
             for n in ROOMS:
                 model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m]) <= 1
 
+
+        print("Accomodating Capacities")
+        for k in TIMES:
+            for n in ROOMS:
+                model2 += (populationovershoot[(k,n)] - CAPACITIES[n])
+                model2 += poppositive[(k,n)] >= populationovershoot[(k,n)]
+                model2 += poppositive[(k,n)] >= 0
+
+
+
         print("Setting Objective Function")
-        model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS)
+        model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS) +10 * lpSum(poppositive[(k,n)] for k in TIMES for n in ROOMS)
         print("Solve Room Allocation")
         model2.solve()
         print(LpStatus[model2.status])
@@ -244,11 +261,11 @@ def preparetimetable(addtonewtimetable=False):
     print("Preparing Timetable")
 
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES) = attendance.models.get_timetable_data(rooms=True)
+     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES) = attendance.models.get_timetable_data(rooms=True)
     print("Everything ready")
     executor.submit(runtimetable_with_rooms_two_step, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                     REPEATS, TEACHERMAPPING,
-                    TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
+                    TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES,CAPACITIES)
 
 
     form = AddTimetableForm()

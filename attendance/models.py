@@ -405,6 +405,7 @@ class Room(db.Model):
     projector = db.Column(db.Boolean)
     building = db.Column(db.String(50))
     timetabledclasses = db.relationship('TimetabledClass', backref=db.backref('room'))
+    capacity = db.Column(db.Integer)
 
     @classmethod
     def get_all(cls):
@@ -423,9 +424,10 @@ class Room(db.Model):
             engagedtimes.append(timeclass.timeslot)
         return [timeslot for timeslot in timeslots if timeslot not in engagedtimes]
 
-    def __init__(self, name, projector=False):
+    def __init__(self, name, projector=False, capacity = 20):
         self.name = name
         self.projector = projector
+        self.capacity = capacity
 
 
 
@@ -707,6 +709,7 @@ def get_timetable_data(rooms=False):
     PROJECTORS = []
     PROJECTORROOMS = []
     NONPREFERREDTIMES = []
+    CAPACITIES = {}
 
     allsubjects = Subject.query.filter(Subject.year == get_current_year(),
                                        Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
@@ -741,6 +744,10 @@ def get_timetable_data(rooms=False):
         ROOMS.append(room.name)
         if room.projector is True:
             PROJECTORROOMS.append(room.name)
+        if room.capacity is not None:
+            CAPACITIES[room.name] = int(room.capacity)
+        else:
+            CAPACITIES[room.name] = 20
     numroomsprojector = len(PROJECTORROOMS)
     maxclasssize = 20
     minclasssize = 3
@@ -767,7 +774,7 @@ def get_timetable_data(rooms=False):
 
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
+                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES)
     else:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
@@ -915,7 +922,7 @@ def init_db_rooms():
     rooms = appcfg['rooms']
     for room in rooms:
         if Room.query.filter_by(name = room[0]).first() is None:
-            room2 = Room(name = room[0], projector = room[1])
+            room2 = Room(name = room[0], projector = room[1], capacity = room[2])
             db.session.add(room2)
             db.session.commit()
 
