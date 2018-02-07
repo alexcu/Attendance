@@ -179,6 +179,9 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
                                               [(j, k, m, n) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES for
                                                n in ROOMS], 0, 1, LpBinary)
 
+        individual_vars_rooms = LpVariable.dicts("IndividualVariablesRooms", [(i,j,k,m,n) for m in TEACHERS for j in TEACHERMAPPING[m] for i in SUBJECTMAPPING[j]
+                                    for k in TIMES for n in ROOMS],0,1,LpInteger)
+
         teacher_number_rooms = LpVariable.dicts("NumberRoomsTeacher", [(m, n) for m in TEACHERS for n in ROOMS], 0, 1,
                                                 LpBinary)
         teacher_number_rooms_sum = LpVariable.dicts("NumberRoomsTeacherSum", [(m) for m in TEACHERS], 0, cat=LpInteger)
@@ -201,6 +204,15 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
                     subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
         for m in TEACHERS:
             model2 += teacher_number_rooms_sum[(m)] == lpSum(teacher_number_rooms[(m, n)] for n in ROOMS)
+
+        #Individuals in the same room as subject
+        for m in TEACHERS:
+            for j in TEACHERMAPPING[m]:
+                for i in SUBJECTMAPPING[j]:
+                    for k in TIMES:
+                        model2 += lpSum(individual_vars_rooms[(i,j,k,m,n)] for n in ROOMS) == assign_vars[(i,j,k,m)].varValue
+                        for n in ROOMS:
+                            model2 += individual_vars_rooms[(i,j,k,m,n)] <= subject_vars_rooms[(j,k,m,n)]
 
 
 
@@ -228,7 +240,7 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         print("Accomodating Capacities")
         for k in TIMES:
             for n in ROOMS:
-                model2 += (populationovershoot[(k,n)] - CAPACITIES[n])
+                model2 += populationovershoot[(k,n)] == (lpSum(individual_vars_rooms[(i,j,k,m,n)] for m in TEACHERS for j in TEACHERMAPPING[m] for i in SUBJECTMAPPING[j]) - CAPACITIES[n])
                 model2 += poppositive[(k,n)] >= populationovershoot[(k,n)]
                 model2 += poppositive[(k,n)] >= 0
 
