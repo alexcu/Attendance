@@ -50,5 +50,8 @@ appcfg = {
         "subject_code": "Component Study Package Code",
         "subject_name": "Component Study Package Title",
         "study_period": "Study Period"
-    }
+    },
+    "max_class_size": 15,
+    "min_class_size": 3,
+    "default_room_capacity": 20
 }
