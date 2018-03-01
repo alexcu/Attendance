@@ -14,7 +14,7 @@ University of Melbourne.
 
 3. Make your configurations in `attendance/config.py`.
 4. Open `attendance/__init__.py` in a text editor.
-5. Comment out the `init_db` function call on line 87.
+5. Comment out the `init_db` function call on line 81.
 6. Run the following commands to create and migrate the database:
 
     ```
@@ -23,7 +23,7 @@ University of Melbourne.
     $ python manage.py db upgrade
     ```
 
-7. Uncomment out line 87 as you did in step 5.
+7. Uncomment out line 81 as you did in step 5.
 
 ## Running the webserver
 

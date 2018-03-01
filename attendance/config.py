@@ -48,7 +48,7 @@ appcfg = {
         "student_first_name": "Given Name",
         "student_last_name": "Family Name",
         "subject_code": "Component Study Package Code",
-        "subject_name": "Component Study Package Title"
+        "subject_name": "Component Study Package Title",
         "study_period": "Study Period"
     }
 }
