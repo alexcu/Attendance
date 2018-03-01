@@ -12,7 +12,7 @@ executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 
 app.config['UPLOAD_FOLDER'] = appcfg['upload']
-app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx'])
+app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
 app.config['SQLALCHEMY_DATABASE_URI'] = appcfg['dbstring']
 app.config.update(
     SECRET_KEY=appcfg['secretkey']
