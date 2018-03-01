@@ -518,15 +518,21 @@ def populate_students(df):
     '''
     print("Populating Students")
     studyperiod = get_current_studyperiod()
+    col_student_id = appcfg["enrolment_schema"]["student_id"]
+    col_student_first_name = appcfg["enrolment_schema"]["student_first_name"]
+    col_student_last_name = appcfg["enrolment_schema"]["student_last_name"]
+    col_subject_code = appcfg["enrolment_schema"]["subject_code"]
+    col_subject_name = appcfg["enrolment_schema"]["subject_name"]
+    col_study_period = appcfg["enrolment_schema"]["study_period"]
     for index, row in df.iterrows():
-        if row['Study Period'] == studyperiod:
-            student = Student.get_or_create(studentcode=str(int(row["Student Id"])),
-                                            name=row["Given Name"] + " " + row["Family Name"],
+        if studyperiod == col_study_period:
+            student = Student.get_or_create(studentcode=str(int(row[col_student_id])),
+                                            name=(row[col_student_first_name] + " " + row[col_student_last_name]).strip(),
                                             universityid=University.query.filter_by(
                                                 name='University of Melbourne').first().id,
                                             collegeid=College.query.filter_by(name="International House").first().id)
-            subject = Subject.get_or_create(subcode=row["Component Study Package Code"],
-                                            subname=row["Component Study Package Title"])
+            subject = Subject.get_or_create(subcode=row[col_subject_code],
+                                            subname=row[col_subject_name])
             student.addSubject(subject)
 
 

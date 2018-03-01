@@ -38,7 +38,7 @@ def load_user(user_id):
 
 
 '''
-FLASK_PRINCIPAL SET-UP AREA. 
+FLASK_PRINCIPAL SET-UP AREA.
 
 Firstly we set up Needs - Admin and User level preferences.
 '''
