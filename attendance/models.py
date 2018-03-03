@@ -755,8 +755,8 @@ def get_timetable_data(rooms=False):
         else:
             CAPACITIES[room.name] = 20
     numroomsprojector = len(PROJECTORROOMS)
-    maxclasssize = appcfg["min_class_size"]
-    minclasssize = appcfg["max_class_size"]
+    maxclasssize = appcfg["max_class_size"]
+    minclasssize = appcfg["min_class_size"]
     nrooms = len(ROOMS)
     TIMES = []
     day = []
