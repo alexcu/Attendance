@@ -78,7 +78,6 @@ from attendance.helpers import *
 from attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
 # DATABASE METHODS
-
 try:
     print("Initialising database...")
     # ***********************************

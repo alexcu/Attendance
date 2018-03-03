@@ -525,7 +525,7 @@ def populate_students(df):
     col_subject_name = appcfg["enrolment_schema"]["subject_name"]
     col_study_period = appcfg["enrolment_schema"]["study_period"]
     for index, row in df.iterrows():
-        if studyperiod == col_study_period:
+        if studyperiod == row[col_study_period]:
             student = Student.get_or_create(studentcode=str(int(row[col_student_id])),
                                             name=(row[col_student_first_name] + " " + row[col_student_last_name]).strip(),
                                             universityid=University.query.filter_by(
@@ -755,8 +755,8 @@ def get_timetable_data(rooms=False):
         else:
             CAPACITIES[room.name] = 20
     numroomsprojector = len(PROJECTORROOMS)
-    maxclasssize = 20
-    minclasssize = 3
+    maxclasssize = appcfg["min_class_size"]
+    minclasssize = appcfg["max_class_size"]
     nrooms = len(ROOMS)
     TIMES = []
     day = []
