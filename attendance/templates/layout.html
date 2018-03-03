@@ -15,8 +15,6 @@
     <link href="../static/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap theme -->
     <link href="../static/css/bootstrap-theme.min.css" rel="stylesheet">
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <link href="../static/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="../static/css/theme.css" rel="stylesheet">
@@ -25,7 +23,7 @@
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
     <script src="../static/js/jquery-3.2.1.js"></script>
     <script type="text/javascript" charset="utf8" src="../static/js/jquery.dataTables.js"></script>
-    <script src="../static/js/ie-emulation-modes-warning.js"></script>
+   
 
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
@@ -67,8 +65,6 @@
                             <li><a href="users">Users</a></li>
                         <li><a href="students">Students</a></li>
                         <li><a href="rooms">Rooms</a></li>
-                        <li><a href="universities">Universities</a></li>
-                        <li><a href="colleges">Colleges</a></li>
                     </ul>
                 </li>
                     {% endif %}
@@ -79,7 +75,6 @@
                     <ul class="dropdown-menu">
                         <li><a href="uploadstudentdata">Student Data</a></li>
                         <li><a href="uploadtutordata">Tutor Data</a></li>
-                        <li><a href="uploadtimetableclasslists">Timetable Data</a></li>
                     </ul>
                         </li>{% endif %}
 
@@ -89,18 +84,15 @@
                     {% endif %}
 
                     {% if current_user.is_admin=='1' %}
-                        <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                       aria-expanded="false">Reports<span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="viewclashreport">Analysis</a></li>
-                        <li><a href="tutorhoursreport">Tutor Hours Worked</a></li>
-                    </ul>
-                        </li>{% endif %}
+
+
+                        <li><a href="viewclashreport">View Clash Report</a></li>
+
+                        {% endif %}
                     {% if current_user.is_admin=='1' %}
                         <li><a href="admin">Admin</a></li>{% endif %}
                     {% if current_user.is_admin=='1' %}
-                        <li><a href="runtimetabler">Run Timetabler</a></li>{% endif %}
+                        <li><a href="runtimetabler">Run Timetabling Program</a></li>{% endif %}
                 {% endif %}
                 {% if current_user.is_authenticated %}
                     {% if current_user.tutor %}
@@ -133,8 +125,6 @@
 
 <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
 <script src="../static/js/bootstrap.min.js"></script>
-<script src="../static/js/docs.min.js"></script>
-<script src="../static/js/moment.js"></script>
 <script>
 
     var deleteLinks = document.querySelectorAll('.delete');

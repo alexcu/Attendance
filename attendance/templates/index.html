@@ -1,159 +1,33 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h1>Welcome to IH Tutorial Management!</h1>
+<h1><u>Welcome to IH Tutorial Timetabling!</u></h1>
     {% if current_user.is_admin == '1' %}
-        <h1>Dashboard</h1>
-    <main class="col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3">
-        <section class="row text-center placeholders">
-            <div class="col-6 col-sm-4 placeholder">
-                <canvas id="PercentageSubjectsMapped" width="600" height="800"></canvas>
-                <h4>Mapped Subjects</h4>
-                <div class="text-muted"></div>
-            </div>
-            <div class="col-6 col-sm-4 placeholder">
-                <canvas id="Attendance" width="600" height="800"></canvas>
-                <h4>Student Attendance (%)</h4>
-                <span class="text-muted"></span>
-            </div>
-            <div class="col-6 col-sm-4 placeholder">
-                <canvas id="tutorrollmarking" width="600" height="800"></canvas>
-                <h4>Tutor Roll Marking (%)</h4>
-                <span class="text-muted">Something else</span>
-            </div>
-        </section>
-    </main>
+<ol>
+    <h2><li>Check that the year and semester are correct <a href="admin">here</a>.</li></h2>
+    <h2><li><a href="timeslots">Create Timeslots</a> and Indicate Preferred Times</li></h2>
+
+    <h2><li><a href="rooms">Create Rooms</a> and Designate Rooms with Projectors</li></h2>
+    Follow the link and press "Add Room" and enter the name of the room. Once the room has been created, you can select from the drop-down box if the room has a projector.
+    <h2><li><a href="uploadstudentdata">Upload Student Data</a></li></h2>
+    Upload the file that is given to you by the uni with all of the
+    <h2><li><a href="uploadtutordata">Upload Tutor Data and Subject Mapping</a></li></h2>
+    <h2><li><a href="uploadtutordata">Upload Tutor Availability</a></li></h2>
+    <p>This must be in an Excel document with the tutors' names in the first column, and the timeslots in the top row.
+    <p>NOTE: The spelling of the tutors' names and the timeslots must match those created in steps 1 and 4 respectively.
+    <p>Alternatively you can fill in the table manually <a href="tutoravailability">here</a>.</p>
+	<h2><li>Update which subjects require projectors</li></h2>
+    Go to the subject page and update the "Needs Projector" dropdown box to "Yes"
+    <h2><li>Run the Timetable Program</li></h2>
+</ol>
+<h2></h2>
         {% else %}
 
         {% if not current_user.tutor %}
     You are not currently mapped to a tutor, please contact the Academic Co-ordinator for access.
     {% endif %}
 {% endif %}
-    <script src="../static/js/Chart.bundle.js"></script>
-    <script>
-        var labels = [];
-        var data2 = [];
-        var dataline = [];
-        var labelsline = [];
-        var dataroll = [];
-        var labelsroll = [];
-        var ctx = document.getElementById("PercentageSubjectsMapped");
-        var ctx2 = document.getElementById("Attendance");
-        var ctx3 = document.getElementById("tutorrollmarking");
-        function getPieChartData() {
-            $.ajax({
-                type: 'GET',
-                url: '/numbereligiblesubjectsmappedajax',
-                dataType: 'json',
-                success: function (data) {
-                    Object.keys(data).forEach(function (k) {
-                        labels.push(k);
-                        data2.push(data[k]);
-                    });
-                    drawPieChart();
-                }
-            });
-        }
 
-         function getAttendanceChartData() {
-            $.ajax({
-                type: 'GET',
-                url: '/getattendanceajax',
-                dataType: 'json',
-                success: function (data) {
-                    for (var k =0; k < Object.keys(data).length;k++) {
-                        var key = Object.keys(data)[k]
-                        if (data[key]) {
-                            labelsline.push(key);
-
-                        }
-                    };
-                    labelsline.sort(function (a, b) {
-                        a = parseInt(a.split(' ')[1])
-                        b = parseInt(b.split(' ')[1])
-                        return a - b
-                    });
-                    for (var k = 0; k < labelsline.length; k++) {
-                        dataline.push(Math.round(data[labelsline[k]]["Attendance Rate"]));
-                    }
-                    drawAttendanceChart();
-                }
-            });
-        }
-
-         function getRollMarkingData() {
-            $.ajax({
-                type: 'GET',
-                url: '/getrollmarkingajax',
-                dataType: 'json',
-                success: function (data) {
-                    for (var k =0; k < Object.keys(data).length;k++) {
-                        var key = Object.keys(data)[k]
-                        if (data[key]) {
-                            labelsroll.push(key);
-
-                        }
-                    }
-                        labelsroll.sort(function (a, b) {
-                            a = parseInt(a.split(' ')[1])
-                            b = parseInt(b.split(' ')[1])
-                            return a - b
-                        });
-                        for (var k = 0; k < labelsroll.length; k++) {
-                            dataroll.push(Math.round(data[labelsroll[k]]['Roll Marking']));
-                        }
-                    ;
-                    drawRollMarkingChart();
-                }
-            });
-        }
-
-        function drawPieChart() {
-            var myPieChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    datasets: [{backgroundColor: ["#3e95cd", "#fffb51"], data: data2}],
-                    labels: labels
-                },
-                options: {}
-            })
-        }
-
-
-        function drawAttendanceChart() {
-
-            var myAttendanceChart = new Chart(ctx2, {
-                type: 'line',
-                data: { datasets: [{data: dataline, label: "Attendance Rate", fill: false, backgroundColor:["#3e95cd"],  borderColor: ["#3e95cd"]}],
-                labels: labelsline},
-                options: {}
-            })
-        }
-
-        function drawRollMarkingChart() {
-
-            var myRollMarkingChart = new Chart(ctx3, {
-                type: 'line',
-                data: {
-                    datasets: [{
-                        data: dataroll,
-                        label: "Roll Marking (%)",
-                        fill: false,
-                        backgroundColor: ["#130e14"],
-                        borderColor: ["#130e14"]
-                    }],
-                labels: labelsroll},
-                options: {}
-            })
-        }
-
-
-
-        getPieChartData();
-    getAttendanceChartData();
-    getRollMarkingData();
-
-    </script>
 {% endblock %}
 
 

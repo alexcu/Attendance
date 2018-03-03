@@ -10,6 +10,7 @@ from flask_sqlalchemy import *
 
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
+
 app.config['LOGGING_FILE'] = appcfg['log']
 app.config['UPLOAD_FOLDER'] = appcfg['upload']
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
@@ -71,7 +72,6 @@ def current_privileges():
             for n in apps_needs if n in g.identity.provides)
 
 from attendance.models import *
-from attendance.models import init_db
 import attendance.views
 
 from attendance.helpers import *
@@ -101,6 +101,7 @@ except:
 # Set up logging
 handler = RotatingFileHandler(
     app.config['LOGGING_FILE'], maxBytes=10000, backupCount=10)
+
 handler.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 if __name__ == '__main__':

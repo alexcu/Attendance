@@ -53,3 +53,42 @@ Here is what you should to do to set up a timetable.
 Generally there is only one reason that there would not be able to create a timetable, which is that there are not sufficient availabilities for a particular tutor for their allocated classes.
 
 This can be troubleshooted from the `Manage` > `Tutors` tab.
+
+# Settings
+Create a `config.py` under `attendance` like the following and update the settings as desired:
+
+```python
+appcfg = {
+    "upload" : '/path/to/upload/directory',
+    "dbstring" : 'sqlite:////database.db',
+    "secretkey" : 'insertsecretkeyhere',
+    "adminpassword" : 'admin',
+    "startyear" : '2018',
+    "startstudyperiod" : "Semester 1",
+    "rooms" : [
+        ['GHB1', True],
+        ['GHB2', True],
+        ['GHB3', True],
+        ['GHB4', False],
+        ['GHB5', False],
+        ['GHB6', False],
+        ['GHB7', False],
+        ['Peter Waylen', False],
+        ['Ronald Cowan', True],
+        ['Frank Larkins', False],
+        ['Mavis Jackson', True],
+        ['Library Project Room', False]
+    ],
+    "timeslots": [
+        ['Monday 19:30', True],
+        ['Monday 20:30', True],
+        ['Monday 21:30', False],
+        ['Tuesday 19:30', True],
+        ['Tuesday 20:30', True],
+        ['Tuesday 21:30', False],
+        ['Wednesday 19:30', True],
+        ['Wednesday 20:30',True],
+        ['Wednesday 21:30', False]
+    ]
+}
+```

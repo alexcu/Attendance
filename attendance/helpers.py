@@ -11,161 +11,9 @@ import attendance.models
 from attendance.forms import AddTimetableForm
 
 #TIMETABLE CODE
-def runtimetable2(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                  TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms, non_preferred_times=[]):
-    '''
-    Run the timetabling process and input into the database.
-
-    This process calls the CBCSolver using the PuLP package and then adds the classes to the database.
-
-
-    :param STUDENTS: should be an array of student names
-    :param SUBJECTS: should be an array of subject codes
-    :param TIMES: an array of strings representing possible timeslots
-    :param day:
-    :param DAYS: the days corresponding to the timeslots above
-    :param TEACHERS: an array of the names of the tutors
-    :param SUBJECTMAPPING: This is a dictionary representing the subjects
-                            each tutor is taking
-    :param REPEATS: A dictionary of how many repeats each subject has
-    :param TEACHERMAPPING: A dictionary of what subject each tutor teachers
-    :param TUTORAVAILABILITY:
-    :param maxclasssize: An integer representing the maximum class size
-    :param minclasssize: An integer representing the minimum class size
-    :param nrooms: An integer representing the max allowable concurrent classes
-    :return: A string representing model status.
-
-    TESTED
-    '''
-    print("Running solver")
-    model = LpProblem('Timetabling', LpMinimize)
-    # Create Variables
-    print("Creating Variables")
-    app.logger.info('Assignment Variables')
-    assign_vars = LpVariable.dicts("StudentVariables",
-                                   [(i, j, k, m) for m in TEACHERS for j in TEACHERMAPPING[m] for i in SUBJECTMAPPING[j]
-                                    for k in TIMES], 0, 1, LpBinary)
-    app.logger.info('Subject Variables')
-    subject_vars = LpVariable.dicts("SubjectVariables",
-                                    [(j, k, m) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES], 0, 1,
-                                    LpBinary)
-
-    # c
-    app.logger.info('9:30 classes')
-    num_non_preferred_classes = LpVariable.dicts("NonPreferredClasses", [(i) for i in non_preferred_times], lowBound=0,
-                                                 cat=LpInteger)
-    # w
-    app.logger.info('Days for teachers')
-    daysforteachers = LpVariable.dicts("numdaysforteachers", [(i, j) for i in TEACHERS for j in range(len(DAYS))], 0, 1,
-                                       LpBinary)
-    # p
-    daysforteacherssum = LpVariable.dicts("numdaysforteacherssum", [(i) for i in TEACHERS], 0, cat=LpInteger)
-    # variables for student clashes
-    studenttime = LpVariable.dicts("StudentTime", [(i, j) for i in STUDENTS for j in TIMES], lowBound=0, upBound=1,
-                                   cat=LpBinary)
-    studentsum = LpVariable.dicts("StudentSum", [(i) for i in STUDENTS], 0, cat=LpInteger)
-
-    # Count the days that a teacher is rostered on. Make it bigger than a small number times the sum
-    # for that particular day.
-    for m in TEACHERS:
-        app.logger.info('Counting Teachers for ' + m)
-        for d in range(len(day)):
-            model += daysforteachers[(m, d)] >= 0.1 * lpSum(
-                subject_vars[(j, k, m)] for j in TEACHERMAPPING[m] for k in DAYS[day[d]])
-            model += daysforteachers[(m, d)] <= lpSum(
-                subject_vars[(j, k, m)] for j in TEACHERMAPPING[m] for k in DAYS[day[d]])
-    for m in TEACHERS:
-        model += daysforteacherssum[(m)] == lpSum(daysforteachers[(m, d)] for d in range(len(day)))
-
-    print("Constraining tutor availability")
-    # This bit of code puts in the constraints for the tutor availability.
-    # It reads in the 0-1 matrix of tutor availability and constrains that no classes
-    # can be scheduled when a tutor is not available.
-    # The last column of the availabilities is the tutor identifying number, hence why we have
-    # used a somewhat convoluted idea down here.
-    for m in TEACHERS:
-        for k in TIMES:
-            if k not in TUTORAVAILABILITY[m]:
-                model += lpSum(subject_vars[(j, k, m)] for j in TEACHERMAPPING[m]) == 0
-
-    # Constraints on subjects for each students
-    print("Constraining student subjects")
-    for m in TEACHERS:
-        for j in TEACHERMAPPING[m]:
-            for i in SUBJECTMAPPING[j]:
-                model += lpSum(assign_vars[(i, j, k, m)] for k in TIMES) == 1
-
-    # This code means that students cannot attend a tute when a tute is not running
-    # But can not attend a tute if they attend a repeat.
-    for m in TEACHERS:
-        for j in TEACHERMAPPING[m]:
-            for i in SUBJECTMAPPING[j]:
-                for k in TIMES:
-                    model += assign_vars[(i, j, k, m)] <= subject_vars[(j, k, m)]
-
-    # Constraints on which tutor can take each class
-    # This goes through each list and either constrains it to 1 or 0 depending if
-    # the teacher needs to teach that particular class.
-    print("Constraining tutor classes")
-    for m in TEACHERS:
-        for j in TEACHERMAPPING[m]:
-            model += lpSum(subject_vars[(j, k, m)] for k in TIMES) == REPEATS[j]
-
-    # General Constraints on Rooms etc.
-    print("Constraining times")
-    # For each time cannot exceed number of rooms
-    for k in TIMES:
-        model += lpSum(subject_vars[(j, k, m)] for m in TEACHERS for j in TEACHERMAPPING[m]) <= nrooms
-
-    # Teachers can only teach one class at a time
-    for k in TIMES:
-        for m in TEACHERS:
-            model += lpSum(subject_vars[(j, k, m)] for j in TEACHERMAPPING[m]) <= 1
-    print("Constraint: Minimize student clashes")
-    # STUDENT CLASHES
-    for i in STUDENTS:
-        for k in TIMES:
-            model += studenttime[(i, k)] <= lpSum(
-                assign_vars[(i, j, k, m)] for m in TEACHERS for j in TEACHERMAPPING[m] if i in SUBJECTMAPPING[j]) / 2
-            model += studenttime[(i, k)] >= 0.3 * (0.5 * lpSum(
-                assign_vars[(i, j, k, m)] for m in TEACHERS for j in TEACHERMAPPING[m] if i in SUBJECTMAPPING[j]) - 0.5)
-    for i in STUDENTS:
-        model += studentsum[(i)] == lpSum(studenttime[(i, k)] for k in TIMES)
-
-    # This minimizes the number of 9:30 classes.
-    for i in non_preferred_times:
-        model += num_non_preferred_classes[(i)] == lpSum(
-            subject_vars[(j, i, m)] for m in TEACHERS for j in TEACHERMAPPING[m])
-
-
-    print("Setting objective function")
-
-    # Class size constraint
-    for m in TEACHERS:
-        for j in TEACHERMAPPING[m]:
-            for k in TIMES:
-                model += lpSum(assign_vars[(i, j, k, m)] for i in SUBJECTMAPPING[j]) >= minclasssize * subject_vars[
-                    (j, k, m)]
-                model += lpSum(assign_vars[(i, j, k, m)] for i in SUBJECTMAPPING[j]) <= maxclasssize
-
-    # Solving the model
-    # Objective Function
-    model += (100 * lpSum(studentsum[(i)] for i in STUDENTS) + lpSum(
-        num_non_preferred_classes[(i)] for i in non_preferred_times) + 500 * lpSum(
-        daysforteacherssum[(m)] for m in TEACHERS))
-    print("Solving Model")
-    model.solve()
-    print("Status:", LpStatus[model.status])
-    print("Complete")
-    attendance.models.add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars,
-                                               assign_vars)
-    print("Status:", LpStatus[model.status])
-    return LpStatus[model.status]
-
-
 def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS,
                                      TEACHERMAPPING,
-                                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES):
+                                     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES):
     '''
     Run the timetabling process and input into the database.
 
@@ -186,8 +34,12 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
     :param maxclasssize: An integer representing the maximum class size
     :param minclasssize: An integer representing the minimum class size
     :param nrooms: An integer representing the max allowable concurrent classes
+    :param CAPACITIES: A dictionary indexed by room name with the amount of people that each room can contain
     :return: A string representing model status.
     '''
+    SMALLROOMS = ["Library Project Room"]
+
+
     print("Running solver")
     model = LpProblem('Timetabling', LpMinimize)
     # Create Variables
@@ -302,6 +154,10 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         else:
             model += num930classes[(i)] == 0
 
+
+    for tutorial in PREARRANGEDCLASSES:
+        model += subject_vars[(tutorial['Subject'], tutorial['Time'], tutorial['Teacher'])] == 1
+
     print("Setting objective function")
 
     # Class size constraint
@@ -320,15 +176,19 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
     print("Status:", LpStatus[model.status])
     print("Completed Timetable")
 
-
-
+    classpop = {}
+    for m in TEACHERS:
+        for j in TEACHERMAPPING[m]:
+            for k in TIMES:
+                if subject_vars[(j,k,m)].varValue == 1:
+                    classpop[(j,k,m)] = int(sum(assign_vars[(i,j,k,m)].varValue for i in SUBJECTMAPPING[j]))
     if LpStatus[model.status] == "Optimal":
         print("Allocating Rooms")
         model2 = LpProblem('RoomAllocation', LpMinimize)
         print("Defining Variables")
         subject_vars_rooms = LpVariable.dicts("SubjectVariablesRooms",
                                               [(j, k, m, n) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES for
-                                               n in ROOMS], 0, 1, LpBinary)
+                                               n in ROOMS if subject_vars[(j,k,m)].varValue==1], 0, 1, LpBinary)
 
         teacher_number_rooms = LpVariable.dicts("NumberRoomsTeacher", [(m, n) for m in TEACHERS for n in ROOMS], 0, 1,
                                                 LpBinary)
@@ -336,16 +196,24 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
 
         projector_rooms_sum = LpVariable.dicts("ProjectorRooms", [(j) for j in PROJECTORS])
 
+        #populationovershoot = LpVariable.dicts("PopulationOvershoot", [(k,n) for k in TIMES for n in SMALLROOMS], LpInteger)
+
+        poppositive = LpVariable.dicts("PopulationPositivePart", [(k, n) for k in TIMES for n in SMALLROOMS])
+
+        #roompopulation = LpVariable.dicts("RoomPopulation", [(j,k,m,n) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES for n in SMALLROOMS if subject_vars[(j,k,m)].varValue==1], LpInteger)
+
 
         print("Minimizing number of rooms for each tutor")
         for m in TEACHERS:
             for n in ROOMS:
                 model2 += teacher_number_rooms[(m, n)] >= 0.01 * lpSum(
-                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
+                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES if subject_vars[(j,k,m)].varValue==1)
                 model2 += teacher_number_rooms[(m, n)] <= lpSum(
-                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
+                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES if subject_vars[(j,k,m)].varValue==1)
         for m in TEACHERS:
             model2 += teacher_number_rooms_sum[(m)] == lpSum(teacher_number_rooms[(m, n)] for n in ROOMS)
+
+
 
 
 
@@ -354,23 +222,48 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         for m in TEACHERS:
             for j in TEACHERMAPPING[m]:
                 for k in TIMES:
-                    model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for n in ROOMS) == subject_vars[(j, k, m)].varValue
+                    if subject_vars[(j, k, m)].varValue == 1:
+                        model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for n in ROOMS) == subject_vars[(j, k, m)].varValue
 
 
 
         for m in TEACHERS:
             for j in TEACHERMAPPING[m]:
                 if j in PROJECTORS:
-                    model2 += projector_rooms_sum[(j)] == lpSum(subject_vars_rooms[(j,k,m,n)] for n in PROJECTORROOMS for k in TIMES)
+                    model2 += projector_rooms_sum[(j)] == lpSum(subject_vars_rooms[(j,k,m,n)] for n in PROJECTORROOMS for k in TIMES if subject_vars[(j,k,m)].varValue == 1)
 
         print("Ensuring Uniqueness")
         # Can only have one class in each room at a time.
         for k in TIMES:
             for n in ROOMS:
-                model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m]) <= 1
+                model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m] if subject_vars[(j,k,m)].varValue==1) <= 1
+
+
+        print("Accomodating Capacities")
+     #   for m in TEACHERS:
+    #        for j in TEACHERMAPPING[m]:
+   #             for k in TIMES:
+  #                  if subject_vars[(j, k, m)].varValue == 1:
+ #                       for n in SMALLROOMS:
+#                            model2 += roompopulation[(j, k, m, n)] == int(classpop[(j, k, m)]) * subject_vars_rooms[(j, k, m, n)]
+
+        print("Calculating")
+        for k in TIMES:
+            for n in SMALLROOMS:
+                #model2 += populationovershoot[(k,n)] == (lpSum(roompopulation[(j,k,m,n)] for m in TEACHERS for j in TEACHERMAPPING[m] if subject_vars[(j,k,m)].varValue == 1) - CAPACITIES[n])
+                model2 += poppositive[(k,n)] >= (lpSum(int(classpop[(j, k, m)]) * subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m] if subject_vars[(j, k, m)].varValue == 1) - int(CAPACITIES[n]))
+                model2 += poppositive[(k,n)] >= 0
+
+
+        #PREARRANGED CLASSES
+        for tutorial in PREARRANGEDCLASSES:
+            if tutorial['Room'] is not None:
+                print(tutorial)
+                model2 += subject_vars_rooms[(tutorial['Subject'], tutorial['Time'], tutorial['Teacher'], tutorial['Room'])] == 1
+
 
         print("Setting Objective Function")
-        model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS)
+        model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS) +10 * lpSum(poppositive[(k,n)] for k in TIMES for n in SMALLROOMS)
         print("Solve Room Allocation")
         model2.solve()
         print(LpStatus[model2.status])
@@ -393,24 +286,14 @@ def preparetimetable(addtonewtimetable=False):
 
     TESTED
     '''
-    # if addtonewtimetable == "true":
-    #    timetable = Timetable(get_current_year(),get_current_studyperiod())
-    #    db.session.add(timetable)
-    #    db.session.commit()
-    #    admin = Admin.query.filter_by(key="timetable").first()
-    #    admin.value = timetable.id
-    #    db.session.commit()
-
     print("Preparing Timetable")
-    # (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-    #TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms) = attendance.models.get_timetable_data()
 
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES) = attendance.models.get_timetable_data(rooms=True)
+     TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES) = attendance.models.get_timetable_data(rooms=True)
     print("Everything ready")
     executor.submit(runtimetable_with_rooms_two_step, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                     REPEATS, TEACHERMAPPING,
-                    TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
+                    TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES,CAPACITIES, PREARRANGEDCLASSES)
 
 
     form = AddTimetableForm()
@@ -442,7 +325,7 @@ def upload(file):
         # Make the filename safe, remove unsupported chars
         filename = file.filename
         # Ensure unique filename
-        unique_filename = time.strftime("%c") + filename
+        unique_filename = time.strftime("%Y-%m-%d_%H%M%S") + filename
         # Move the file form the temporal folder to
         # the upload folder we setup
         path_to_file = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
@@ -487,8 +370,8 @@ def read_csv(filename):
 
 
 def create_roll(students, subject, timeslot, room):
-    path_to_file = app.config['UPLOAD_FOLDER'] + '/roll ' + \
-        subject.subcode + ' ' + time.strftime("%c") + '.docx'
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/roll_' + \
+        subject.subcode + '_' + time.strftime("%Y-%m-%d_%H%M%S") + '.docx'
 
     document = Document()
 
@@ -521,7 +404,7 @@ def create_roll(students, subject, timeslot, room):
 
 
 def create_excel(data):
-    path_to_file = app.config['UPLOAD_FOLDER'] + '/timetable ' + time.strftime("%c") + '.xlsx'
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/timetable' + time.strftime("%Y-%m-%d_%H%M%S") + '.xlsx'
     writer = pandas.ExcelWriter(path_to_file, engine='xlsxwriter')
     data.to_excel(writer, sheet_name='Timetable', index=False)
     writer.save()

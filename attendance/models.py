@@ -193,11 +193,6 @@ subtutmap = db.Table('subtutmap',
                      db.Column('tutor_id', db.Integer, db.ForeignKey('tutors.id')),
                      db.Column('subject_id', db.Integer, db.ForeignKey('subjects.id')))
 
-stuattendance = db.Table('stuattendance',
-                         db.Column('id', db.Integer, primary_key=True),
-                         db.Column('class_id', db.Integer, db.ForeignKey('tutorials.id')),
-                         db.Column('student_id', db.Integer, db.ForeignKey('students.id')))
-
 stutimetable = db.Table('stutimetable',
                         db.Column('id', db.Integer, primary_key=True),
                         db.Column('timetabledclass_id', db.Integer, db.ForeignKey('timetabledclass.id')),
@@ -249,68 +244,13 @@ class Subject(Base):
         self.subname = subname
         self.repeats = repeats
 
-    def get_attendance_rate(self):
-        '''
-            This method gets the percentage attendance rate for all tutorials that have currently had rolls marked.
-        '''
-        totalstudents = 0
-        attendedstudents = 0
-        tutorials = self.classes
-        for tutorial in tutorials:
-            if len(tutorials) > 0:
-                totalstudents += len(self.students)
-                attendedstudents += len(tutorial.attendees)
-        if totalstudents == 0:
-            return 0
-        else:
-            return 100 * round(attendedstudents / totalstudents, 2)
-
-    def is_at_risk(self, rate=3):
-        '''
-        Identify if a particular class is "at-risk".
-
-        At risk is defined as recent average attendance rate has dropped below 3 students.
-        :return: True if at-risk, False otherwise.
-        '''
-        averageattendance = self.get_recent_average_attendance()
-        if averageattendance == 0:
-            return False
-        elif averageattendance < rate:
-            return True
-        else:
-            return False
-
     def addTutor(self, tutor):
         self.tutor = tutor
         db.session.commit()
 
-    def get_recent_average_attendance(self):
-        '''
-        Get the recent average attendance for a subject.
-
-        Recent is defined as the last 3 classes, get the recent attendance in terms of number of students.
-        :return: Average number of students from the last 3 classes.
-        '''
-        attendedstudents = 0
-        timeframe = 3
-        tutorials = self.classes
-        tutorials = sorted(tutorials, key=lambda tutorial: tutorial.week)
-        if len(tutorials) >= 3:
-            for k in range(1, 1 + timeframe):
-                attendedstudents += len(tutorials[len(tutorials) - k].attendees)
-                averageattendance = attendedstudents / timeframe
-        elif len(tutorials) > 0:
-            for k in range(1, 1 + len(tutorials)):
-                attendedstudents += len(tutorials[len(tutorials) - k].attendees)
-                averageattendance = attendedstudents / len(tutorials)
-        else:
-            averageattendance = 0
-        return round(averageattendance, 2)
-
     def view_subject_template(self, form, msg=""):
         return render_template("subject.html", subject=self, students=self.students,
                                tutor=self.tutor, tutors=Tutor.get_all(),
-                               classes=self.classes, attendees=get_attendees_for_subject(self.subcode),
                                msg=msg, times=self.find_possible_times(),
                                timeslots=Timeslot.get_all(), rooms=Room.get_all(),
                                timetabledclasses=self.timetabledclasses, form=form)
@@ -331,35 +271,6 @@ class Subject(Base):
                     times.remove(timeslot)
         return times
 
-    def get_tutorials_sorted(self):
-        results = Tutorial.get_all(subjectid=self.id)
-        return sorted(results, key=attrgetter('week'))
-
-    def get_nonattending_students(self):
-        tutorials = self.get_tutorials_sorted()
-        nonattend = set()
-        if len(tutorials) >= 3:
-            attend = set()
-            for tutorial in tutorials[-3:]:
-                for student in tutorial.attendees:
-                    attend.add(student)
-            for student in self.students:
-                if student not in attend:
-                    nonattend.add(student)
-            return nonattend
-        else:
-            return set()
-
-    @classmethod
-    def get_all_nonattending_students(cls):
-        subjects = Subject.get_all()
-        nonattend = set()
-        for subject in subjects:
-            nonattendsubject = subject.get_nonattending_students()
-            for row in nonattendsubject:
-                nonattend.add((row, subject))
-        print(nonattend)
-        return nonattend
 
 
 class Student(Base):
@@ -451,6 +362,15 @@ class Tutor(Base):
             self.subjects.append(subject)
             db.session.commit()
 
+    def num_hours(self):
+        sum = 0
+        for timeclass in self.subjects:
+            sum += timeclass.repeats
+        return sum
+
+    def num_available_times(self):
+        return len(self.availabletimes)
+
 
 class TimetabledClass(Base):
     '''
@@ -485,6 +405,7 @@ class Room(db.Model):
     projector = db.Column(db.Boolean)
     building = db.Column(db.String(50))
     timetabledclasses = db.relationship('TimetabledClass', backref=db.backref('room'))
+    capacity = db.Column(db.Integer)
 
     @classmethod
     def get_all(cls):
@@ -503,6 +424,11 @@ class Room(db.Model):
             engagedtimes.append(timeclass.timeslot)
         return [timeslot for timeslot in timeslots if timeslot not in engagedtimes]
 
+    def __init__(self, name, projector=False, capacity = 20):
+        self.name = name
+        self.projector = projector
+        self.capacity = capacity
+
 
 
 class Timeslot(Base):
@@ -517,41 +443,12 @@ class Timeslot(Base):
 
     def __init__(self, day, time, preferredtime=True):
         super().__init__()
-        self.timetable = get_current_timetable().id
+        self.timetable = get_current_timetable_id()
         self.day = day
         self.daynumeric = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(day)
         self.time = time
         self.preferredtime = preferredtime
 
-
-class Tutorial(Base):
-    '''
-    This class is the physical tutorial that occurs 12 weeks in the semester. For instance - this is the tutorial that occurs on the
-    30th October 2017.
-    '''
-    __tablename__ = 'tutorials'
-    subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'))
-    subject = db.relationship("Subject", backref=db.backref('classes'), single_parent=True)
-    tutorid = db.Column(db.Integer, db.ForeignKey('tutors.id'))
-    tutor = db.relationship("Tutor", backref=db.backref('classes'), single_parent=True)
-    week = db.Column(db.Integer, nullable=False)
-    attendees = db.relationship("Student", secondary=stuattendance)
-    dateandtime = db.Column('dateandtime', db.DateTime)
-    hours = db.Column('Hours', db.Integer)
-
-    def __init__(self, subjectid, tutorid, week, hours=1, dateandtime=""):
-        super().__init__()
-        self.subjectid = subjectid
-        self.tutorid = tutorid
-        self.week = week
-        self.hours = hours
-        if dateandtime == "":
-            self.dateandtime = datetime.datetime.now()
-        else:
-            self.dateandtime = dateandtime
-
-    def get_datetime_html(self):
-        return self.dateandtime.strftime('%Y-%m-%dT%H:%M')
 
 
 
@@ -592,18 +489,6 @@ def linksubjecttutor(tutorid, subcode):
     return msg
 
 
-def get_min_max_week():
-    classes = Tutorial.get_all()
-    minweek = 13
-    maxweek = 0
-    for tutorial in classes:
-        if tutorial.week < minweek:
-            minweek = tutorial.week
-        elif tutorial.week > maxweek:
-            maxweek = tutorial.week
-    return [minweek, maxweek]
-
-
 def create_user_with_tutor(username, password, tutor):
     if User.query.filter_by(username=username, year=get_current_year(),
                             studyperiod=get_current_studyperiod()).first() is None:
@@ -633,15 +518,21 @@ def populate_students(df):
     '''
     print("Populating Students")
     studyperiod = get_current_studyperiod()
+    col_student_id = appcfg["enrolment_schema"]["student_id"]
+    col_student_first_name = appcfg["enrolment_schema"]["student_first_name"]
+    col_student_last_name = appcfg["enrolment_schema"]["student_last_name"]
+    col_subject_code = appcfg["enrolment_schema"]["subject_code"]
+    col_subject_name = appcfg["enrolment_schema"]["subject_name"]
+    col_study_period = appcfg["enrolment_schema"]["study_period"]
     for index, row in df.iterrows():
-        if row['Study Period'] == studyperiod:
-            student = Student.get_or_create(studentcode=str(int(row["Student Id"])),
-                                            name=row["Given Name"] + " " + row["Family Name"],
+        if studyperiod == col_study_period:
+            student = Student.get_or_create(studentcode=str(int(row[col_student_id])),
+                                            name=(row[col_student_first_name] + " " + row[col_student_last_name]).strip(),
                                             universityid=University.query.filter_by(
                                                 name='University of Melbourne').first().id,
                                             collegeid=College.query.filter_by(name="International House").first().id)
-            subject = Subject.get_or_create(subcode=row["Component Study Package Code"],
-                                            subname=row["Component Study Package Title"])
+            subject = Subject.get_or_create(subcode=row[col_subject_code],
+                                            subname=row[col_subject_name])
             student.addSubject(subject)
 
 
@@ -728,42 +619,6 @@ def update_studyperiod(studyperiod):
     admin.value = studyperiod
     db.session.commit()
 
-
-def add_class_to_db(week, subcode, attendees):
-    '''
-    Possibly not needed
-    '''
-    subject = Subject.get(subcode=subcode)
-    tutor = subject.tutor
-    if Tutorial.query.filter_by(week=week, subjectid=subject.id, year=get_current_year(),
-                                studyperiod=get_current_studyperiod(), tutorid=tutor.id).first() == None:
-        specificclass = Tutorial(week=week, subjectid=subject.id, tutorid=tutor.id)
-        db.session.add(specificclass)
-        db.session.commit()
-        add_students_to_class(specificclass, attendees)
-    return "Completed Successfully"
-
-
-def add_students_to_class(specificclass, attendees):
-    '''
-    possibly not needed,
-    '''
-    for i in range(len(attendees)):
-        student = Student.get(studentcode=attendees[i])
-        specificclass.attendees.append(student)
-        db.session.commit()
-    return "Completed Successfully"
-
-
-def get_attendees_for_subject(subcode):
-    subject = Subject.get(subcode=subcode)
-    classes = Tutorial.get_all(subjectid=subject.id)
-    data = {}
-    for row in classes:
-        data[row.id] = row.attendees
-    return data
-
-
 def get_current_year():
     '''
     Get the current year from the admin table.
@@ -832,32 +687,6 @@ def change_room_projector(roomid, value):
         db.session.commit()
 
 
-def collate_tutor_hours_dates(minweek, maxweek, tutor_object=True, extended=False):
-    tutors = Tutor.get_all()
-    data = set()
-    for tutor in tutors:
-        tutorials = Tutorial.get_all(tutorid=tutor.id)
-        tutorials = [tutorial for tutorial in tutorials if
-                     tutorial.dateandtime >= minweek and tutorial.dateandtime <= maxweek]
-        if extended == False:
-            repeats = 0
-            initials = len(tutorials)
-            for tutorial in tutorials:
-                repeats += (int(tutorial.hours) - 1)
-            if tutor_object == True:
-                data.add((tutor, initials, repeats))
-            else:
-                data.add((tutor.name, initials, repeats))
-        else:
-            for tutorial in tutorials:
-                if tutor_object == True:
-                    data.add((tutor, tutorial.subject.subname, convert_datetime_to_string(tutorial.dateandtime),
-                              tutorial.hours))
-                else:
-                    data.add((tutor.name, tutorial.subject.subname, convert_datetime_to_string(tutorial.dateandtime),
-                              tutorial.hours))
-    return data
-
 def get_timetabled_class(classid):
     return TimetabledClass.get(id=classid)
 
@@ -886,6 +715,7 @@ def get_timetable_data(rooms=False):
     PROJECTORS = []
     PROJECTORROOMS = []
     NONPREFERREDTIMES = []
+    CAPACITIES = {}
 
     allsubjects = Subject.query.filter(Subject.year == get_current_year(),
                                        Subject.studyperiod == get_current_studyperiod(), Subject.tutor != None).all()
@@ -920,9 +750,13 @@ def get_timetable_data(rooms=False):
         ROOMS.append(room.name)
         if room.projector is True:
             PROJECTORROOMS.append(room.name)
+        if room.capacity is not None:
+            CAPACITIES[room.name] = int(room.capacity)
+        else:
+            CAPACITIES[room.name] = 20
     numroomsprojector = len(PROJECTORROOMS)
-    maxclasssize = 400
-    minclasssize = 1
+    maxclasssize = 20
+    minclasssize = 3
     nrooms = len(ROOMS)
     TIMES = []
     day = []
@@ -943,10 +777,24 @@ def get_timetable_data(rooms=False):
     for d in day:
         DAYS[d] = set(DAYS[d])
 
+    PREARRANGEDCLASSES = []
+    timetabledclasses = TimetabledClass.get_all()
+    for tutorial in timetabledclasses:
+        dic = {}
+        dic['Subject'] = tutorial.subject.subcode
+        dic['Teacher'] = tutorial.tutor.name
+        dic['Time'] = tutorial.timeslot.day + " " + tutorial.timeslot.time
+        if tutorial.room is not None:
+            dic['Room'] = tutorial.room.name
+        else:
+            dic['Room'] = None
+        PREARRANGEDCLASSES.append(dic)
+
+
 
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES)
+                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES)
     else:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
@@ -988,18 +836,27 @@ def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, T
                     timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
                     tutor = Tutor.get(name=m)
                     room = Room.query.filter_by(name=n).first()
-                    if subject_vars_with_rooms[(j, k, m, n)].varValue == 1:
-                        timetabledclass = TimetabledClass.create(subjectid=subject.id,
-                                                                 timetable=get_current_timetable().id, time=timeslot.id,
-                                                                 tutorid=tutor.id, roomid=room.id)
-                        for i in SUBJECTMAPPING[j]:
-                            if assign_vars[(i, j, k, m)].varValue == 1:
-                                student = Student.get(name=i)
-                                timetabledclass.students.append(student)
-                                db.session.commit()
+                    if (j,k,m,n) in subject_vars_with_rooms:
+                        if subject_vars_with_rooms[(j, k, m, n)].varValue == 1:
+                            if TimetabledClass.get(subjectid=subject.id,
+                                                                     timetable=get_current_timetable().id, time=timeslot.id,
+                                                                     tutorid=tutor.id) is None:
+                                timetabledclass = TimetabledClass.create(subjectid=subject.id,
+                                                                     timetable=get_current_timetable().id, time=timeslot.id,
+                                                                     tutorid=tutor.id, roomid=room.id)
+                            else:
+                                timetabledclass = TimetabledClass.get(subjectid=subject.id,
+                                                                     timetable=get_current_timetable().id, time=timeslot.id,
+                                                                     tutorid=tutor.id)
+                                timetabledclass.update(roomid = room.id)
+                            for i in SUBJECTMAPPING[j]:
+                                if assign_vars[(i, j, k, m)].varValue == 1:
+                                    student = Student.get(name=i)
+                                    timetabledclass.students.append(student)
+                                    db.session.commit()
 
 def get_all_rolls():
-    path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls ' + ' ' + time.strftime("%c") + '.docx'
+    path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls' + time.strftime("%Y-%m-%d_%H%M%S") + '.docx'
     subjects = get_all_subjects()
     document = Document()
     for subject in subjects:
@@ -1045,16 +902,17 @@ def get_roll(classid):
     return create_roll(students, subject, timeslot, room)
 
 
-def init_db():
+def init_db_studyperiod():
     if Admin.query.filter_by(key='currentyear').first() is None:
-        admin = Admin(key='currentyear', value=2018)
+        admin = Admin(key='currentyear', value=int(appcfg["startyear"]))
         db.session.add(admin)
         db.session.commit()
     if Admin.query.filter_by(key='studyperiod').first() is None:
-        study = Admin(key='studyperiod', value='Semester 1')
+        study = Admin(key='studyperiod', value=appcfg["startstudyperiod"])
         db.session.add(study)
         db.session.commit()
 
+def init_db_timetable():
     if Admin.query.filter_by(key='timetable').first() is None:
         timetable = Timetable(key="default")
         db.session.add(timetable)
@@ -1063,20 +921,56 @@ def init_db():
         db.session.add(timetableadmin)
         db.session.commit()
 
+def init_db_users():
     if User.query.filter_by(username='admin').first() is None:
         user = User.create(username='admin', password=appcfg['adminpassword'])
         user.update(is_admin=True)
 
+def init_db_uni():
     if University.query.filter_by(name='University of Melbourne').first() is None:
         uni = University(name='University of Melbourne')
         db.session.add(uni)
         db.session.commit()
 
+def init_db_college():
     if College.query.filter_by(name="International House").first() is None:
         college = College(name='International House')
         db.session.add(college)
         db.session.commit()
 
+def init_db_timeslots():
+    timeslots = appcfg['timeslots']
+    for timeslot in timeslots:
+        if Timeslot.get(day = timeslot[0].split(' ')[0], time = timeslot[0].split(' ')[1]) is None:
+            if timeslot[1] == False:
+                Timeslot.create(day = timeslot[0].split(' ')[0], time = timeslot[0].split(' ')[1], preferredtime = False)
+            else:
+                Timeslot.create(day=timeslot[0].split(' ')[0], time=timeslot[0].split(' ')[1], preferredtime=True)
+
+def init_db_rooms():
+    rooms = appcfg['rooms']
+    for room in rooms:
+        if Room.query.filter_by(name = room[0]).first() is None:
+            room2 = Room(name = room[0], projector = room[1], capacity = room[2])
+            db.session.add(room2)
+            db.session.commit()
+
+
+def init_db():
+   print("Importing study period and year")
+   init_db_studyperiod()
+   print("Creating Timetable")
+   init_db_timetable()
+   print("Creating admin user")
+   init_db_users()
+   print("Creating University")
+   init_db_uni()
+   print("Creating College")
+   init_db_college()
+   print("Creating Timeslots")
+   init_db_timeslots()
+   print("Creating Rooms")
+   init_db_rooms()
 
 def change_preferred_timeslot(id, preferred):
     timeslot = Timeslot.query.get(id)
