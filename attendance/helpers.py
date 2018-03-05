@@ -450,7 +450,7 @@ def format_student_timetable_data_for_export():
             else:
                 tutor = ""
             timetable.append((
-                student.stucode,
+                student.studentcode,
                 student.name,
                 timeclass.subject.subcode,
                 timeclass.subject.subname,
