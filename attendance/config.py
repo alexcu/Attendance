@@ -52,6 +52,6 @@ appcfg = {
         "study_period": "Study Period"
     },
     "max_class_size": 15,
-    "min_class_size": 3,
+    "min_class_size": 0,
     "default_room_capacity": 20
 }

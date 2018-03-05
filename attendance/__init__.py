@@ -11,6 +11,7 @@ from flask_sqlalchemy import *
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 
+app.config['LOGGING_FILE'] = appcfg['log']
 app.config['UPLOAD_FOLDER'] = appcfg['upload']
 app.config['ALLOWED_EXTENSIONS'] = set(['xls', 'xlsx', 'csv'])
 app.config['SQLALCHEMY_DATABASE_URI'] = appcfg['dbstring']
@@ -22,7 +23,6 @@ bcrypt = Bcrypt(app)
 principals = Principal(app, skip_static=True)
 login_manager = LoginManager()
 login_manager.init_app(app)
-
 
 '''
 FLASK-LOGIN SET UP AREA
@@ -77,11 +77,30 @@ import attendance.views
 from attendance.helpers import *
 from attendance.forms import LoginForm, AddSubjectForm, NameForm, TimeslotForm, StudentForm
 
-# DATABASE METHODS - This method should be commented when creating the database.
-attendance.models.init_db()
+# DATABASE METHODS
+try:
+    print("Initialising database...")
+    # ***********************************
+    # COMMENT THIS LINE OUT WHEN YOU ARE
+    # RUNNING FIRST-TIME DB COMMANDS
+    # ***********************************
+    init_db() # <=====|| Comment Out ||
+    # ***********************************
+    # END COMMENT OUT
+    # ***********************************
+    print("SUCCESS!")
+except:
+    print("FAILED... Rolling Back")
+    print()
+    print("If you are running first-time setup, comment out line 87 from attendance/__init__.py")
+    print("Then, un-comment it when running runserver")
+    print()
+    db.session.rollback()
 
 # Set up logging
-handler = RotatingFileHandler('foo.log', maxBytes=10000, backupCount=10)
+handler = RotatingFileHandler(
+    app.config['LOGGING_FILE'], maxBytes=10000, backupCount=10)
+
 handler.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 if __name__ == '__main__':
