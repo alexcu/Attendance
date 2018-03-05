@@ -429,7 +429,7 @@ def format_timetable_data_for_export():
                 tutor = ""
 
             timetable.append((timeclass.timeslot.day + ' ' + timeclass.timeslot.time, timeclass.subject.subname,
-                              tutor, room))
+                              tutor, room, timeclass))
 
     timetable = pandas.DataFrame(timetable)
     timetable.columns = ['Time', 'Subject', 'Tutor', 'Room']
@@ -449,11 +449,18 @@ def format_student_timetable_data_for_export():
                 tutor = timeclass.tutor.name
             else:
                 tutor = ""
-            timetable.append((student.name, timeclass.subject.subname,
-                              timeclass.timeslot.day + ' ' + timeclass.timeslot.time, tutor, room))
+            timetable.append((
+                student.stucode,
+                student.name,
+                timeclass.subject.subcode,
+                timeclass.subject.subname,
+                timeclass.timeslot.day + ' ' + timeclass.timeslot.time,
+                tutor,
+                room
+            ))
 
     timetable = pandas.DataFrame(timetable)
-    timetable.columns = ['Student', 'Subject', 'Time', 'Tutor', 'Room']
+    timetable.columns = ['StudentId', 'StudentName', 'SubjectCode', 'SubjectName', 'Time', 'Tutor', 'Room']
     return timetable
 
 
