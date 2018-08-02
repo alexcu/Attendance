@@ -702,7 +702,6 @@ def get_all_subjects():
 def get_all_timeslots():
     return Timeslot.get_all()
 
-
 def get_timetable_data(rooms=False):
     '''
     Get all required timetable data from the database
@@ -757,7 +756,7 @@ def get_timetable_data(rooms=False):
         if room.capacity is not None:
             CAPACITIES[room.name] = int(room.capacity)
         else:
-            CAPACITIES[room.name] = appcfg["default_class_size_capacity"]
+            CAPACITIES[room.name] = appcfg["default_room_capacity"]
     numroomsprojector = len(PROJECTORROOMS)
     maxclasssize = appcfg["max_class_size"]
     minclasssize = appcfg["min_class_size"]
@@ -781,24 +780,10 @@ def get_timetable_data(rooms=False):
     for d in day:
         DAYS[d] = set(DAYS[d])
 
-    PREARRANGEDCLASSES = []
-    timetabledclasses = TimetabledClass.get_all()
-    for tutorial in timetabledclasses:
-        dic = {}
-        dic['Subject'] = tutorial.subject.subcode
-        dic['Teacher'] = tutorial.tutor.name
-        dic['Time'] = tutorial.timeslot.day + " " + tutorial.timeslot.time
-        if tutorial.room is not None:
-            dic['Room'] = tutorial.room.name
-        else:
-            dic['Room'] = None
-        PREARRANGEDCLASSES.append(dic)
-
-
 
     if rooms == True:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
-                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES, PREARRANGEDCLASSES)
+                TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS, PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES)
     else:
         return (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
                 TUTORAVAILABILITY, maxclasssize, minclasssize, nrooms)
