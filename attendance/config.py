@@ -14,18 +14,19 @@ appcfg = {
     "startstudyperiod" : "Semester 1",
     # Rooms avaliable (Name, HasProjector?, Capacity)
     "rooms" : [
-        ['GHB1', True, 20],
-        ['GHB2', True, 20],
-        ['GHB3', True, 20],
-        ['GHB4', False, 20],
-        ['GHB5', False, 20],
-        ['GHB6', False, 20],
-        ['GHB7', False, 20],
-        ['Peter Waylen', False, 20],
+        ['GHB1', True, 15],
+        ['GHB2', True, 15],
+        ['GHB3', True, 15],
+        ['GHB4', False, 12],
+        ['GHB5', False, 12],
+        ['GHB6', False, 13],
+        ['GHB7', False, 13],
+        ['Peter Waylen', False, 18],
         ['Ronald Cowan', True, 20],
-        ['Frank Larkins', False, 20],
-        ['Mavis Jackson', True, 20],
-        ['Library Project Room', False, 4]
+        ['Frank Larkins', False, 14],
+        ['Mavis Jackson', True, 15],
+        ['Royce Abbey', False, 20],
+        ['Library Project Room', False, 6]
     ],
     # Timeslots avaliable and preference (True/False)
     "timeslots": [
@@ -51,7 +52,7 @@ appcfg = {
         "subject_name": "Final Subject Name",
         "study_period": "Study Period"
     },
-    "max_class_size": 15,
+    "max_class_size": 16,
     "min_class_size": 0,
     "default_room_capacity": 20
 }
