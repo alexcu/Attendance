@@ -806,25 +806,27 @@ def add_classes_to_timetable(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, su
 
 
 def add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES, subject_vars_with_rooms,
-                                     assign_vars, ROOMS):
+                                     assign_vars, ROOMS, classpop):
+    print("Adding classes to timetable.")
     for m in TEACHERS:
         for j in TEACHERMAPPING[m]:
             subject = Subject.get(subcode=j)
             for k in TIMES:
                 for n in ROOMS:
-                    timesplit = k.split(' ')
-                    timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
-                    tutor = Tutor.get(name=m)
-                    room = Room.query.filter_by(name=n).first()
-                    if subject_vars_with_rooms[(j, k, m, n)].varValue == 1:
-                        timetabledclass = TimetabledClass.create(subjectid=subject.id,
-                                                                 timetable=get_current_timetable().id, time=timeslot.id,
-                                                                 tutorid=tutor.id, roomid=room.id)
-                        for i in SUBJECTMAPPING[j]:
-                            if assign_vars[(i, j, k, m)].varValue == 1:
-                                student = Student.get(name=i)
-                                timetabledclass.students.append(student)
-                                db.session.commit()
+                    if (j,k,m) in classpop.keys():
+                        timesplit = k.split(' ')
+                        timeslot = Timeslot.get(timetable=get_current_timetable().id, day=timesplit[0], time=timesplit[1])
+                        tutor = Tutor.get(name=m)
+                        room = Room.query.filter_by(name=n).first()
+                        if subject_vars_with_rooms[(j, k, m, n)].varValue == 1:
+                            timetabledclass = TimetabledClass.create(subjectid=subject.id,
+                                                                     timetable=get_current_timetable().id, time=timeslot.id,
+                                                                     tutorid=tutor.id, roomid=room.id)
+                            for i in SUBJECTMAPPING[j]:
+                                if assign_vars[(i, j, k, m)].varValue == 1:
+                                    student = Student.get(name=i)
+                                    timetabledclass.students.append(student)
+                                    db.session.commit()
 
 def get_all_rolls():
     path_to_file = app.config['UPLOAD_FOLDER'] + '/rolls' + time.strftime("%Y-%m-%d_%H%M%S") + '.docx'

@@ -182,17 +182,17 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         print("Defining Variables")
         subject_vars_rooms = LpVariable.dicts("SubjectVariablesRooms",
                                               [(j, k, m, n) for m in TEACHERS for j in TEACHERMAPPING[m] for k in TIMES for
-                                               n in ROOMS], 0, 1, LpBinary)
+                                               n in ROOMS if (j,k,m) in classpop.keys()], 0, 1, LpBinary)
 
         teacher_number_rooms = LpVariable.dicts("NumberRoomsTeacher", [(m, n) for m in TEACHERS for n in ROOMS], 0, 1,
                                                 LpBinary)
-        teacher_number_rooms_sum = LpVariable.dicts("NumberRoomsTeacherSum", [(m) for m in TEACHERS], 0, cat=LpInteger)
+        teacher_number_rooms_sum = LpVariable.dicts("NumberRoomsTeacherSum", [(m) for m in TEACHERS], 0)
 
         projector_rooms_sum = LpVariable.dicts("ProjectorRooms", [(j) for j in PROJECTORS])
 
-        populationovershoot = LpVariable.dicts("ProjectorRooms", [(k,n) for k in TIMES for n in ROOMS])
+        populationovershoot = LpVariable.dicts("PopulationOvershoot", [(k,n) for k in TIMES for n in ROOMS])
 
-        poppositive = LpVariable.dicts("PopulationPositivePart", [(k, n) for k in TIMES for n in ROOMS], LpInteger)
+        poppositive = LpVariable.dicts("PopulationPositivePart", [(k, n) for k in TIMES for n in ROOMS])
 
 
 
@@ -201,9 +201,9 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         for m in TEACHERS:
             for n in ROOMS:
                 model2 += teacher_number_rooms[(m, n)] >= 0.01 * lpSum(
-                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
+                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES if (j,k,m) in classpop.keys())
                 model2 += teacher_number_rooms[(m, n)] <= lpSum(
-                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES)
+                    subject_vars_rooms[(j, k, m, n)] for j in TEACHERMAPPING[m] for k in TIMES if (j,k,m) in classpop.keys())
         for m in TEACHERS:
             model2 += teacher_number_rooms_sum[(m)] == lpSum(teacher_number_rooms[(m, n)] for n in ROOMS)
 
@@ -216,26 +216,33 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         for m in TEACHERS:
             for j in TEACHERMAPPING[m]:
                 for k in TIMES:
-                    model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for n in ROOMS) == subject_vars[(j, k, m)].varValue
+                    if (j,k,m) in classpop.keys():
+                        model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for n in ROOMS) == subject_vars[(j, k, m)].varValue
 
 
 
         for m in TEACHERS:
             for j in TEACHERMAPPING[m]:
                 if j in PROJECTORS:
-                    model2 += projector_rooms_sum[(j)] == lpSum(subject_vars_rooms[(j,k,m,n)] for n in PROJECTORROOMS for k in TIMES)
+                    model2 += projector_rooms_sum[(j)] == lpSum(subject_vars_rooms[(j,k,m,n)] for n in PROJECTORROOMS for k in TIMES if (j,k,m) in classpop.keys())
 
         print("Ensuring Uniqueness")
         # Can only have one class in each room at a time.
         for k in TIMES:
             for n in ROOMS:
-                model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m]) <= 1
+                model2 += lpSum(subject_vars_rooms[(j, k, m, n)] for m in TEACHERS for j in TEACHERMAPPING[m] if (j,k,m) in classpop.keys()) <= 1
 
 
         print("Accomodating Capacities")
+
         for k in TIMES:
+
             for n in ROOMS:
-                model2 += populationovershoot[(k,n)] == (lpSum(classpop[(j,k,m)]*subject_vars_rooms[(j,k,m,n)] for m in TEACHERS for j in TEACHERMAPPING[m]) - CAPACITIES[n])
+
+
+
+                model2 += populationovershoot[(k,n)] == (lpSum(classpop[(j,k,m)]*subject_vars_rooms[(j,k,m,n)] for m in TEACHERS for j in TEACHERMAPPING[m] if (j,k,m) in classpop.keys()) - CAPACITIES[n])
+                #print("Second")
                 model2 += poppositive[(k,n)] >= populationovershoot[(k,n)]
                 model2 += poppositive[(k,n)] >= 0
 
@@ -244,13 +251,16 @@ def runtimetable_with_rooms_two_step(STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACH
         print("Setting Objective Function")
         model2 += lpSum(teacher_number_rooms_sum[(m)] for m in TEACHERS) - 50 * lpSum(projector_rooms_sum[(j)] for j in PROJECTORS) +10 * lpSum(poppositive[(k,n)] for k in TIMES for n in ROOMS)
         print("Solve Room Allocation")
+
+
+        model2.writeLP('/Users/justin/Downloads/model2.lp')
         model2.solve()
         print(LpStatus[model2.status])
         if LpStatus[model2.status] == 'Optimal':
             print("Complete")
             print("Adding to Database")
             attendance.models.add_classes_to_timetable_twostep(TEACHERS, TEACHERMAPPING, SUBJECTMAPPING, TIMES,
-                                                               subject_vars_rooms, assign_vars, ROOMS)
+                                                               subject_vars_rooms, assign_vars, ROOMS, classpop)
             print("Status:", LpStatus[model2.status])
     return LpStatus[model.status]
 
@@ -269,6 +279,7 @@ def preparetimetable(addtonewtimetable=False):
 
     (STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING, REPEATS, TEACHERMAPPING,
      TUTORAVAILABILITY, maxclasssize, minclasssize, ROOMS,PROJECTORS, PROJECTORROOMS, numroomsprojector, NONPREFERREDTIMES, CAPACITIES) = attendance.models.get_timetable_data(rooms=True)
+
     print("Everything ready")
     executor.submit(runtimetable_with_rooms_two_step, STUDENTS, SUBJECTS, TIMES, day, DAYS, TEACHERS, SUBJECTMAPPING,
                     REPEATS, TEACHERMAPPING,
