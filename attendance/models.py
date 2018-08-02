@@ -527,6 +527,7 @@ def populate_students(df):
     for index, row in df.iterrows():
         if studyperiod == row[col_study_period]:
             student_name = (str(row[col_student_first_name]) + " " + str(row[col_student_last_name])).strip().title()
+            print("Adding: ", student_name, row[col_subject_code], row[col_subject_name])
             student = Student.get_or_create(studentcode=str(int(row[col_student_id])),
                                             name=student_name,
                                             universityid=University.query.filter_by(
@@ -579,6 +580,7 @@ def populate_availabilities(df):
                 timeslot = Timeslot.get_or_create(day=keysplit[0],
                                                   time=keysplit[1])
                 if row[key] == 1:
+                    print("Assigning timeslot: ", key, row["Tutor"])
                     tutor.addAvailableTime(timeslot)
 
 
@@ -596,6 +598,7 @@ def populate_tutors(df):
         subject = Subject.get(subcode=row["Subject Code"])
         subject.update(repeats=row["Repeats"])
         if subject not in tutor.subjects:
+            print("Assigning tutor: ", row['Tutor'], row["Subject Code"], row["Repeats"])
             subject.addTutor(tutor)
 
 
